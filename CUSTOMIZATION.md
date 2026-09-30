@@ -1003,3 +1003,28 @@ misc/platform_fix_validation/run_windows_file_id.sh /absolute/output-directory
 ```
 
 证据：`../godot-sixth-batch-validation/`。这一批不改变 ClassDB / C# SDK 公共签名；平台行为的真实验证仍需适用环境。
+
+<a id="upstream-seventh-batch"></a>
+## 16. 第七批：RenderingDevice graph 修正
+
+记录：2026-09-30。基于 `3ce6266c`，成对回移 [#120555](https://github.com/godotengine/godot/pull/120555) 与 [#121891](https://github.com/godotengine/godot/pull/121891)。不恢复 Forward+/Mobile 3D renderer，不改 public API。
+
+- graph 先标记当前命令的所有资源，full texture 已在同一命令且 usage 相同时，跳过对应 slice 的重复依赖；不同 usage 仍拒绝。command/usage 索引按 frame 重置
+- NVIDIA driver 启用窄 workaround：没有绑定过 pipeline 的 draw list，其 discardable attachment 使用 STORE；普通驱动和已绑定 pipeline 的路线保持原 DONT_CARE 行为。每个 draw-list begin 重置绑定记录
+
+验证不依赖假 GPU：新增私有 friend test accessor 只准备 graph 的 CPU recording state，不初始化 driver，不提交命令。直接运行真实 command recording，检查 full texture/slice 两种顺序均无 self-edge、后续写命令仍产生正确前后依赖、跨帧索引重置，以及 workaround on/off 与 bound→unbound→bound 的实际 recorded store ops。聚焦 **2/2 cases、24 断言通过**；graph + shader aggregate **14/14、102 断言通过**。
+
+Linux Vulkan editor 编译通过。首次测试声明使用了本基线未定义的 TESTS_ENABLED guard，导致 friend 不生效；改成与现有 ProjectSettings 测试 accessor 一致的私有 friend 后增量构建干净。没有修改类布局或公开方法。**未进行 NVIDIA GPU 执行、driver crash 复现或真实 RD submit 验证**，CPU recording 通过不等于硬件通过。
+
+```sh
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*SeventhFixBatch*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*RenderingDeviceGraph*,*Shader*'
+```
+
+证据：`../godot-seventh-batch-validation/`。未重跑 .NET / release / 跨平台矩阵，未推送或改写冻结包。
+
+### 16.1 持续回移状态
+
+可机读台账：[misc/upstream_sync/status.json](misc/upstream_sync/status.json)。原 43 项 high 中 **35 项已移植、1 项部分移植、7 项待深入验证**；“已移植”指源码集成和本文明确范围的验证，不代表全部平台均运行通过。台账另记录前面已移植的 medium/low 项，不把它们加进 43 项分母。
+
+剩余 high：#115557 nested local-to-scene、#120354 深层重排复制、#119123/#120545 并行 shader cache 与 Metal 锁、#121835 SPIR-V reflection lookup、#122667 Bezier undo/clipboard、#123693 inspector/connection 生命周期。各自的具体待验证点见台账；不为清零计数机械套用补丁。后续可先处理证据充分的小型正确性/性能改进，并继续研究这些剩余项。

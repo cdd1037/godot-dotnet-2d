@@ -1,0 +1,468 @@
+{
+  "updated": "2026-09-30",
+  "source_audit_master": "2490bf30ec229ef3eeda24befb9d80d2226c8d29",
+  "publication": "Local commits only; no push authorized for these batches. Frozen artifacts unchanged.",
+  "scope": "Integration ledger; the original 1362-PR applicability audit remains an immutable snapshot. Ported means source integrated with risk-based verification documented in CUSTOMIZATION.md, not full platform runtime coverage.",
+  "original_high_totals": {
+    "ported": 35,
+    "partially_ported": 1,
+    "needs_deeper_review": 7
+  },
+  "entries": [
+    {
+      "number": 115557,
+      "title": "Fix `resource_local_to_scene` may fail during instantiating scene",
+      "url": "https://github.com/godotengine/godot/pull/115557",
+      "upstream_merge_sha": "bb5b71fd1da8bd779a5d06863ba488a00e70e384",
+      "audit_priority": "high",
+      "status": "needs_deeper_review",
+      "reason": "Needs container cycle/identity and typed fallback tests before adapting recursive local-to-scene remapping."
+    },
+    {
+      "number": 98396,
+      "title": "Fix issue with incomplete property overrides in C# sourcegen",
+      "url": "https://github.com/godotengine/godot/pull/98396",
+      "upstream_merge_sha": "ed3bf90c653409fa0d389b35b60f643abe87c659",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 120087,
+      "title": "Windows: Fix `DirAccess::is_equivalent` for external and network drives",
+      "url": "https://github.com/godotengine/godot/pull/120087",
+      "upstream_merge_sha": "1f8239a668536eefd3f7950393a57b17b794ff30",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "sixth",
+      "checkpoint": "3ce6266c"
+    },
+    {
+      "number": 113204,
+      "title": "Make `NodePath` copy-on-write, to avoid it changing accidentally (through copies)",
+      "url": "https://github.com/godotengine/godot/pull/113204",
+      "upstream_merge_sha": "f6260eb8fcc8555d419d6a84133c8b10e0c9f40b",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "third",
+      "checkpoint": "c09c6ec6"
+    },
+    {
+      "number": 119123,
+      "title": "Allow shader containers to be loaded in parallel.",
+      "url": "https://github.com/godotengine/godot/pull/119123",
+      "upstream_merge_sha": "9700abd3ba77ac3b9119c1bf4cd6e2a8570d4916",
+      "audit_priority": "high",
+      "status": "needs_deeper_review",
+      "reason": "Parallel shader-cache loading changes concurrency and failure paths; review together with Metal cache locking #120545."
+    },
+    {
+      "number": 120128,
+      "title": "Fix Variant double initialization",
+      "url": "https://github.com/godotengine/godot/pull/120128",
+      "upstream_merge_sha": "2e41e531b92cd9e74baa1a0652e49b1faf9f8b39",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "third",
+      "checkpoint": "c09c6ec6"
+    },
+    {
+      "number": 120545,
+      "title": "Metal: Fix data race when loading shader containers",
+      "url": "https://github.com/godotengine/godot/pull/120545",
+      "upstream_merge_sha": "6d9fc126044df61343ffa19ad53d899225599b0b",
+      "audit_priority": "high",
+      "status": "needs_deeper_review",
+      "reason": "Keep paired with #119123; baseline currently serializes the relevant cache loading path and this environment cannot test Metal."
+    },
+    {
+      "number": 112813,
+      "title": "Fix incorrect alignment padding calculation for PCK header in embedded export",
+      "url": "https://github.com/godotengine/godot/pull/112813",
+      "upstream_merge_sha": "e7fbd7dbe1a567100362777ec11131c8138ca048",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 120555,
+      "title": "Fix RDG treating intersecting read-only slices as self dependency.",
+      "url": "https://github.com/godotengine/godot/pull/120555",
+      "upstream_merge_sha": "a7d010ed0b5f435dd867478345abc51c540c5187",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "seventh",
+      "checkpoint": "see git history for this status file"
+    },
+    {
+      "number": 120731,
+      "title": "Fix double free of `custom_ci` RID in `Tree` destructor.",
+      "url": "https://github.com/godotengine/godot/pull/120731",
+      "upstream_merge_sha": "94fca61a84fb414265bc66b75e2136b4147d782f",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 120746,
+      "title": "Make `ptr()` and `span()` lifetime-bound across `CowData` types, and fix lifetime violations with callers",
+      "url": "https://github.com/godotengine/godot/pull/120746",
+      "upstream_merge_sha": "db2d2a9ecc648765417f467743d175f8f6e2a3b2",
+      "audit_priority": "high",
+      "status": "partially_ported",
+      "batch": "sixth",
+      "checkpoint": "3ce6266c",
+      "scope": "ASAP error reporting and PulseAudio UTF-8 owner lifetimes only; input device name correction preserved.",
+      "remaining": "Lifetime annotations and return-reference API changes intentionally not ported; removed MeshDataTool excluded."
+    },
+    {
+      "number": 121100,
+      "title": "Fix `GodotPhysicsDirectBodyState2D::get_velocity_at_local_position()` ignoring custom `center_of_mass`",
+      "url": "https://github.com/godotengine/godot/pull/121100",
+      "upstream_merge_sha": "89e8bc1d1a6eddd0a575b72f63d30376f655c027",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "third",
+      "checkpoint": "c09c6ec6"
+    },
+    {
+      "number": 121163,
+      "title": "Fix incorrect op in `ShaderLanguage::_eval_vector_transform`",
+      "url": "https://github.com/godotengine/godot/pull/121163",
+      "upstream_merge_sha": "fd6016799021dc510d49f65f91dddb5b1ca2f324",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 121277,
+      "title": "Fix the script of value type of `Dictionary` not being set",
+      "url": "https://github.com/godotengine/godot/pull/121277",
+      "upstream_merge_sha": "1d12125cd34c878ef80c67129a1761e77438cbb6",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 121403,
+      "title": "Fix headless mode detection in EditorNode",
+      "url": "https://github.com/godotengine/godot/pull/121403",
+      "upstream_merge_sha": "9b39f0a4a6387fe623b2231055d2b4017e2a79e3",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fourth",
+      "checkpoint": "8cb70345"
+    },
+    {
+      "number": 121525,
+      "title": "Protect empty `CowData` inits.",
+      "url": "https://github.com/godotengine/godot/pull/121525",
+      "upstream_merge_sha": "c5c00e0de95ce9285bf34f25b9840a20db8a64ed",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "third",
+      "checkpoint": "c09c6ec6"
+    },
+    {
+      "number": 121409,
+      "title": "Fix struct comparison crash in shaders",
+      "url": "https://github.com/godotengine/godot/pull/121409",
+      "upstream_merge_sha": "8ccbeaca3e4832df9b4db277e15174c60f2fc2d3",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fourth",
+      "checkpoint": "8cb70345"
+    },
+    {
+      "number": 120126,
+      "title": "Fix memory leak in ConstantNode",
+      "url": "https://github.com/godotengine/godot/pull/120126",
+      "upstream_merge_sha": "d8c3ade8bdbf37a719ccb12fb12a71562f7b784a",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 121785,
+      "title": "Fix uninitialized memory in ShaderLanguage::FunctionNode::Argument",
+      "url": "https://github.com/godotengine/godot/pull/121785",
+      "upstream_merge_sha": "623f06a524674ca243f9647e20e6d27c3d3f1dfe",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fourth",
+      "checkpoint": "8cb70345"
+    },
+    {
+      "number": 121786,
+      "title": "Fix `String.append_utf32_unchecked` undefined behavior with zero span size",
+      "url": "https://github.com/godotengine/godot/pull/121786",
+      "upstream_merge_sha": "1d79f3752e868aff3a967ca0e45c7858a24f86c6",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "third",
+      "checkpoint": "c09c6ec6"
+    },
+    {
+      "number": 121784,
+      "title": "Fix possible reads from a null DockTabContainer in EditorDockManager",
+      "url": "https://github.com/godotengine/godot/pull/121784",
+      "upstream_merge_sha": "6504237279eea29a4c2156882c196871b73d58d2",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fourth",
+      "checkpoint": "8cb70345"
+    },
+    {
+      "number": 121891,
+      "title": "Implement workaround for `STORE_OP_DONT_CARE` crash in NVIDIA drivers.",
+      "url": "https://github.com/godotengine/godot/pull/121891",
+      "upstream_merge_sha": "c3946d9c0bd6200efda4f9e0e6fcc29d481e02e9",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "seventh",
+      "checkpoint": "see git history for this status file"
+    },
+    {
+      "number": 121835,
+      "title": "renderer: Improve SPIR-V reflection performance",
+      "url": "https://github.com/godotengine/godot/pull/121835",
+      "upstream_merge_sha": "d0c1fd08e0bb456b63abbef0ab4b760a08b1bc55",
+      "audit_priority": "high",
+      "status": "needs_deeper_review",
+      "reason": "Performance candidate; needs real SPIR-V corpus and malformed/result-ID allocation checks before adoption."
+    },
+    {
+      "number": 121958,
+      "title": "Make RID_Owners threadsafe in the Dummy Renderer",
+      "url": "https://github.com/godotengine/godot/pull/121958",
+      "upstream_merge_sha": "b460ec416dd94fc121d1c2597aa521359a0d588e",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 121232,
+      "title": "Fix always true condition in `editor/debugger/script_editor_debugger.cpp`",
+      "url": "https://github.com/godotengine/godot/pull/121232",
+      "upstream_merge_sha": "f411eb952aaba3001b614c96f8157b215c2f580f",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fifth",
+      "checkpoint": "f2f95400"
+    },
+    {
+      "number": 121995,
+      "title": "Metal: fix crash using `texture_create_from_extension`",
+      "url": "https://github.com/godotengine/godot/pull/121995",
+      "upstream_merge_sha": "43ac36a10ec0e9b304637d1ef1006c9033bf0534",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "sixth",
+      "checkpoint": "3ce6266c"
+    },
+    {
+      "number": 118229,
+      "title": "Remove `DEBUG_ENABLED` condition from null check in `Callable::callp`",
+      "url": "https://github.com/godotengine/godot/pull/118229",
+      "upstream_merge_sha": "68b54c3ac7f929f14998491e74ee66b1affc48ac",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 122254,
+      "title": "[Editor] Fix crash on closing all scenes.",
+      "url": "https://github.com/godotengine/godot/pull/122254",
+      "upstream_merge_sha": "eb491cb578623d8388a0cfaf1b44e52a482e518e",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fourth",
+      "checkpoint": "8cb70345"
+    },
+    {
+      "number": 121740,
+      "title": "GDScript: fix unhandled division / modulo quotient overflow causes crash.",
+      "url": "https://github.com/godotengine/godot/pull/121740",
+      "upstream_merge_sha": "f1d507fb49cd34a6863b64280f7171db4bfac48a",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fifth",
+      "checkpoint": "f2f95400"
+    },
+    {
+      "number": 121446,
+      "title": "Fix CharacterBody2D BVH performance issue",
+      "url": "https://github.com/godotengine/godot/pull/121446",
+      "upstream_merge_sha": "d238a74a36ebea170d37f1ec9c0793508cb6ae1e",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "second",
+      "checkpoint": "96caefac"
+    },
+    {
+      "number": 122578,
+      "title": "Fixes engine crash when node is missing a name field in a tscn file and has a type",
+      "url": "https://github.com/godotengine/godot/pull/122578",
+      "upstream_merge_sha": "cf2e3df0882fa98891046bb15f7fca99fff0b570",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "third",
+      "checkpoint": "c09c6ec6"
+    },
+    {
+      "number": 122667,
+      "title": "Fix handle mode being dropped for bezier curves in track editor",
+      "url": "https://github.com/godotengine/godot/pull/122667",
+      "upstream_merge_sha": "6f2a20afbad43c3d23bc4965c1fd92f3315c52c9",
+      "audit_priority": "high",
+      "status": "needs_deeper_review",
+      "reason": "Requires adaptation to trimmed animation editor and move/copy/paste/undo regression tests."
+    },
+    {
+      "number": 122935,
+      "title": "Fix editor hanging when a GDExtension library is missing for the platform",
+      "url": "https://github.com/godotengine/godot/pull/122935",
+      "upstream_merge_sha": "2f6b1d167dd068f910ead34aa08a14b52fbfd1a2",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "fourth",
+      "checkpoint": "8cb70345"
+    },
+    {
+      "number": 123319,
+      "title": "glslang: Reduce CPU usage parsing glslang",
+      "url": "https://github.com/godotengine/godot/pull/123319",
+      "upstream_merge_sha": "8c4486ad3e5476aedf073b39c854b6210b3586f0",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "second",
+      "checkpoint": "96caefac"
+    },
+    {
+      "number": 123439,
+      "title": "Metal: Fix crash on startup",
+      "url": "https://github.com/godotengine/godot/pull/123439",
+      "upstream_merge_sha": "2f698aa5fe31d0be68f205ec41aec9365081d364",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "sixth",
+      "checkpoint": "3ce6266c"
+    },
+    {
+      "number": 123448,
+      "title": "[.NET]: Use correct underlying type when marshalling enum `Error`",
+      "url": "https://github.com/godotengine/godot/pull/123448",
+      "upstream_merge_sha": "38ef9d32e883a41747a4b73022e9e24538670591",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 122653,
+      "title": "Fix crash on quit with CanvasTexture leaks",
+      "url": "https://github.com/godotengine/godot/pull/122653",
+      "upstream_merge_sha": "4f2471679ad43db8d58d92db0e34552932d1cbbc",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 123546,
+      "title": "Fix ClassDB default property value race condition.",
+      "url": "https://github.com/godotengine/godot/pull/123546",
+      "upstream_merge_sha": "beb898eddbaa79fc5a4eacae6848d36669824188",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 120354,
+      "title": "Fix wrong values when duplicating scene instances with reordered children",
+      "url": "https://github.com/godotengine/godot/pull/120354",
+      "upstream_merge_sha": "f587776c6df53748f0accf4798a4ab8d3a015151",
+      "audit_priority": "high",
+      "status": "needs_deeper_review",
+      "reason": "Upstream recursive lookup uses root-relative paths from child copies; needs corrected per-level lookup and reordered deep hierarchy tests."
+    },
+    {
+      "number": 110402,
+      "title": "Remove debug macro from `ResourceLoaderBinary` that still evaluated arguments",
+      "url": "https://github.com/godotengine/godot/pull/110402",
+      "upstream_merge_sha": "bb0e47633af893227bde5a06f5d00a765e908a24",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "second",
+      "checkpoint": "96caefac"
+    },
+    {
+      "number": 123580,
+      "title": "Wayland: Ensure popup size is at least 1x1",
+      "url": "https://github.com/godotengine/godot/pull/123580",
+      "upstream_merge_sha": "89699840f03ac905424d4b7622f799751719f9f2",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "sixth",
+      "checkpoint": "3ce6266c"
+    },
+    {
+      "number": 123693,
+      "title": "Use ObjectID in Connections and Inspector docks",
+      "url": "https://github.com/godotengine/godot/pull/123693",
+      "upstream_merge_sha": "dc9675d5266b16f956e988afe6e81ae8ea4fb7af",
+      "audit_priority": "high",
+      "status": "needs_deeper_review",
+      "reason": "Broader inspector/connection callback lifetime conversion needs deletion and deferred callback regression coverage."
+    },
+    {
+      "number": 123739,
+      "title": ".NET: Use StringBuilder to concatenate MSBuild output strings",
+      "url": "https://github.com/godotengine/godot/pull/123739",
+      "upstream_merge_sha": "9197671a5660c94efdd356985ec6ca7d76073209",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "second",
+      "checkpoint": "96caefac"
+    },
+    {
+      "number": 123809,
+      "title": "[Core]: Remove unintended intermediate conversion to `Variant` in `VariantInternalAccessor<Ref<T>>::get`",
+      "url": "https://github.com/godotengine/godot/pull/123809",
+      "upstream_merge_sha": "90148f1c9448e3de59e103611957dd682bbd1852",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "second",
+      "checkpoint": "96caefac"
+    },
+    {
+      "number": 121265,
+      "title": "Add safety check to `Animation::track_move_up` so negative indices don't crash it",
+      "url": "https://github.com/godotengine/godot/pull/121265",
+      "upstream_merge_sha": "b13043816a0f234985030ec035363a005bc86c32",
+      "audit_priority": "high",
+      "status": "ported",
+      "batch": "first",
+      "checkpoint": "d00abd3f"
+    },
+    {
+      "number": 123968,
+      "title": "De-template constant registration, to save on binary size (~1.7mb off)",
+      "url": "https://github.com/godotengine/godot/pull/123968",
+      "upstream_merge_sha": "cd9c5d57fb9795886f3bfed8e2003062e1378178",
+      "audit_priority": "defer",
+      "status": "ported",
+      "batch": "constant-registration",
+      "checkpoint": "5031c516"
+    }
+  ]
+}
