@@ -123,6 +123,11 @@ Copyright: 2020, Manuel Prandini
  2007-2014, Juan Linietsky, Ariel Manzur
 License: Expat
 
+Files: modules/mono/thirdparty/*
+Comment: .NET runtime hosting headers and Android crypto Java support
+Copyright: .NET Foundation and Contributors
+License: Expat
+
 Files: platform/android/java/editor/src/main/java/com/android/*
  platform/android/java/lib/src/main/aidl/com/android/*
  platform/android/java/lib/src/main/res/layout/status_bar_ongoing_event_progress_bar.xml
