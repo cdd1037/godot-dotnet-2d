@@ -39,6 +39,43 @@ TEST_FORCE_LINK(test_variant)
 
 namespace TestVariant {
 
+
+TEST_CASE("[Variant][FifthFixBatch] Integer quotient overflow preserves all evaluation paths") {
+	for (Variant::Operator op : { Variant::OP_DIVIDE, Variant::OP_MODULE }) {
+		const auto validated = Variant::get_validated_operator_evaluator(op, Variant::INT, Variant::INT);
+		const auto ptr = Variant::get_ptr_operator_evaluator(op, Variant::INT, Variant::INT);
+		REQUIRE(validated != nullptr);
+		REQUIRE(ptr != nullptr);
+		for (int64_t numerator : { INT64_MIN, INT64_C(-7), INT64_C(0), INT64_C(7), INT64_MAX }) {
+			for (int64_t denominator : { INT64_C(-1), INT64_C(1), INT64_C(2), INT64_MIN }) {
+				const int64_t expected = op == Variant::OP_DIVIDE ? Math::division_no_overflow(numerator, denominator) : Math::modulo_no_overflow(numerator, denominator);
+				const Variant left = numerator;
+				const Variant right = denominator;
+				Variant result;
+				bool valid = false;
+				Variant::evaluate(op, left, right, result, valid);
+				CHECK(valid);
+				CHECK(result.get_type() == Variant::INT);
+				CHECK(int64_t(result) == expected);
+				Variant initialized = INT64_C(42);
+				validated(&left, &right, &initialized);
+				CHECK(int64_t(initialized) == expected);
+				int64_t raw_result = 42;
+				ptr(&numerator, &denominator, &raw_result);
+				CHECK(raw_result == expected);
+			}
+		}
+		// Public checked evaluation still rejects division/modulo by zero.
+		// Raw and validated evaluators retain their nonzero-denominator precondition.
+		Variant result;
+		bool valid = true;
+		Variant::evaluate(op, Variant(INT64_MIN), Variant(INT64_C(0)), result, valid);
+		CHECK_FALSE(valid);
+		CHECK(result.get_type() == Variant::STRING);
+		CHECK(String(result).contains("zero"));
+	}
+}
+
 TEST_CASE("[Variant][SecondFixBatch] Internal Ref accessor preserves type and ownership") {
 	ObjectID id;
 	Ref<Resource> extracted;

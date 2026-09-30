@@ -955,3 +955,25 @@ misc/editor_stability_validation/run.sh "$PWD/bin/godot.linuxbsd.editor.x86_64.m
 ```
 
 证据：`../godot-fourth-batch-validation/`，包括 provenance.json、构建/原生测试/导入日志与 project.godot 前后摘要。该 shell smoke fixture 针对 Linux 环境设计。
+
+<a id="upstream-fifth-batch"></a>
+## 14. 第五批：原生整数溢出与调试器循环
+
+记录：2026-09-30。基于 `8cb70345`，本地回移 [#121740](https://github.com/godotengine/godot/pull/121740) 与 [#121232](https://github.com/godotengine/godot/pull/121232)。虽然前者标题含 GDScript，本批只修改保留的 Math / Vector2i / Vector3i / Vector4i / Variant 运算，没有恢复 GDScript。
+
+- `INT32_MIN / -1`、`INT64_MIN / -1` 明确定义为原最小值，余数为 0，避免 quotient overflow 引起硬件 trap。普通正负数和边界结果保留原语义
+- Variant checked、validated、ptr 三种 evaluator 都使用新 helper；checked division/modulo by zero 仍返回 invalid 与错误字符串。raw/validated 路线继续要求分母非零，没有借此改变调用约定
+- 当前 math_funcs.h 尚未采用上游的大范围 constexpr 化；仅插入四个独立 helper，没有牵入其他数学重构。C# 自身的纯托管算术与异常语义不在本次变更范围
+- 调试器资源图标回退的祖先遍历由永真 OR 条件改为 AND，遇到 Resource 或空基类正确终止
+
+验证：一个 Linux Mono editor + tests 构建，无编译 warning/error。聚焦 **5/5 cases、236 断言通过**；Math / integer-vector / Variant aggregate **155/155、2,532 断言通过**。上游测试覆盖常量表达式和运行时整数边界；本地补充 native Variant 三条 evaluator 路线与 checked 零分母。
+
+另以 `-O2 -fsanitize=undefined -fno-sanitize-recover=undefined` 直接编译当前真实头文件并运行 volatile 边界输入，UBSan 通过。初始独立 probe 缺平台 include 路径和 `UBSAN_ENABLED` define，补齐编译参数后成功；不是完整引擎 UBSan 构建。可复现源码与脚本在 `misc/integer_math_validation/`。
+
+```sh
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*FifthFixBatch*,*division_no_overflow*,*Division and modulo by -1*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*Math*,*Vector2i*,*Vector3i*,*Vector4i*,*Variant*'
+misc/integer_math_validation/run.sh /absolute/output-directory
+```
+
+调试器 GUI 的图标回退未专项交互测试。没有重复 release / .NET generator / JIT-Trim-AOT / 跨平台矩阵；未推送、未更改冻结产物。证据：`../godot-fifth-batch-validation/`。
