@@ -1,0 +1,61 @@
+{
+  "source_commit": "93e8bff77c1b041fb9c2f2f1c0fcbbb70184d138",
+  "source_tree": "dab90df3f611f967d2f690fad2acf4ce012bd786",
+  "created_utc": "2026-09-30T23:10:53.544044+00:00",
+  "sdk": "10.0.401",
+  "runtime": "10.0.12",
+  "godot_packages": "4.7.2-2dtrim.2",
+  "android_abi": "arm64-v8a",
+  "android_release_lto": "thin, 4 linker threads/backend jobs",
+  "android_min_sdk": 29,
+  "android_target_sdk": 36,
+  "renderer": "Vulkan 1.1 required; 2D/UI only",
+  "texture_fixture": "ETC2; desktop S3TC excluded",
+  "game_apk_signed": false,
+  "passed": {
+    "generator_tests": 66,
+    "native_saf_tests": 3,
+    "native_saf_assertions": 24,
+    "android_jvm_tests": 87,
+    "android_saf_jvm_tests": 70,
+    "sdk_guards": 6,
+    "desktop_jit": true,
+    "apk_static_checks": true,
+    "zipalign_16k": true,
+    "portable_fixture_reexport": true,
+    "ci_helper_tests": 11
+  },
+  "not_verified": [
+    "Android device/emulator startup, Vulkan rendering, crypto, lifecycle, picker grants",
+    "Local trimmed JIT and NativeAOT: .NET 10 ILLink TaskHostFactory cannot create required Unix-domain socket in this environment; pending Windows full CI",
+    "macOS runtime; additional Android ABIs",
+    "Custom Gradle-project game export and AAB export; prebuilt APK route validated"
+  ],
+  "artifacts": {
+    "templates/android_monoDebug.apk": {
+      "bytes": 20358923,
+      "sha256": "d2114df23bae52f36b1ab33a3019c4e7246e7c90957f2db891189abc3cbe736e"
+    },
+    "templates/android_monoRelease.apk": {
+      "bytes": 17594654,
+      "sha256": "8584b904ec1c40bd641574869f28985bbd70d72cd2f6c52ac4499e4a0e9ea8b6"
+    },
+    "templates/android_source.zip": {
+      "bytes": 25770418,
+      "sha256": "6aef8d26c619804b17b7e3865bf7d3606f38001646fb3fa1a7e5f606cc6a36a1"
+    },
+    "templates/godot-lib.template_debug.aar": {
+      "bytes": 13172104,
+      "sha256": "cd49dc247fc627d13d952cd25a2dea8ac0fed00e7cf9a953d58eacb0d19bcd5b"
+    },
+    "templates/godot-lib.template_release.aar": {
+      "bytes": 12703177,
+      "sha256": "e341ef708cffa4ea13a40458f7460322b0d4444648dfdf6e49abb21b5b937e6b"
+    },
+    "validation-unsigned-arm64.apk": {
+      "bytes": 33401886,
+      "sha256": "0d1b20b9985ea2f59d49b7b60fd951aa7f6b14ceae3ee87f041976cba63c090f"
+    }
+  },
+  "delivery_manifest_sha256": "f504edb2eda28d9c09fb576f501de2db7bf816e3c859978f4a508286e408be5f"
+}

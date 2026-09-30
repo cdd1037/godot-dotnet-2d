@@ -1219,14 +1219,37 @@ ASTC 仅作为已知设备支持时的可选格式，不强迫桌面项目更改
 官方工具版本与下载校验保留在工作区 `../godot-android-toolchain/sdk-provenance.json`，
 本轮日志、源码验证项目和包校验位于 `../godot-net10-android-validation/`。
 
-### 10.3 验证状态
+### 10.3 验证结果与限制
 
-进行中，尚未作为完成交付声明。已完成原生 arm64 Debug/Release 非 LTO 编译、Linux editor 编译、
-Android-aware Mono glue 生成，以及原生 SAF 递归目录回归（3 tests / 24 assertions）。
-.NET 10 generator tests 为 66/66；headless editor 的 typed collection / 泛型元数据验证通过；
-Android Mono 托管发布与 6 项 SDK 正反配置保护测试通过。
-最终 APK、三模式桌面回归、SAF JVM 测试和 Android ThinLTO 结果将在交付前补齐。
+生产源码冻结于 `93e8bff77c1b041fb9c2f2f1c0fcbbb70184d138`，tree 为
+`dab90df3f611f967d2f690fad2acf4ce012bd786`；之后的结果文档不冒充二进制源码版本。
+本地已生成匹配的 arm64 Mono Debug/Release APK 模板、AAR、`android_source.zip`，以及
+**未签名的 Release 验证 APK**。后者是 typed collections / 泛型元数据 / ETC2 纹理 smoke fixture，
+不是已签名可安装的正式游戏，也没有通过设备运行验收。
+
+- 原生 arm64 Debug、4-thread ThinLTO Release 与 Linux editor 构建通过；API/工具/SDK 托管构建通过
+- .NET 10 source-generator tests：**66/66**；原生 SAF 递归目录回归：**3 tests / 24 assertions**
+- Android JVM tests：**87/87，无失败或跳过**，其中 SAF 为 **70**，覆盖 API 24/28 与 36
+- APK 编译仍使用 JDK 17；API 36 Robolectric fixture 的独立 test launcher 使用已安装的 JDK 21
+- headless editor 与 self-contained Linux JIT 的 typed native/script collections、闭合泛型元数据、纹理加载通过
+- Android Mono 托管发布及 **6 项 SDK 正反配置保护**通过，包括拒绝 trim/AOT/CoreCLR、错误 runtime patch 与 linux-bionic
+- 最终游戏 APK：仅 arm64，minSdk 29 / targetSdk 36，必需 Vulkan 1.1；Mono 10.0.12 与配对 crypto JNI Java 类齐全
+- 全部 native ELF 的 PT_LOAD alignment 至少 16 KiB；`zipalign -c -P 16`、`aapt2`、ZIP CRC 检查通过
+- ETC2 fixture 存在，未混入桌面 S3TC、CoreCLR/hostfxr 或静态 `.a`；模板和游戏包均检查了 crypto DEX 类
+- 修正了预编译模板仍继承 API 24 的应用最低版本，以及移除 themed icon 文件却残留资源表引用的问题
+
 Android full LTO 在 9.7 GiB 环境中，即使限制 linker threads/partition、停止 Gradle，仍被内存限制终止；
-改用 4-thread ThinLTO。这是当前构建环境限制，不是 Android 不支持 full LTO，也不改变已有桌面 full-LTO 路线。
-无 Android 真机/可用硬件虚拟化环境，静态 APK 与 JVM/provider 测试不等于设备上的 Mono、
-Vulkan、生命周期、SAF picker 权限或 crypto 实机验收。Windows 由第二次同步后的 CI 验证；macOS 仅迁移源码。
+改用已验证的 4-thread ThinLTO。这是构建环境限制，不是 Android 不支持 full LTO，也不改变桌面 full-LTO 路线。
+
+**本地 trimmed JIT 与 NativeAOT 未通过运行验收**：.NET 10 ILLink 的 `TaskHostFactory` 要求 Unix-domain
+socket，而本环境禁止创建该 IPC；两种模式均停在 MSBuild task-host 阶段，没有绕过 task host 或削弱 trim/AOT 检查。
+现有 Windows full/manual CI 已在同一个真实 LTO 模板上增加 JIT / trimmed JIT / NativeAOT 三模式验证，
+普通 push 仍只跑 editor / generator / headless，不增加矩阵；第二阶段同步后须以该 CI 的真实结果为准。
+
+无 Android 真机/可用硬件虚拟化环境；APK 静态检查与 JVM/provider 测试不等于设备上的 Mono 启动、
+Vulkan 渲染、生命周期、SAF picker 权限或 crypto 验收。其它 ABI 未构建，macOS 仅迁移源码。
+Gradle 保留 AGP 8.6.1 对 compileSdk 36 的兼容性提示及既有 Java/Kotlin deprecated API 警告，不称为全链路 warning-free。
+
+结果摘要与 APK hashes：[misc/android_dotnet_validation/results.json](misc/android_dotnet_validation/results.json)。
+工作区交付目录为 `../godot-net10-android-delivery/`，包含模板、未签名 fixture、匹配 NuGet 包、可复现项目、
+许可证、manifest 和关键日志；完整调查及失败尝试保留在 `../godot-net10-android-validation/`。
