@@ -1,0 +1,12 @@
+config_version=5
+
+[application]
+config/name="CI .NET smoke"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.7", "C#")
+
+[dotnet]
+project/assembly_name="CiSmoke"
+
+[rendering]
+renderer/rendering_method="mobile"
