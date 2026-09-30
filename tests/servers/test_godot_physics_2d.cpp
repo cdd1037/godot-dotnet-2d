@@ -37,9 +37,27 @@ TEST_FORCE_LINK(test_godot_physics_2d)
 #ifdef MODULE_GODOT_PHYSICS_2D_ENABLED
 
 #include "modules/godot_physics_2d/godot_body_2d.h"
+#include "modules/godot_physics_2d/godot_body_direct_state_2d.h"
 #include "modules/godot_physics_2d/godot_space_2d.h"
 
 namespace TestGodotPhysics2D {
+
+
+TEST_CASE("[SceneTree][GodotPhysics2D][ThirdFixBatch] Point velocity uses transformed center of mass") {
+	GodotBody2D body;
+	body.set_linear_velocity(Vector2(4, 5));
+	body.set_angular_velocity(2);
+	body.set_param(PhysicsServer2D::BODY_PARAM_CENTER_OF_MASS, Vector2(3, 2));
+	CHECK(body.get_direct_state()->get_velocity_at_local_position(Vector2(3, 2)).is_equal_approx(Vector2(4, 5)));
+	CHECK(body.get_direct_state()->get_velocity_at_local_position(Vector2(4, 4)).is_equal_approx(Vector2(0, 7)));
+	body.set_state(PhysicsServer2D::BODY_STATE_TRANSFORM, Transform2D(Math::PI / 2, Vector2(100, 200)));
+	const Vector2 center = body.get_center_of_mass();
+	CHECK(center.is_equal_approx(Vector2(-2, 3)));
+	CHECK(body.get_direct_state()->get_velocity_at_local_position(center).is_equal_approx(Vector2(4, 5)));
+	CHECK(body.get_direct_state()->get_velocity_at_local_position(center + Vector2(1, 2)).is_equal_approx(Vector2(0, 7)));
+	body.set_param(PhysicsServer2D::BODY_PARAM_CENTER_OF_MASS, Vector2());
+	CHECK(body.get_direct_state()->get_velocity_at_local_position(Vector2(1, 2)).is_equal_approx(Vector2(0, 7)));
+}
 
 struct KinematicFixture {
 	GodotRectangleShape2D shape;

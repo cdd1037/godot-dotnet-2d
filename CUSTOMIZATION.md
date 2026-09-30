@@ -900,3 +900,31 @@ scons platform=linuxbsd target=editor module_mono_enabled=yes tests=yes dev_buil
 bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*ConstantRegistration*'
 python3 misc/constant_registration_validation/compare_api.py /absolute/before /absolute/after
 ```
+
+<a id="upstream-third-batch"></a>
+## 12. 第三批：基础类型与 2D 正确性
+
+记录：2026-09-30。基于 `5031c516`，本地持续回移；未推送，也未覆盖冻结交付物。
+
+| 上游 PR | 实际改动与适配 |
+|---|---|
+| [#113204](https://github.com/godotengine/godot/pull/113204) | NodePath 在 simplify / prepend_period 修改共享数据前执行 copy-on-write；本地额外避免复制尚未有效的未初始化 hash_cache |
+| [#121525](https://github.com/godotengine/godot/pull/121525) | 空 initializer_list 的 CowData 不再分配并写空存储；当前基线不存在 Span 构造器，因此未为了补丁引入新 API |
+| [#121786](https://github.com/godotengine/godot/pull/121786) | 空 UTF-32 span 的 unchecked append 直接返回，避免向 memcpy 传空指针，也不产生无意义的 COW detach |
+| [#120128](https://github.com/godotengine/godot/pull/120128) | Variant change_and_reset 在新建类型后不再重复初始化；local storage 使用值初始化，保留同类型 reset 与 packed array 路线 |
+| [#121100](https://github.com/godotengine/godot/pull/121100) | 2D 点速度按旋转后的自定义质心计算；body origin 的平移不改变该相对坐标语义 |
+| [#122578](https://github.com/godotengine/godot/pull/122578) | tscn node tag 缺少 name 时返回 ERR_FILE_CORRUPT，不把非法索引继续送入场景实例化 |
+
+验证按风险合批：复用 Linux Mono editor + tests 配置，未重复 release、跨平台、source-generator 或 JIT/Trim/AOT 导出矩阵。没有修改公开 ClassDB 方法、属性、信号或托管 SDK。
+
+原生回归：NodePath 预热/未预热 cache、原副本隔离、simplified helper；CowData 空/非空及后续 resize；UTF-32 空 append 不 detach 与非 BMP 字符；Variant 全类型初始化上游测试；2D 自定义/旋转/零质心；根和子节点缺名的坏场景、正常场景加载。
+
+工作区证据：`../godot-third-batch-validation/`。固定 merge/constituent SHA 与 patch SHA-256 在 provenance.json；审计清单保留原始时点，不改写为当前合入清单。
+
+验证结果：聚焦 **6/6 test cases、275 断言通过**；相关 NodePath / String / CowData / Variant / PackedScene / GodotPhysics2D aggregate **181/181、16,114 断言通过**。首次构建有两个测试忽略 nodiscard 返回值的警告，改为检查返回值后增量构建干净；生产代码没有因此改变行为。仅一种 editor 配置，第二次是收尾的增量编译，不是额外测试矩阵。
+
+```sh
+scons platform=linuxbsd target=editor module_mono_enabled=yes tests=yes dev_build=no debug_symbols=no optimize=none lto=none accesskit=no wayland=no -j8
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*ThirdFixBatch*,*VariantInitialization*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*NodePath*,*String*,*CowData*,*Variant*,*PackedScene*,*GodotPhysics2D*,*ThirdFixBatch*'
+```
