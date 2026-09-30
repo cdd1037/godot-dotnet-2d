@@ -16,6 +16,7 @@ public partial class Main : Node2D
         try
         {
             bool requirePruned = OS.GetCmdlineUserArgs().Contains("--require-pruned");
+            InteropRegressionCases.Run(this);
             Check(!ClassDB.ClassExists("GDScript"), "GDScript absent");
             if (requirePruned)
             {

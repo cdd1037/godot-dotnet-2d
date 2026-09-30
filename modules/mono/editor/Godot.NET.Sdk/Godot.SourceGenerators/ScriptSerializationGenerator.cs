@@ -172,7 +172,7 @@ namespace Godot.SourceGenerators
                 source.Append("        info.AddProperty(PropertyName.@")
                     .Append(propertyName)
                     .Append(", ")
-                    .AppendManagedToVariantExpr(string.Concat("this.@", propertyName),
+                    .AppendManagedToVariantExpr(("this.@", propertyName),
                         property.PropertySymbol.Type, property.Type)
                     .Append(");\n");
             }
@@ -186,7 +186,7 @@ namespace Godot.SourceGenerators
                 source.Append("        info.AddProperty(PropertyName.@")
                     .Append(fieldName)
                     .Append(", ")
-                    .AppendManagedToVariantExpr(string.Concat("this.@", fieldName),
+                    .AppendManagedToVariantExpr(("this.@", fieldName),
                         field.FieldSymbol.Type, field.Type)
                     .Append(");\n");
             }
@@ -226,7 +226,7 @@ namespace Godot.SourceGenerators
                     .Append("            this.@")
                     .Append(propertyName)
                     .Append(" = ")
-                    .AppendVariantToManagedExpr(string.Concat("_value_", propertyName),
+                    .AppendVariantToManagedExpr(("_value_", propertyName),
                         property.PropertySymbol.Type, property.Type)
                     .Append(";\n");
             }
@@ -245,7 +245,7 @@ namespace Godot.SourceGenerators
                     .Append("            this.@")
                     .Append(fieldName)
                     .Append(" = ")
-                    .AppendVariantToManagedExpr(string.Concat("_value_", fieldName),
+                    .AppendVariantToManagedExpr(("_value_", fieldName),
                         field.FieldSymbol.Type, field.Type)
                     .Append(";\n");
             }

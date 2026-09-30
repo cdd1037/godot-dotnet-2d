@@ -1,9 +1,7 @@
 using Godot;
 using Godot.NativeInterop;
 
-partial class GenericClass<T>
-{
-partial class NestedClass
+partial class ManagedOnlyConstructor
 {
 #pragma warning disable CS0109 // Disable warning about redundant 'new' keyword
     /// <summary>
@@ -16,7 +14,9 @@ partial class NestedClass
         public static void GetGodotMethodTrampolines(global::Godot.Bridge.MethodTrampolineCollector collector)
         {
         }
+        public new static unsafe void GetGodotConstructorTrampolines(global::Godot.Bridge.ConstructorTrampolineCollector collector)
+        {
+        }
     }
 #pragma warning restore CS0109
-}
 }

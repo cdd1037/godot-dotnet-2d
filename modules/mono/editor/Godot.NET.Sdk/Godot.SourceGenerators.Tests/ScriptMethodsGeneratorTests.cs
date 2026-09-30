@@ -22,4 +22,12 @@ public class ScriptMethodsGeneratorTests
             "ScriptBoilerplate_ScriptMethods.generated.cs", "OuterClass.NestedClass_ScriptMethods.generated.cs"
         );
     }
+    [Fact]
+    public async Task ManagedOnlyConstructor()
+    {
+        await CSharpSourceGeneratorVerifier<ScriptMethodsGenerator>.Verify(
+            "ManagedOnlyConstructor.cs",
+            "ManagedOnlyConstructor_ScriptMethods.generated.cs"
+        );
+    }
 }
