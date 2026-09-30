@@ -215,6 +215,10 @@ typedef struct SpvReflectPrvParser {
   const char*                     source_embedded;
   size_t                          node_count;
   SpvReflectPrvNode*              nodes;
+  // Maps a result id to (node index + 1); 0 means "no node". Sized by the id
+  // bound from the SPIR-V header so FindNode() is O(1) instead of O(node_count).
+  uint32_t                        id_bound;
+  uint32_t*                       node_index_by_id;
   uint32_t                        entry_point_count;
   uint32_t                        capability_count;
   uint32_t                        function_count;
@@ -511,15 +515,20 @@ static bool IsSpecConstant(const SpvReflectPrvNode* p_node) {
 }
 
 static SpvReflectPrvNode* FindNode(SpvReflectPrvParser* p_parser, uint32_t result_id) {
-  SpvReflectPrvNode* p_node = NULL;
+  if (result_id == 0 || result_id >= p_parser->id_bound) {
+    return NULL;
+  }
+  if (p_parser->node_index_by_id != NULL) {
+    uint32_t index_plus_one = p_parser->node_index_by_id[result_id];
+    return index_plus_one ? &(p_parser->nodes[index_plus_one - 1]) : NULL;
+  }
+  // Sparse ID spaces or allocation pressure keep the original bounded-memory path.
   for (size_t i = 0; i < p_parser->node_count; ++i) {
-    SpvReflectPrvNode* p_elem = &(p_parser->nodes[i]);
-    if (p_elem->result_id == result_id) {
-      p_node = p_elem;
-      break;
+    if (p_parser->nodes[i].result_id == result_id) {
+      return &(p_parser->nodes[i]);
     }
   }
-  return p_node;
+  return NULL;
 }
 
 static SpvReflectTypeDescription* FindType(SpvReflectShaderModule* p_module, uint32_t type_id) {
@@ -660,6 +669,8 @@ static void DestroyParser(SpvReflectPrvParser* p_parser) {
     }
 
     SafeFree(p_parser->nodes);
+    SafeFree(p_parser->node_index_by_id);
+    p_parser->id_bound = 0;
     SafeFree(p_parser->strings);
     SafeFree(p_parser->source_embedded);
     SafeFree(p_parser->functions);
@@ -704,6 +715,17 @@ static SpvReflectResult ParseNodes(SpvReflectPrvParser* p_parser) {
   p_parser->nodes = (SpvReflectPrvNode*)calloc(p_parser->node_count, sizeof(*(p_parser->nodes)));
   if (IsNull(p_parser->nodes)) {
     return SPV_REFLECT_RESULT_ERROR_ALLOC_FAILED;
+  }
+  // Allocate the result id -> node lookup table. Word 3 of the header is the id bound.
+  p_parser->id_bound = p_spirv[3];
+  if (p_parser->id_bound == 0) {
+    return SPV_REFLECT_RESULT_ERROR_SPIRV_INVALID_ID_REFERENCE;
+  }
+  // The header is untrusted. Do not let an optional acceleration table turn a
+  // tiny module with a sparse/malformed ID bound into a multi-gigabyte allocation.
+  // A failed optional allocation also falls back to the original linear lookup.
+  if ((uint64_t)p_parser->id_bound <= (uint64_t)node_count * 4 + 1024) {
+    p_parser->node_index_by_id = (uint32_t*)calloc(p_parser->id_bound, sizeof(*(p_parser->node_index_by_id)));
   }
   // Mark all nodes with an invalid state
   for (uint32_t i = 0; i < node_count; ++i) {
@@ -1006,6 +1028,16 @@ static SpvReflectResult ParseNodes(SpvReflectPrvParser* p_parser) {
       case SpvOpSDiv: {
         CHECKED_READU32(p_parser, p_node->word_offset + 2, p_node->result_id);
       } break;
+    }
+
+    // Preserve the original first-match lookup even for malformed duplicate IDs.
+    // OpTypePointer invalidates its preceding OpTypeForwardPointer node above,
+    // so that specific replacement must update the lookup entry.
+    if (p_parser->node_index_by_id != NULL && p_node->result_id != 0 && p_node->result_id < p_parser->id_bound) {
+      uint32_t previous = p_parser->node_index_by_id[p_node->result_id];
+      if (previous == 0 || p_parser->nodes[previous - 1].result_id == 0) {
+        p_parser->node_index_by_id[p_node->result_id] = node_index + 1;
+      }
     }
 
     if (p_node->is_type) {

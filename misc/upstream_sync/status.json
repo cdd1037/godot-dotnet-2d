@@ -4,10 +4,10 @@
   "publication": "Local stage-1 work; parent coordinates one stage-boundary push after validation. No intermediate GitHub writes. Frozen artifacts unchanged.",
   "scope": "Integration ledger; the original 1362-PR applicability audit remains an immutable snapshot. Ported means source integrated with risk-based verification documented in CUSTOMIZATION.md, not full platform runtime coverage.",
   "original_high_totals": {
-    "ported": 37,
+    "ported": 38,
     "partially_ported": 1,
     "deferred": 2,
-    "needs_deeper_review": 3
+    "needs_deeper_review": 2
   },
   "entries": [
     {
@@ -18,7 +18,7 @@
       "audit_priority": "high",
       "status": "ported",
       "batch": "tenth",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "a743a9df"
     },
     {
       "number": 98396,
@@ -236,8 +236,9 @@
       "url": "https://github.com/godotengine/godot/pull/121835",
       "upstream_merge_sha": "d0c1fd08e0bb456b63abbef0ab4b760a08b1bc55",
       "audit_priority": "high",
-      "status": "needs_deeper_review",
-      "reason": "Performance candidate; needs real SPIR-V corpus and malformed/result-ID allocation checks before adoption."
+      "status": "ported",
+      "batch": "eleventh",
+      "checkpoint": "see git history for this status file"
     },
     {
       "number": 121958,
@@ -396,7 +397,7 @@
       "audit_priority": "high",
       "status": "ported",
       "batch": "tenth",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "a743a9df"
     },
     {
       "number": 110402,

@@ -1101,3 +1101,28 @@ bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*PackedScen
 ```
 
 证据：`../godot-tenth-batch-validation/`。台账更新为 **37 high 完整移植、1 部分、2 明确延期、3 继续审查**。#119123/#120545 成对延期原因已落实：异步 shader-cache patch 失去当前创建失败后的源码编译 fallback，失败 placeholder RID 的所有权也需调整；当前串行 driver-call mutex 保留，不把尚未引入的并行 Metal race 当作现存未修故障。
+
+<a id="upstream-eleventh-batch"></a>
+## 20. 第十一批：有界 SPIR-V reflection 索引
+
+记录：2026-09-30。基于 `a743a9df`，适配 [#121835](https://github.com/godotengine/godot/pull/121835)，不引入 shader 并行加载。
+
+- FindNode 为正常 dense result-ID 使用直接索引，避免每次线性扫全部 nodes；保留 forward-pointer 替换
+- **本地安全适配**：header 的 ID bound 是不可信输入，只有 `id_bound <= node_count * 4 + 1024` 才分配可选表；超稀疏/恶意大 bound 或表分配失败均回退原线性查找，避免小文件额外申请数 GiB
+- 对普通重复 ID 保持先匹配节点的旧查找策略；0 / 越界 ID 不索引，zero-bound header 返回非法 ID 错误。vendor patch 已更新为实际本地实现，README 记录差异
+
+验证使用真实 vendored glslang 和 reflection parser，**不提交 GPU 命令**：
+
+1. glslang 生成 vertex、fragment、compute、256-member large compute 四个 SPIR-V corpus，包含 descriptor、数组、push constants、specialization constant、interface variables
+2. 修改前和修改后解析的入口/资源绑定/block layout/变量/spec-constant 摘要逐字节相同
+3. 直接执行生产 parser/FindNode 的 dense / UINT32_MAX sparse bound / 可选 calloc 故障注入 / duplicate ID / forward-pointer / zero、越界 ID 回归，ASan + UBSan 通过。LeakSanitizer 在此执行器 ptrace 环境无法初始化，重跑禁用 leak detector；**不声称 LSan 通过**
+4. Linux Vulkan editor 增量构建干净；graph/shader 原生 aggregate **14/14 cases、102 断言通过**
+
+同一 standalone `-O2` harness 100 次解析的参考计时中，大 corpus 为 baseline 192,585 μs、当前 30,648 μs；小 corpus 的绝对耗时远小。它是单环境合成 reflection 微测量，**不是实际游戏加载、GPU/FPS 或完整 shader 编译收益承诺**。初次 corpus helper 缺 `<cstdint>` 已修正，未改变引擎生产头文件。
+
+```sh
+misc/spirv_reflection_validation/run.sh /absolute/output-directory a743a9df
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*RenderingDeviceGraph*,*Shader*'
+```
+
+可复现工具在 `misc/spirv_reflection_validation/`；工作区证据 `../godot-eleventh-batch-validation/`。冻结包不变。high 台账现在 **38 完整、1 部分、2 明确延期、2 待深入验证**。

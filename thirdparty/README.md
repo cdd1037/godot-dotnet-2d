@@ -1073,6 +1073,7 @@ Patches:
 
 - `0001-zero-size-for-sc-sized-arrays.patch` ([GH-94985](https://github.com/godotengine/godot/pull/94985))
 - `0002-spirv-headers.patch` ([GH-111452](https://github.com/godotengine/godot/pull/111452))
+- `0003-findnode-id-lookup-table.patch` ([GH-121835](https://github.com/godotengine/godot/pull/121835)), locally bounded by input node count with linear fallback on sparse ID bounds/allocation failure, preserving first-match duplicate-ID lookup.
 
 
 ## swappy-frame-pacing
