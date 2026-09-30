@@ -26,6 +26,7 @@ namespace GodotTools.Utils
             public const string FreeBSD = "FreeBSD";
             public const string NetBSD = "NetBSD";
             public const string BSD = "BSD";
+            public const string Android = "Android";
         }
 
         /// <summary>
@@ -36,6 +37,7 @@ namespace GodotTools.Utils
             public const string Windows = "windows";
             public const string MacOS = "macos";
             public const string LinuxBSD = "linuxbsd";
+            public const string Android = "android";
         }
 
         /// <summary>
@@ -48,6 +50,7 @@ namespace GodotTools.Utils
             public const string OSX = "osx";
             public const string Linux = "linux";
             public const string Win10 = "win10";
+            public const string Android = "android";
         }
 
         public static readonly Dictionary<string, string> PlatformFeatureMap = new Dictionary<string, string>(
@@ -58,6 +61,7 @@ namespace GodotTools.Utils
             ["Windows"] = Platforms.Windows,
             ["macOS"] = Platforms.MacOS,
             ["Linux"] = Platforms.LinuxBSD,
+            ["Android"] = Platforms.Android,
         };
 
         public static readonly Dictionary<string, string> PlatformNameMap = new Dictionary<string, string>
@@ -68,6 +72,7 @@ namespace GodotTools.Utils
             [Names.FreeBSD] = Platforms.LinuxBSD,
             [Names.NetBSD] = Platforms.LinuxBSD,
             [Names.BSD] = Platforms.LinuxBSD,
+            [Names.Android] = Platforms.Android,
         };
 
         public static readonly Dictionary<string, string> DotNetOSPlatformMap = new Dictionary<string, string>
@@ -79,6 +84,7 @@ namespace GodotTools.Utils
             // instead of `linux` in the runtime identifier. This would be a problem as
             // Godot has a single export profile for both, named LinuxBSD.
             [Platforms.LinuxBSD] = DotNetOS.Linux,
+            [Platforms.Android] = DotNetOS.Android,
         };
         private static bool IsOS(string name)
         {

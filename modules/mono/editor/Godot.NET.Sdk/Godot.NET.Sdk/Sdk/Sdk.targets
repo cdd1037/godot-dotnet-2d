@@ -49,9 +49,9 @@
   </Target>
 
 
-  <Target Name="ValidateDesktopGodotPlatform" BeforeTargets="PrepareForBuild;Publish">
-    <Error Condition=" '$(GodotTargetPlatform)' != 'windows' and '$(GodotTargetPlatform)' != 'linuxbsd' and '$(GodotTargetPlatform)' != 'macos' " Text="This Godot fork supports only Windows, Linux/BSD, and macOS targets." />
-    <Error Condition=" $(RuntimeIdentifier.StartsWith('android')) or $(RuntimeIdentifier.StartsWith('ios')) or $(RuntimeIdentifier.StartsWith('browser')) or $(RuntimeIdentifier.StartsWith('linux-bionic')) " Text="Mobile and Web runtime identifiers are not supported by this desktop-only Godot fork." />
+  <Target Name="ValidateGodotPlatform" BeforeTargets="PrepareForBuild;Publish">
+    <Error Condition=" '$(GodotTargetPlatform)' != 'windows' and '$(GodotTargetPlatform)' != 'linuxbsd' and '$(GodotTargetPlatform)' != 'macos' and '$(GodotTargetPlatform)' != 'android' " Text="This Godot fork supports Windows, Linux/BSD, macOS, and Android targets." />
+    <Error Condition=" $(RuntimeIdentifier.StartsWith('ios')) or $(RuntimeIdentifier.StartsWith('browser')) or $(RuntimeIdentifier.StartsWith('linux-bionic')) " Text="iOS, Web, and Android CoreCLR runtime identifiers are not supported by this Godot fork." />
   </Target>
 
   <!-- A Godot game is a hosted library. Root its actual native-host entrypoint,
@@ -69,6 +69,8 @@
   </Target>
 
   <Target Name="ValidateGodotTrimMode" BeforeTargets="PrepareForBuild;Publish">
+    <Error Condition=" '$(GodotTargetPlatform)' == 'android' and '$(RuntimeFrameworkVersion)' != '10.0.12' " Text="Android runtime must be 10.0.12 to match the native crypto JAR in this fork’s APK templates." />
+    <Error Condition=" '$(GodotTargetPlatform)' == 'android' and ('$(PublishAot)' == 'true' or '$(PublishTrimmed)' == 'true' or '$(UseMonoRuntime)' != 'true') " Text="Android exports currently require untrimmed .NET 10 Mono. Android CoreCLR, trimming, and NativeAOT are not supported." />
     <Error Condition=" ('$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true') and '$(Configuration)' == 'Debug' " Text="Godot editor assemblies require JIT. Use ExportRelease for trimmed or NativeAOT publishing." />
     <Error Condition=" ('$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true') and '$(GodotSupportLegacyNonTrimSafeAPIs)' == 'true' " Text="Trimmed/NativeAOT games require rebuilt script metadata; disable GodotSupportLegacyNonTrimSafeAPIs." />
     <Error Condition=" '$(PublishAot)' == 'true' and '$(NativeLib)' != 'Shared' " Text="Godot NativeAOT exports must be shared libraries (NativeLib=Shared)." />

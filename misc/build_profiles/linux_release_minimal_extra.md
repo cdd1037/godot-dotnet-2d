@@ -50,7 +50,7 @@ Windows was not rebuilt or runtime-tested.
 
 - This adds no Linux CI or automatic release job. Both minimal-extra profiles
   retain Brotli for the default font.
-- Production remains on .NET 8; this profile does not implement the deferred
+- The measurements above belong to the .NET 8 checkpoint. Current source targets .NET 10; see CUSTOMIZATION.md section 10. This historical profile report does not itself validate the
   .NET 10 or Android migration.
 - The output is a native template, not a complete export with GodotSharp,
   application assemblies or the .NET runtime. Use the matching fork's SDK and

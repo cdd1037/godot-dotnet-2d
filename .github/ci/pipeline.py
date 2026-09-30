@@ -20,7 +20,7 @@ SMOKE = ROOT / "bin/ci-smoke"
 ARTIFACTS = ROOT / "bin/ci-artifacts"
 EDITOR = ROOT / "bin/godot.windows.editor.x86_64.mono.exe"
 TEMPLATE = ROOT / "bin/godot.windows.template_release.x86_64.minimal_extra.mono.exe"
-SDK_VERSION = "8.0.425"
+SDK_VERSION = "10.0.401"
 MARKER = "CI_DOTNET_SMOKE_OK"
 
 
@@ -123,7 +123,7 @@ def prepare_smoke() -> None:
     if not version or not re.fullmatch(r"[A-Za-z0-9.+-]+", version):
         raise RuntimeError("Generated fork SDK version missing or invalid")
     (SMOKE / "CiSmoke.csproj").write_text(
-        f'<Project Sdk="Godot.NET.Sdk/{version}"><PropertyGroup><TargetFramework>net8.0</TargetFramework>'
+        f'<Project Sdk="Godot.NET.Sdk/{version}"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
         "<EnableDynamicLoading>true</EnableDynamicLoading></PropertyGroup></Project>\n",
         encoding="utf-8",
     )
@@ -141,7 +141,11 @@ def prepare_smoke() -> None:
     ET.ElementTree(config).write(SMOKE / "NuGet.Config", encoding="utf-8", xml_declaration=True)
     # The export plugin requires a solution even though `dotnet build` accepts
     # the project alone. Recreate it for deterministic, repeatable CI preparation.
-    run(["dotnet", "new", "sln", "--name", "CiSmoke", "--output", SMOKE, "--force"], "smoke-solution", 60)
+    run(
+        ["dotnet", "new", "sln", "--format", "sln", "--name", "CiSmoke", "--output", SMOKE, "--force"],
+        "smoke-solution",
+        60,
+    )
     run(["dotnet", "sln", SMOKE / "CiSmoke.sln", "add", SMOKE / "CiSmoke.csproj"], "smoke-solution-add", 60)
 
 
@@ -205,25 +209,33 @@ def template() -> None:
 
 
 def export() -> None:
-    # Reuse exactly the tested fork SDK feed; never install an upstream Godot package.
-    destination = ROOT / "bin/ci-export/CiSmoke.exe"
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    (SMOKE / "export_presets.cfg").write_text(
-        '[preset.0]\nname="CI Windows"\nplatform="Windows Desktop"\nrunnable=true\n'
-        'export_filter="all_resources"\nscript_export_mode=2\n\n[preset.0.options]\n'
-        f'custom_template/release="{TEMPLATE.as_posix()}"\n'
-        'binary_format/architecture="x86_64"\nbinary_format/embed_pck=false\n'
-        "dotnet/publish_mode=0\ndotnet/include_debug_symbols=false\n"
-        "dotnet/embed_build_outputs=false\n",
-        encoding="utf-8",
-    )
-    run([EDITOR, "--headless", "--path", SMOKE, "--export-release", "CI Windows", destination], "smoke-export", 900)
-    run(
-        [destination, "--headless", "--quit-after", "600", "--", "--minimal-template"],
-        "smoke-export-runtime",
-        120,
-        MARKER,
-    )
+    # One existing full-build job, one native template, three managed publish modes.
+    # The .NET 10 trimmer uses ordinary MSBuild task-host IPC on this Windows runner.
+    for mode, name in enumerate(["jit", "trimmed-jit", "aot"]):
+        destination = ROOT / f"bin/ci-export/{name}/CiSmoke.exe"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        suffix = "" if mode == 0 else f"-{name}"
+        (SMOKE / "export_presets.cfg").write_text(
+            '[preset.0]\nname="CI Windows"\nplatform="Windows Desktop"\nrunnable=true\n'
+            'export_filter="all_resources"\nscript_export_mode=2\n\n[preset.0.options]\n'
+            f'custom_template/release="{TEMPLATE.as_posix()}"\n'
+            'binary_format/architecture="x86_64"\nbinary_format/embed_pck=false\n'
+            f"dotnet/publish_mode={mode}\ndotnet/include_debug_symbols=false\n"
+            "dotnet/embed_build_outputs=false\n",
+            encoding="utf-8",
+        )
+        output = run(
+            [EDITOR, "--headless", "--path", SMOKE, "--export-release", "CI Windows", destination],
+            f"smoke-export{suffix}",
+            900,
+        )
+        # An export plug-in can log a managed build error while the native exporter returns zero.
+        if "ERROR:" in output:
+            raise RuntimeError(f"Managed {name} export reported an error")
+        args = [destination, "--headless", "--quit-after", "600", "--", "--minimal-template"]
+        if mode == 2:
+            args.append("--expect-aot")
+        run(args, f"smoke-export-runtime{suffix}", 120, MARKER)
 
 
 def archive(name: str, files: list[tuple[Path, str]]) -> Path:
@@ -240,7 +252,12 @@ def archive(name: str, files: list[tuple[Path, str]]) -> Path:
 
 def package() -> None:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
-    for name in ["smoke-editor", "smoke-export-runtime"]:
+    for name in [
+        "smoke-editor",
+        "smoke-export-runtime",
+        "smoke-export-runtime-trimmed-jit",
+        "smoke-export-runtime-aot",
+    ]:
         if MARKER not in (LOGS / f"{name}.log").read_text(encoding="utf-8"):
             raise RuntimeError(f"Missing successful {name}")
     lto = json.loads((LOGS / "lto-verification.json").read_text())
@@ -276,10 +293,9 @@ def package() -> None:
         ),
         "template_profile": "windows_release_minimal_extra.py",
         "template_lto": lto,
-        "runtime_test": "native Windows headless C# untrimmed JIT export",
+        "runtime_test": "native Windows headless C# JIT, trimmed JIT, and NativeAOT exports",
         "limitations": [
             "No Vulkan/display test",
-            "No Windows trimmed-JIT or NativeAOT runtime test",
             "Editor API is a superset; excluded template modules remain unavailable",
         ],
         "files": {p.name: {"bytes": p.stat().st_size, "sha256": sha256(p)} for p in outputs},

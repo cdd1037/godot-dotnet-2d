@@ -7,6 +7,9 @@
 		This class is used to manage directories and their content, even outside of the project folder.
 		[DirAccess] can't be instantiated directly. Instead it is created with a static method that takes a path for which it will be opened.
 		Most of the methods have a static alternative that can be used without creating a [DirAccess]. Static methods only support absolute paths (including [code]res://[/code] and [code]user://[/code]).
+		On Android, a tree URI returned by [method DisplayServer.file_dialog_show] can be opened with [method open]. Directory enumeration, existence checks, navigation, creation, removal, and renaming are supported subject to the document provider's capabilities and the granted permissions. A single-document URI does not grant access to its parent directory.
+		Absolute SAF paths use [code]treeUri#relative/path[/code], with each name URI-encoded using [method String.uri_encode] and [code]/[/code] separating names. Relative arguments to this [DirAccess] instance use ordinary, unencoded names, including those returned by [method get_next]. Navigation cannot go above the selected tree or document anchor. Do not decode or simplify the base URI or interpret its document IDs as filesystem paths.
+		For example, [code]dir.file_exists("100%.txt")[/code] uses an unencoded relative name. To open that file with [FileAccess], use [code]dir.get_current_dir().path_join("100%.txt".uri_encode())[/code]. When constructing a multi-component absolute path, encode each name separately. The absolute fragment is decoded once for compatibility: [code]%2F[/code] denotes a separator, while [code]%252F[/code] denotes the literal name [code]%2F[/code].
 		[codeblock]
 		# Standard
 		var dir = DirAccess.open("user://levels")
@@ -152,6 +155,7 @@
 			<param index="0" name="include_drive" type="bool" default="true" />
 			<description>
 				Returns the absolute path to the currently opened directory (e.g. [code]res://folder[/code] or [code]C:\tmp\folder[/code]).
+				For an Android SAF tree, returns a URI with a normalized, URI-encoded relative fragment. The selected root ends in [code]#[/code]. The complete URI is returned even if [param include_drive] is [code]false[/code].
 			</description>
 		</method>
 		<method name="get_current_drive">
@@ -245,7 +249,7 @@
 		<method name="get_space_left">
 			<return type="int" />
 			<description>
-				Returns the available space on the current directory's disk, in bytes. Returns [code]0[/code] if the platform-specific method to query the available space fails.
+				Returns the available space on the current directory's disk, in bytes. Returns [code]0[/code] if the platform-specific method to query the available space fails. Android SAF providers do not expose this information, so this method returns [code]0[/code] for SAF directories.
 			</description>
 		</method>
 		<method name="is_bundle" qualifiers="const">
@@ -346,6 +350,7 @@
 			<description>
 				Permanently deletes the target file or an empty directory. The argument can be relative to the current directory, or an absolute path. If the target directory is not empty, the operation will fail.
 				If you don't want to delete the file/directory permanently, use [method OS.move_to_trash] instead.
+				[b]Note:[/b] On Android SAF, the selected root cannot be removed. Directories are checked for emptiness before deletion; an incomplete or failed listing prevents deletion. SAF does not provide an atomic delete-if-empty operation, so avoid modifying the directory concurrently.
 				Returns one of the [enum Error] code constants ([constant OK] on success).
 			</description>
 		</method>
@@ -362,6 +367,7 @@
 			<param index="1" name="to" type="String" />
 			<description>
 				Renames (move) the [param from] file or directory to the [param to] destination. Both arguments should be paths to files or directories, either relative or absolute. If the destination file or directory exists and is not access-protected, it will be overwritten.
+				[b]Note:[/b] On Android SAF, both paths must be relative to the same selected tree URI and the destination must not exist. Renaming within a parent is supported when the provider allows it. Moving to another parent requires provider support and an unchanged filename; moving and renaming in one call is unsupported. Standalone document URIs, selected roots, and moves between providers or access scopes are unsupported. No copy-and-delete fallback is performed.
 				Returns one of the [enum Error] code constants ([constant OK] on success).
 			</description>
 		</method>

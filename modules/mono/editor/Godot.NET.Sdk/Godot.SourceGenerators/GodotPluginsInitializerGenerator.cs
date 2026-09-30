@@ -121,9 +121,9 @@ namespace GodotPlugins.Game
             return godot_bool.True;
         }
 
-#if TOOLS
-        [RequiresUnreferencedCode(""TOOLS build of Godot project is not compatible with trimming"")]
-#endif
+// The editor loads projects through GodotPlugins, not this native game entrypoint.
+// .NET 10 rejects RequiresUnreferencedCode on an unmanaged entrypoint (IL2123).
+#if !TOOLS
         [UnmanagedCallersOnly(EntryPoint = ""godotsharp_game_main_init"")]
         private static godot_bool InitializeFromGameProject(IntPtr godotDllHandle, IntPtr outManagedCallbacks,
             IntPtr unmanagedCallbacks, int unmanagedCallbacksSize)
@@ -138,6 +138,7 @@ namespace GodotPlugins.Game
                 return false.ToGodotBool();
             }
         }
+#endif
     }
 }
 ");

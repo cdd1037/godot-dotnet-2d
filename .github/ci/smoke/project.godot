@@ -10,3 +10,6 @@ project/assembly_name="CiSmoke"
 
 [rendering]
 renderer/rendering_method="mobile"
+
+[threading]
+worker_pool/max_threads=4

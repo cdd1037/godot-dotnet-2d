@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <UseMonoRuntime Condition=" '$(UseMonoRuntime)' == '' and '$(PublishAot)' != 'true' ">true</UseMonoRuntime>
+    <RuntimeFrameworkVersion Condition=" '$(RuntimeFrameworkVersion)' == '' ">10.0.12</RuntimeFrameworkVersion>
+  </PropertyGroup>
+</Project>

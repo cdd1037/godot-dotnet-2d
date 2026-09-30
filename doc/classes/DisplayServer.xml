@@ -793,7 +793,7 @@
 				[b]Note:[/b] On macOS, sandboxed apps will save security-scoped bookmarks to retain access to the opened folders across multiple sessions. Use [method OS.get_granted_permissions] to get a list of saved bookmarks.
 				[b]Note:[/b] On Android, this method uses the Android Storage Access Framework (SAF).
 				The file picker returns a URI instead of a filesystem path. This URI can be passed directly to [FileAccess] to perform read/write operations.
-				When using [constant FILE_DIALOG_MODE_OPEN_DIR], it returns a tree URI that grants full access to the selected directory. File operations inside this directory can be performed by passing a path on the form [code]treeUri#relative/path/to/file[/code] to [FileAccess].
+				When using [constant FILE_DIALOG_MODE_OPEN_DIR], it returns a tree URI for the selected directory, subject to the granted permissions and provider capabilities. This URI can also be opened with [method DirAccess.open]. File operations inside this directory can be performed by passing a path on the form [code]treeUri#relative/path/to/file[/code] to [FileAccess]. Encode each relative name with [method String.uri_encode], preserving [code]/[/code] between names; leave the returned tree URI unchanged. See [DirAccess] for navigation and mutation limitations.
 				To avoid opening the file picker again after each app restart, you can take persistable URI permission as follows:
 				[codeblocks]
 				[gdscript]

@@ -3,10 +3,10 @@
 更新：2026-09-30。本文是本 fork 的统一维护入口，记录引擎修改、构建配对、已验证产物和分级待办。
 
 - **冻结包实现检查点**：`36914aeaa5d291f417afc83c70eb3d03feea19b3`；当前开发源码另包含 [第 9 节首批上游正确性回移](#upstream-first-batch)，冻结包未覆盖
-- **当前目标**：2D / .NET 桌面工具链；全平台 .NET 10 升级方向已确认，但尚未完成或合入。Android 目标仍为 .NET 10（`net10.0`）/CoreCLR 普通预编译 APK 模板导出，最新决定暂缓集成，尚未加入桌面分支
-- **迁移状态**：生产源码、已封存桌面包和现有 CI 仍以 .NET 8 为已配置/验证基线；独立迁移草稿保留、不合并，本轮不继续桌面或 Android 迁移。暂缓不等于永久取消 .NET 10 目标
-- **验证状态**：Linux 已完成下述场景的三模式运行；Windows 仅完成交叉编译和静态检查；Android 仅有独立源码补丁与局部测试
-- **交付状态**：产物本地保留，未上传/推送；本次不覆盖、重打或重新发布已冻结的包
+- **当前开发目标**：全平台 .NET 10 工具链与 Android arm64 / Mono APK 导出；本轮恢复 2D、UI、C# 与 SAF，Android CoreCLR / NativeAOT 继续暂缓。当前实现与验收见第 10 节
+- **迁移状态**：当前源码、Windows CI 与新配套 SDK 已迁移至 .NET 10；旧 .NET 8 冻结交付及历史验证不变，不能作为新版本的通过证据
+- **验证状态**：旧包验证按各节历史检查点理解；本轮 .NET 10 / Android 的验证、产物和限制单独记录在第 10 节
+- **交付状态**：第一阶段修复已单独同步；第二阶段 .NET 10 / Android 的提交与验证另行记录。旧冻结包不覆盖
 - **规划归并**：原独立 `long-term-planning/LONG_TERM_PLAN.md` 的全部技术规划已并入本文；旧文件保留为历史快照，后续只维护这里
 
 此前“不将长期规划放入源码”的安排已经由本次统一文档提交取代，但旧归档本身没有改变。
@@ -147,7 +147,7 @@ PR #116300 的 `_Set` / `_Get` 来源已逐字对比官方合并函数，且在�
 
 ### 3.5 三种真正的导出模式
 
-本节记录桌面发布协议及其验证边界；Android 当前目标为 .NET 10（`net10.0`）/CoreCLR 普通预编译 APK 模板导出，不直接继承桌面三模式支持声明，见 A3。
+本节记录桌面发布协议及其验证边界。当前 Android 使用 .NET 10（`net10.0`）/Mono 普通 JIT 预编译 APK 模板，不继承桌面 trimmed JIT / NativeAOT 支持声明；早期 A3 CoreCLR 方案已由第 10 节的新决定取代。
 
 | `dotnet/publish_mode` | 发布物与执行方式 | 脚本/插件边界 |
 |---|---|---|
@@ -1177,3 +1177,56 @@ bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*RenderingD
 完整机读结果和 hashes：[misc/upstream_sync/stage1_lto_comparison.json](misc/upstream_sync/stage1_lto_comparison.json)。工作区保留 before/after 可执行文件、确定性 ZIP、PCK、日志、manifest、API dumps 与配置证据：`../godot-stage1-size-validation/`。历史冻结交付包没有被覆盖。
 
 阶段一原 high 清单最终仍为 **38 完整 + 1 部分 + 4 有具体依据的延期 = 43**。此检查点只等待上层统一推送及随后 .NET 10/Android 阶段；没有把后续迁移预先混入本轮源码或测量。
+
+
+<a id="net10-android"></a>
+## 10. 第二阶段：.NET 10 与 Android Mono / SAF
+
+本节优先于前面历史规划中的“.NET 10 暂缓”或“Android CoreCLR”描述。最新范围是升级桌面工具、
+GodotSharp、游戏项目与 Windows CI，并恢复 Android 2D/UI/C#、SAF 和普通预编译 APK 导出。
+Android CoreCLR、trimmed JIT 与 NativeAOT 暂缓，SDK 与导出器明确拒绝这些组合。
+
+### 10.1 配对与归因
+
+- 构建 SDK `10.0.401`、运行时 `10.0.12`；新生成的 API/SDK/SourceGenerators 包为 `4.7.2-2dtrim.2`
+- 官方迁移来源：[123738](https://github.com/godotengine/godot/pull/123738)，并包含
+  [123869](https://github.com/godotengine/godot/pull/123869) 的最低 SDK 与
+  [123934](https://github.com/godotengine/godot/pull/123934) 的诊断文本修正
+- 分析器/生成器宿主继续使用 `netstandard2.0`；实际引擎 API、工具、测试及游戏目标为 `net10.0`
+- .NET 10 新的依赖 trim/AOT 检查会拒绝二进制 `JetBrains.Annotations`；改用同版本 `2025.2.4`
+  的官方 `JetBrains.Annotations.Sources`，保留严格检查，不全局关闭或压制 trim/AOT 警告
+- Android 基线为 `ed1daf0bf`，SAF 来源为 `5cbce230` 与 `fdaea11a`；只恢复必要的 Android 平台、
+  Mono preload hook、SDK 属性、RID、导出与 JNI 路径，保留本 fork 的静态元数据、构造与发布模式协议
+- crypto JAR 与 Mono Android arm64 runtime 均来自官方 `Microsoft.NETCore.App.Runtime.Mono.android-arm64/10.0.12`；
+  SDK 固定这个 runtime patch，避免普通模板内的 Java crypto 类与导出时 native runtime 漂移
+- [122774](https://github.com/godotengine/godot/pull/122774) 的 Android `.a` 排除规则已纳入打包；
+  `.so` 放入 ABI 目录、托管程序集放入资源包，JAR 去重
+
+### 10.2 保留边界与纹理
+
+默认交付 arm64-v8a、Release APK，并提供匹配的 Debug/Release 模板。其它 ABI 仍有源码导出选项，
+但必须单独构建、配对和验证，不能把 arm64 的结果推广到它们。
+Vulkan 是唯一渲染驱动；Android editor、Java GL/XR 实现、GDScript、3D、OpenGL/GLES、
+XR 与 Android 专用 NetSocket 覆盖没有恢复。低层网络使用原 fork 的通用 POSIX 路线。
+Android profile 对齐桌面 extra 的 2D/UI/字体/音频/C# 模块选择；平台专属 SDL/AccessKit 不用于 Android。
+
+纹理以 ETC2 为基线，项目需启用 `rendering/textures/vram_compression/import_etc2_astc` 并重新导入。
+ASTC 仅作为已知设备支持时的可选格式，不强迫桌面项目更改纹理设置。
+导出检查拒绝非 Vulkan 配置，APK 声明 Vulkan 1.1；默认应用最低 API 29，原生库兼容底线 API 24。
+
+复现入口：[Android 说明](platform/android/README.md)、[构建 profile](misc/build_profiles/android_release_2d.py)、
+[模板脚本](misc/build_profiles/build_android_2d.sh)、[APK 静态检查](misc/android_dotnet_validation/check_apk.py)。
+官方工具版本与下载校验保留在工作区 `../godot-android-toolchain/sdk-provenance.json`，
+本轮日志、源码验证项目和包校验位于 `../godot-net10-android-validation/`。
+
+### 10.3 验证状态
+
+进行中，尚未作为完成交付声明。已完成原生 arm64 Debug/Release 非 LTO 编译、Linux editor 编译、
+Android-aware Mono glue 生成，以及原生 SAF 递归目录回归（3 tests / 24 assertions）。
+.NET 10 generator tests 为 66/66；headless editor 的 typed collection / 泛型元数据验证通过；
+Android Mono 托管发布与 6 项 SDK 正反配置保护测试通过。
+最终 APK、三模式桌面回归、SAF JVM 测试和 Android ThinLTO 结果将在交付前补齐。
+Android full LTO 在 9.7 GiB 环境中，即使限制 linker threads/partition、停止 Gradle，仍被内存限制终止；
+改用 4-thread ThinLTO。这是当前构建环境限制，不是 Android 不支持 full LTO，也不改变已有桌面 full-LTO 路线。
+无 Android 真机/可用硬件虚拟化环境，静态 APK 与 JVM/provider 测试不等于设备上的 Mono、
+Vulkan、生命周期、SAF picker 权限或 crypto 实机验收。Windows 由第二次同步后的 CI 验证；macOS 仅迁移源码。

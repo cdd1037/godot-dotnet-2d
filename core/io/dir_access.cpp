@@ -79,7 +79,10 @@ static Error _erase_recursive(DirAccess *da) {
 	List<String> dirs;
 	List<String> files;
 
-	da->list_dir_begin();
+	Error list_error = da->list_dir_begin();
+	if (list_error != OK) {
+		return list_error;
+	}
 	String n = da->get_next();
 	while (!n.is_empty()) {
 		if (n != "." && n != "..") {
@@ -107,7 +110,7 @@ static Error _erase_recursive(DirAccess *da) {
 			if (err) {
 				return err;
 			}
-			err = da->remove(da->get_current_dir().path_join(E));
+			err = da->remove(E);
 			if (err) {
 				return err;
 			}
@@ -117,7 +120,7 @@ static Error _erase_recursive(DirAccess *da) {
 	}
 
 	for (const String &E : files) {
-		Error err = da->remove(da->get_current_dir().path_join(E));
+		Error err = da->remove(E);
 		if (err) {
 			return err;
 		}

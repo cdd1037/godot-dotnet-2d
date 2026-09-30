@@ -57,6 +57,12 @@
 #include <dlfcn.h>
 #endif
 
+#ifndef TOOLS_ENABLED
+#ifdef ANDROID_ENABLED
+#include "../thirdparty/mono_delegates.h"
+#endif
+#endif
+
 GDMono *GDMono::singleton = nullptr;
 
 namespace {
@@ -72,6 +78,13 @@ typedef int(CORECLR_DELEGATE_CALLTYPE *coreclr_initialize_fn)(const char *exePat
 coreclr_create_delegate_fn coreclr_create_delegate = nullptr;
 coreclr_initialize_fn coreclr_initialize = nullptr;
 
+#ifdef ANDROID_ENABLED
+mono_install_assembly_preload_hook_fn mono_install_assembly_preload_hook = nullptr;
+mono_assembly_name_get_name_fn mono_assembly_name_get_name = nullptr;
+mono_assembly_name_get_culture_fn mono_assembly_name_get_culture = nullptr;
+mono_image_open_from_data_with_name_fn mono_image_open_from_data_with_name = nullptr;
+mono_assembly_load_from_full_fn mono_assembly_load_from_full = nullptr;
+#endif
 #endif
 
 #ifdef _WIN32
@@ -151,7 +164,10 @@ bool try_get_dotnet_root_from_command_line(String &r_dotnet_root) {
 #endif
 
 String find_hostfxr() {
-#ifdef TOOLS_ENABLED
+#if defined(ANDROID_ENABLED)
+	// Android APK templates host Mono, never desktop hostfxr/CoreCLR.
+	return String();
+#elif defined(TOOLS_ENABLED)
 	String dotnet_root;
 	String fxr_path;
 	if (godotsharp::hostfxr_resolver::try_get_path(dotnet_root, fxr_path)) {
@@ -197,6 +213,11 @@ String find_hostfxr() {
 
 #ifndef TOOLS_ENABLED
 String find_monosgen() {
+#if defined(ANDROID_ENABLED)
+	// Android includes all native libraries in the libs directory of the APK
+	// so we assume it exists and use only the name to dlopen it.
+	return "libmonosgen-2.0.so";
+#else
 #if defined(WINDOWS_ENABLED)
 	String probe_path = GodotSharpDirs::get_api_assemblies_dir()
 								.path_join("monosgen-2.0.dll");
@@ -215,8 +236,10 @@ String find_monosgen() {
 	}
 
 	return String();
+#endif
 }
 
+#ifndef ANDROID_ENABLED
 String find_coreclr() {
 #if defined(WINDOWS_ENABLED)
 	String probe_path = GodotSharpDirs::get_api_assemblies_dir()
@@ -237,6 +260,7 @@ String find_coreclr() {
 
 	return String();
 }
+#endif // !ANDROID_ENABLED
 #endif
 
 bool load_hostfxr(void *&r_hostfxr_dll_handle) {
@@ -281,7 +305,12 @@ bool load_hostfxr(void *&r_hostfxr_dll_handle) {
 
 #ifndef TOOLS_ENABLED
 bool load_coreclr(void *&r_coreclr_dll_handle) {
+#ifdef ANDROID_ENABLED
+	// Android templates use Mono only, regardless of unrelated files in the pack.
+	String coreclr_path;
+#else
 	String coreclr_path = find_coreclr();
+#endif
 
 	bool is_monovm = false;
 	if (coreclr_path.is_empty()) {
@@ -314,6 +343,28 @@ bool load_coreclr(void *&r_coreclr_dll_handle) {
 	err = OS::get_singleton()->get_dynamic_library_symbol_handle(lib, "coreclr_create_delegate", symbol);
 	ERR_FAIL_COND_V(err != OK, false);
 	coreclr_create_delegate = (coreclr_create_delegate_fn)symbol;
+
+#ifdef ANDROID_ENABLED
+	err = OS::get_singleton()->get_dynamic_library_symbol_handle(lib, "mono_install_assembly_preload_hook", symbol);
+	ERR_FAIL_COND_V(err != OK, false);
+	mono_install_assembly_preload_hook = (mono_install_assembly_preload_hook_fn)symbol;
+
+	err = OS::get_singleton()->get_dynamic_library_symbol_handle(lib, "mono_assembly_name_get_name", symbol);
+	ERR_FAIL_COND_V(err != OK, false);
+	mono_assembly_name_get_name = (mono_assembly_name_get_name_fn)symbol;
+
+	err = OS::get_singleton()->get_dynamic_library_symbol_handle(lib, "mono_assembly_name_get_culture", symbol);
+	ERR_FAIL_COND_V(err != OK, false);
+	mono_assembly_name_get_culture = (mono_assembly_name_get_culture_fn)symbol;
+
+	err = OS::get_singleton()->get_dynamic_library_symbol_handle(lib, "mono_image_open_from_data_with_name", symbol);
+	ERR_FAIL_COND_V(err != OK, false);
+	mono_image_open_from_data_with_name = (mono_image_open_from_data_with_name_fn)symbol;
+
+	err = OS::get_singleton()->get_dynamic_library_symbol_handle(lib, "mono_assembly_load_from_full", symbol);
+	ERR_FAIL_COND_V(err != OK, false);
+	mono_assembly_load_from_full = (mono_assembly_load_from_full_fn)symbol;
+#endif
 
 	return (coreclr_initialize &&
 			coreclr_create_delegate);
@@ -406,7 +457,7 @@ godot_plugins_initialize_fn initialize_hostfxr_and_godot_plugins(bool &r_runtime
 
 	if (load_assembly_and_get_function_pointer == nullptr) {
 		// Show a message box to the user to make the problem explicit (and explain a potential crash).
-		OS::get_singleton()->alert(TTR("Unable to load .NET runtime, no compatible version was found.\nAttempting to create/edit a project will lead to a crash.\n\nPlease install the .NET SDK 8.0 or later from https://get.dot.net and restart Godot."), TTR("Failed to load .NET runtime"));
+		OS::get_singleton()->alert(TTR("Unable to load .NET runtime, no compatible version was found.\nAttempting to create/edit a project will lead to a crash.\n\nPlease install the .NET SDK 10.0 or later from https://get.dot.net and restart Godot."), TTR("Failed to load .NET runtime"));
 		ERR_FAIL_V_MSG(nullptr, ".NET: Failed to load compatible .NET runtime");
 	}
 
@@ -482,11 +533,72 @@ godot_plugins_initialize_fn try_load_native_aot_library(void *&r_aot_dll_handle)
 #endif
 
 #ifndef TOOLS_ENABLED
+#ifdef ANDROID_ENABLED
+MonoAssembly *load_assembly_from_pck(MonoAssemblyName *p_assembly_name, char **p_assemblies_path, void *p_user_data) {
+	constexpr bool ref_only = false;
+
+	const char *name = mono_assembly_name_get_name(p_assembly_name);
+	const char *culture = mono_assembly_name_get_culture(p_assembly_name);
+
+	String assembly_name;
+	if (culture && strcmp(culture, "")) {
+		assembly_name += culture;
+		assembly_name += "/";
+	}
+	assembly_name += name;
+	if (!assembly_name.ends_with(".dll")) {
+		assembly_name += ".dll";
+	}
+
+	String path = GodotSharpDirs::get_api_assemblies_dir();
+	path = path.path_join(assembly_name);
+
+	print_verbose(".NET: Loading assembly '" + assembly_name + "' from '" + path + "'.");
+
+	if (!FileAccess::exists(path)) {
+		// We could not find the assembly, return null so another hook may find it.
+		return nullptr;
+	}
+
+	Vector<uint8_t> data = FileAccess::get_file_as_bytes(path);
+	ERR_FAIL_COND_V_MSG(data.is_empty(), nullptr, ".NET: Could not read assembly in '" + path + "'.");
+
+	MonoImageOpenStatus status = MONO_IMAGE_OK;
+
+	MonoImage *image = mono_image_open_from_data_with_name(
+			reinterpret_cast<char *>(data.ptrw()), data.size(),
+			/*need_copy*/ true,
+			&status,
+			ref_only,
+			assembly_name.utf8().get_data());
+
+	ERR_FAIL_COND_V_MSG(status != MONO_IMAGE_OK || image == nullptr, nullptr, ".NET: Failed to open assembly image.");
+
+	status = MONO_IMAGE_OK;
+
+	MonoAssembly *assembly = mono_assembly_load_from_full(
+			image, assembly_name.utf8().get_data(),
+			&status,
+			ref_only);
+
+	ERR_FAIL_COND_V_MSG(status != MONO_IMAGE_OK || assembly == nullptr, nullptr, ".NET: Failed to load assembly from image.");
+
+	return assembly;
+}
+#endif
 
 godot_plugins_initialize_fn initialize_coreclr_and_godot_plugins(bool &r_runtime_initialized) {
 	godot_plugins_initialize_fn godot_plugins_initialize = nullptr;
 
 	String assembly_name = Path::get_csharp_project_name();
+
+#ifdef ANDROID_ENABLED
+	// Android requires installing a preload hook to load assemblies from inside the APK,
+	// other platforms can find the assemblies with the default lookup.
+	if (mono_install_assembly_preload_hook != nullptr) {
+		mono_install_assembly_preload_hook(&load_assembly_from_pck, nullptr);
+	}
+#endif
 
 	void *coreclr_handle = nullptr;
 	unsigned int domain_id = 0;
@@ -556,6 +668,10 @@ void GDMono::initialize() {
 	const String publish_mode = has_publish_mode ? FileAccess::get_file_as_string(publish_mode_path).strip_edges() : String();
 	ERR_FAIL_COND_MSG(has_publish_mode && publish_mode != "jit" && publish_mode != "trimmed-jit" && publish_mode != "aot",
 			".NET: Invalid publish-mode marker: " + publish_mode);
+
+#ifdef ANDROID_ENABLED
+	ERR_FAIL_COND_MSG(publish_mode != "jit", ".NET: Android requires an explicit untrimmed Mono JIT export.");
+#endif
 	if (publish_mode == "aot") {
 		// Never let stale JIT files or an installed runtime change an AOT export's mode.
 		void *aot_dll_handle = nullptr;
@@ -587,7 +703,7 @@ void GDMono::initialize() {
 #else
 
 		// Show a message box to the user to make the problem explicit (and explain a potential crash).
-		OS::get_singleton()->alert(TTR("Unable to load .NET runtime, specifically hostfxr.\nAttempting to create/edit a project will lead to a crash.\n\nPlease install the .NET SDK 8.0 or later from https://get.dot.net and restart Godot."), TTR("Failed to load .NET runtime"));
+		OS::get_singleton()->alert(TTR("Unable to load .NET runtime, specifically hostfxr.\nAttempting to create/edit a project will lead to a crash.\n\nPlease install the .NET SDK 10.0 or later from https://get.dot.net and restart Godot."), TTR("Failed to load .NET runtime"));
 		ERR_FAIL_MSG(".NET: Failed to load hostfxr");
 #endif
 	}

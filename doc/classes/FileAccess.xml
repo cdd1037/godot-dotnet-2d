@@ -5,6 +5,7 @@
 	</brief_description>
 	<description>
 		This class can be used to permanently store data in the user device's file system and to read from it. This is useful for storing game save data or player configuration files.
+		On Android, [method DisplayServer.file_dialog_show] can provide Storage Access Framework (SAF) URIs. Files inside a selected tree use [code]treeUri#relative/path/to/file[/code], with each relative name URI-encoded; see [DirAccess]. For compatibility, opening a SAF tree-relative path in a write-capable mode creates missing parent directories when the provider permits it. Read-only opens and metadata queries never create directories or files.
 		[b]Example:[/b] How to write and read from a file. The file named [code]"save_game.dat"[/code] will be stored in the user data folder, as specified in the [url=$DOCS_URL/tutorials/io/data_paths.html]Data paths[/url] documentation:
 		[codeblocks]
 		[gdscript]

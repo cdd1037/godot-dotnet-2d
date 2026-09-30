@@ -1,5 +1,9 @@
 using Godot;
 using System;
+using System.Runtime.CompilerServices;
+
+[assembly: RegisterScriptType(typeof(SmokeRef))]
+[assembly: RegisterScriptType(typeof(SmokeGeneric<int>))]
 
 public partial class Main : Node2D
 {
@@ -35,6 +39,21 @@ public partial class Main : Node2D
                 if (ClassDB.ClassExists("FastNoiseLite") || ClassDB.ClassExists("RegEx"))
                     throw new Exception("Unexpected optional module in minimal template");
             }
+            using var uniform = new RDUniform();
+            using var script = new SmokeRef();
+            using var generic = new SmokeGeneric<int>();
+            var nativeValues = new Godot.Collections.Array<RDUniform> { uniform };
+            using var nativeValuesOwner = (Godot.Collections.Array)nativeValues;
+            var scriptValues = new Godot.Collections.Dictionary<SmokeRef, SmokeGeneric<int>> { [script] = generic };
+            using var scriptValuesOwner = (Godot.Collections.Dictionary)scriptValues;
+            if (nativeValues[0].GetInstanceId() != uniform.GetInstanceId() ||
+                scriptValues[script].GetInstanceId() != generic.GetInstanceId() ||
+                generic.Call("Marker").AsInt32() != 31)
+                throw new Exception("Typed native/script collections or closed generic metadata failed");
+            bool expectAot = Array.IndexOf(OS.GetCmdlineUserArgs(), "--expect-aot") >= 0;
+            if (expectAot && RuntimeFeature.IsDynamicCodeSupported)
+                throw new Exception("NativeAOT export unexpectedly contains a JIT runtime");
+            GD.Print($"CI_DOTNET_RUNTIME dynamic_code={RuntimeFeature.IsDynamicCodeSupported}");
             GD.Print("CI_DOTNET_SMOKE_OK");
             GetTree().Quit(0);
         }
@@ -44,4 +63,16 @@ public partial class Main : Node2D
             GetTree().Quit(1);
         }
     }
+}
+
+
+[NoScriptFileAssociation]
+public partial class SmokeRef : RefCounted
+{
+}
+
+[NoScriptFileAssociation]
+public partial class SmokeGeneric<T> : RefCounted
+{
+    public int Marker() => 31;
 }

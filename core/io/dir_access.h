@@ -108,7 +108,7 @@ public:
 	static bool exists(const String &p_dir);
 	virtual uint64_t get_space_left() = 0;
 
-	Error copy_dir(const String &p_from, String p_to, int p_chmod_flags = -1, bool p_copy_links = false);
+	virtual Error copy_dir(const String &p_from, String p_to, int p_chmod_flags = -1, bool p_copy_links = false);
 	virtual Error copy(const String &p_from, const String &p_to, int p_chmod_flags = -1);
 	virtual Error rename(String p_from, String p_to) = 0;
 	virtual Error remove(String p_name) = 0;

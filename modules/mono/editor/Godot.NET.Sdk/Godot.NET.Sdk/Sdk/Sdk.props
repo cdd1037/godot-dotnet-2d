@@ -84,6 +84,7 @@
   <!-- Auto-detect the target Godot platform if it was not specified. -->
   <PropertyGroup Condition=" '$(GodotTargetPlatform)' == '' ">
 
+    <GodotTargetPlatform Condition=" '$(GodotTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('android')) ">android</GodotTargetPlatform>
     <GodotTargetPlatform Condition=" '$(GodotTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('linux')) ">linuxbsd</GodotTargetPlatform>
     <GodotTargetPlatform Condition=" '$(GodotTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('freebsd')) ">linuxbsd</GodotTargetPlatform>
     <GodotTargetPlatform Condition=" '$(GodotTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('osx')) ">macos</GodotTargetPlatform>
@@ -111,7 +112,7 @@
   <PropertyGroup>
     <NativeLib Condition=" '$(PublishAot)' == 'true' and '$(NativeLib)' == '' ">Shared</NativeLib>
     <GenerateRuntimeConfigurationFiles Condition=" '$(PublishAot)' != 'true' ">true</GenerateRuntimeConfigurationFiles>
-    <!-- .NET 8 linker otherwise removes hostfxr's component activation methods. -->
+    <!-- Preserve component activation methods required by native hosting in trimmed JIT exports. -->
     <_EnableConsumingManagedCodeFromNativeHosting Condition=" '$(PublishTrimmed)' == 'true' and '$(PublishAot)' != 'true' ">true</_EnableConsumingManagedCodeFromNativeHosting>
   </PropertyGroup>
 
@@ -122,13 +123,16 @@
 
     <!--
     Define constant to determine the target Godot platform. This includes the
-    supported desktop platform names and the PC platform category.
+    supported platform names and their PC or MOBILE category.
     -->
     <_GodotPlatformConstants Condition=" '$(GodotTargetPlatform)' == 'windows' ">GODOT_WINDOWS;GODOT_PC</_GodotPlatformConstants>
     <_GodotPlatformConstants Condition=" '$(GodotTargetPlatform)' == 'linuxbsd' ">GODOT_LINUXBSD;GODOT_PC</_GodotPlatformConstants>
     <_GodotPlatformConstants Condition=" '$(GodotTargetPlatform)' == 'macos' ">GODOT_OSX;GODOT_MACOS;GODOT_PC</_GodotPlatformConstants>
 
+    <_GodotPlatformConstants Condition=" '$(GodotTargetPlatform)' == 'android' ">GODOT_ANDROID;GODOT_MOBILE</_GodotPlatformConstants>
+
     <_GodotDefineConstants>$(_GodotDefineConstants);$(_GodotPlatformConstants);$(_GodotVersionConstants)</_GodotDefineConstants>
   </PropertyGroup>
 
+  <Import Project="$(MSBuildThisFileDirectory)\Android.props" Condition=" '$(GodotTargetPlatform)' == 'android' " />
 </Project>

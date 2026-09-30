@@ -88,7 +88,7 @@ namespace GodotTools.Export
                         { "name", "dotnet/publish_mode" },
                         { "type", (int)Variant.Type.Int },
                         { "hint", (int)PropertyHint.Enum },
-                        { "hint_string", "JIT (self-contained),Trimmed JIT (known scripts),NativeAOT (known scripts)" }
+                        { "hint_string", platform.GetOsName() == "Android" ? "JIT (Mono)" : "JIT (self-contained),Trimmed JIT (known scripts),NativeAOT (known scripts)" }
                     }
                 },
                 { "default_value", 0 }
@@ -173,7 +173,7 @@ namespace GodotTools.Export
             if (!TryDeterminePlatformFromOSName(osName, out string? platform))
                 throw new NotSupportedException("Target platform not supported.");
 
-            if (!new[] { OS.Platforms.Windows, OS.Platforms.LinuxBSD, OS.Platforms.MacOS }
+            if (!new[] { OS.Platforms.Windows, OS.Platforms.LinuxBSD, OS.Platforms.MacOS, OS.Platforms.Android }
                     .Contains(platform))
             {
                 throw new NotImplementedException("Target platform not yet implemented.");
@@ -218,8 +218,11 @@ namespace GodotTools.Export
 
             var targets = new List<PublishConfig> { publishConfig };
             int publishMode = (int)GetOption("dotnet/publish_mode");
+            if (platform == OS.Platforms.Android && publishMode != 0)
+                throw new NotSupportedException("Android currently supports untrimmed .NET 10 Mono exports only.");
+            var exportedJars = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            bool embedBuildResults = (bool)GetOption("dotnet/embed_build_outputs") && platform != OS.Platforms.MacOS;
+            bool embedBuildResults = ((bool)GetOption("dotnet/embed_build_outputs") || platform == OS.Platforms.Android) && platform != OS.Platforms.MacOS;
 
             foreach (PublishConfig config in targets)
             {
@@ -299,6 +302,31 @@ namespace GodotTools.Export
                             {
                                 if (embedBuildResults)
                                 {
+                                    if (platform == OS.Platforms.Android)
+                                    {
+                                        string fileName = Path.GetFileName(path);
+                                        // Static archives are linker inputs, not APK runtime payload (#122774).
+                                        if (fileName.EndsWith(".a", StringComparison.OrdinalIgnoreCase))
+                                            return;
+                                        if (fileName.EndsWith(".jar", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            if (exportedJars.Add(fileName))
+                                                AddSharedObject(path, tags: new string[] { arch }, target: "");
+                                            return;
+                                        }
+                                        if (fileName.EndsWith(".so", StringComparison.OrdinalIgnoreCase) ||
+                                            fileName.EndsWith(".dex", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            if (fileName.EndsWith(".so", StringComparison.OrdinalIgnoreCase) && !fileName.StartsWith("lib", StringComparison.Ordinal))
+                                            {
+                                                string newPath = Path.Combine(Path.GetDirectoryName(path)!, "lib" + fileName);
+                                                System.IO.File.Move(path, newPath);
+                                                path = newPath;
+                                            }
+                                            AddSharedObject(path, tags: new string[] { arch }, target: "");
+                                            return;
+                                        }
+                                    }
 
                                     string filePath = SanitizeSlashes(Path.GetRelativePath(publishOutputDir, path));
                                     byte[] fileData = File.ReadAllBytes(path);

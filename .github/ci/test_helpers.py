@@ -112,7 +112,7 @@ class HelperTests(unittest.TestCase):
             versions = root / "modules/mono/SdkPackageVersions.props"
             versions.parent.mkdir(parents=True)
             versions.write_text(
-                "<Project><PropertyGroup><PackageVersion_Godot_NET_Sdk>4.7.2-2dtrim.1"
+                "<Project><PropertyGroup><PackageVersion_Godot_NET_Sdk>4.7.2-2dtrim.2"
                 "</PackageVersion_Godot_NET_Sdk></PropertyGroup></Project>"
             )
             with patch.multiple(pipeline, ROOT=root, SMOKE=smoke), patch("pipeline.run") as run:
@@ -120,13 +120,48 @@ class HelperTests(unittest.TestCase):
                 pipeline.prepare_smoke()
             self.assertEqual(run.call_count, 4)
             expected = [
-                (["dotnet", "new", "sln", "--name", "CiSmoke", "--output", smoke, "--force"], "smoke-solution", 60),
+                (
+                    ["dotnet", "new", "sln", "--format", "sln", "--name", "CiSmoke", "--output", smoke, "--force"],
+                    "smoke-solution",
+                    60,
+                ),
                 (["dotnet", "sln", smoke / "CiSmoke.sln", "add", smoke / "CiSmoke.csproj"], "smoke-solution-add", 60),
             ]
             self.assertEqual([call.args for call in run.call_args_list], expected * 2)
-            self.assertEqual(ET.parse(smoke / "CiSmoke.csproj").getroot().get("Sdk"), "Godot.NET.Sdk/4.7.2-2dtrim.1")
+            self.assertEqual(ET.parse(smoke / "CiSmoke.csproj").getroot().get("Sdk"), "Godot.NET.Sdk/4.7.2-2dtrim.2")
             feed = ET.parse(smoke / "NuGet.Config").find(".//packageSources/add[@key='fork']")
             self.assertEqual(feed.get("value"), str(root / "bin/GodotSharp/Tools/nupkgs"))
+
+    def test_full_export_runs_three_modes_on_one_template(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            smoke = root / "smoke"
+            smoke.mkdir()
+            with patch.multiple(pipeline, ROOT=root, SMOKE=smoke), patch("pipeline.run", return_value="") as run:
+                pipeline.export()
+            self.assertEqual(run.call_count, 6)
+            calls = [call.args for call in run.call_args_list]
+            self.assertEqual(
+                [calls[i][1] for i in [0, 2, 4]], ["smoke-export", "smoke-export-trimmed-jit", "smoke-export-aot"]
+            )
+            self.assertNotIn("--expect-aot", calls[1][0])
+            self.assertNotIn("--expect-aot", calls[3][0])
+            self.assertIn("--expect-aot", calls[5][0])
+            self.assertTrue(all(calls[i][3] == pipeline.MARKER for i in [1, 3, 5]))
+            self.assertIn("dotnet/publish_mode=2", (smoke / "export_presets.cfg").read_text())
+
+    def test_export_rejects_logged_errors_even_with_zero_exit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            smoke = root / "smoke"
+            smoke.mkdir()
+            with (
+                patch.multiple(pipeline, ROOT=root, SMOKE=smoke),
+                patch("pipeline.run", return_value="ERROR: failed") as run,
+            ):
+                with self.assertRaises(RuntimeError):
+                    pipeline.export()
+            self.assertEqual(run.call_count, 1)
 
     def test_published_and_foreign_releases_are_rejected(self):
         draft = {"draft": True, "target_commitish": "abc", "body": "<!-- ci-source-sha: abc -->"}

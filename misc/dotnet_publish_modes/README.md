@@ -37,3 +37,12 @@ Compare the same scene, native template, RID, configuration, globalization setti
 The SDK does not force invariant globalization. Tests of Godot's Chinese text rendering do not validate .NET culture APIs. A normal-globalization comparison must exercise those APIs independently.
 
 Current development: Linux x86_64 / .NET SDK 8.0.425. Windows and macOS source is retained but these publishing modes have not been validated on those systems.
+
+## .NET 10 migration
+
+The current source targets .NET SDK 10.0.401 / runtime 10.0.12 and custom SDK
+`4.7.2-2dtrim.2`. The .NET 8 results above are historical. The native-host trim
+property is retained and rechecked as part of the migration. Android is explicitly
+limited to untrimmed .NET 10 Mono with the matching 10.0.12 crypto JAR; desktop
+trimmed-JIT/NativeAOT settings must not be applied to Android. See CUSTOMIZATION.md
+section 10 for the current validation matrix and limits.

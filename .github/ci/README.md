@@ -43,15 +43,15 @@ attachments remain associated with the Release. No repository name is hardcoded.
 ## Compiler, versions, and LTO evidence
 
 - Runner: `windows-2022`, native MSVC toolset family `14.3`, x64; SCons `4.10.1`
-- Python `3.12.10`, .NET SDK `8.0.425`, Ruff `0.15.8`, actionlint `1.7.7`
+- Python `3.12.10`, .NET SDK `10.0.401`, Ruff `0.15.8`, actionlint `1.7.7`
 - AccessKit `0.22.3` official Godot release, pinned SHA-256; MSVC x64 files only
 - All GitHub actions are pinned to verified full commit SHAs
 
 The hosted Windows image/MSVC servicing revision can change. It is not a frozen
 compiler container; the SCons environment and build logs record the selected
 compiler/SDK configuration. Pinning .NET is enforced in the disposable checkout
-by replacing its `global.json` selectors, so preinstalled .NET 9/10 cannot silently
-replace .NET 8. These temporary changes are not committed or packaged as source.
+by replacing its `global.json` selectors, so preinstalled newer .NET SDKs cannot silently
+replace .NET 10. These temporary changes are not committed or packaged as source.
 
 The editor uses `optimize=speed lto=none`. The template uses
 `misc/build_profiles/windows_release_minimal_extra.py` with `lto=full` and
@@ -75,24 +75,29 @@ runner-image/compiler/profile keys, each capped at 2 GiB. Native compile jobs us
 projects. The smoke project maps the four Godot package IDs exclusively to the
 new local fork feed, not official Godot packages with a colliding version.
 Preparation also creates `CiSmoke.sln` and adds its project with the pinned .NET
-SDK: the export plugin requires a solution, even when a project-only build passes.
+SDK, explicitly using `--format sln` because .NET 10 defaults to `.slnx`: the export
+plugin requires the classic solution, even when a project-only build passes.
 
 The normal editor retains its broader module API. The minimal template disables
 optional modules and retains the previously agreed navigation/deprecated APIs.
 The smoke exercises Node2D, Control, World2D/physics bindings, TileMapLayer,
-2D shapes, generated signal dispatch, and template module exclusions. It requires
+2D shapes, generated signal dispatch, typed native/script collections, a closed
+generic script, and template module exclusions. It requires
 an explicit success marker and exit code 0; a timeout/forced quit is not success.
 A successful smoke does not make disabled module APIs available. Reimport old
 Basis Universal assets or explicitly add the required module before using them.
 
-Headless smoke does not test Vulkan rendering or a desktop UI. The export test is
-self-contained untrimmed JIT (`dotnet/publish_mode=0`); it does not certify Windows
-trimmed JIT or NativeAOT. These remain separate validation work.
+Headless smoke does not test Vulkan rendering or a desktop UI. Full/manual builds
+export and run the same project and native LTO template in untrimmed JIT, trimmed
+JIT and NativeAOT modes. The AOT run additionally rejects a runtime with dynamic
+code support. This uses the runner’s normal MSBuild task host, without local
+sandbox workarounds. Normal push builds retain the editor/generator/headless checks;
+the three exported modes run only in the existing full-build pipeline.
 
 ## Tag and package-version policy
 
 A tag names a tested source commit; it does **not** rewrite `version.py` or change
-the generated NuGet version. The current `4.7.2-2dtrim.1` package version is included
+the generated NuGet version. The current `4.7.2-2dtrim.2` package version is included
 in the manifest and draft notes. Before distributing different source versions
 through a shared feed, give them unique package versions in a reviewed version
 change. Never overwrite a published NuGet version or move a published tag.
