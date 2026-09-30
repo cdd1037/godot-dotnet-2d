@@ -443,6 +443,11 @@ bool CSharpLanguage::handles_global_class_type(const String &p_type) const {
 }
 
 String CSharpLanguage::get_global_class_name(const String &p_path, String *r_base_type, String *r_icon_path, bool *r_is_abstract, bool *r_is_tool) const {
+	// ScriptServer may query classes while initialization is failing. No callbacks
+	// are valid until the managed side has completed its handshake.
+	if (!GDMonoCache::godot_api_cache_updated) {
+		return String();
+	}
 	String class_name;
 	GDMonoCache::managed_callbacks.ScriptManagerBridge_GetGlobalClassName(&p_path, r_base_type, r_icon_path, r_is_abstract, r_is_tool, &class_name);
 	return class_name;
@@ -678,7 +683,7 @@ void CSharpLanguage::reload_assemblies(bool p_soft_reload) {
 
 			Array serialized_data;
 
-			bool success = GDMonoCache::managed_callbacks.DelegateUtils_TrySerializeDelegateWithGCHandle(
+			bool success = GDMonoCache::tools_managed_callbacks.DelegateUtils_TrySerializeDelegateWithGCHandle(
 					managed_callable->delegate_handle, &serialized_data);
 
 			if (success) {
@@ -765,7 +770,7 @@ void CSharpLanguage::reload_assemblies(bool p_soft_reload) {
 
 			Dictionary properties;
 
-			GDMonoCache::managed_callbacks.CSharpInstanceBridge_SerializeState(
+			GDMonoCache::tools_managed_callbacks.CSharpInstanceBridge_SerializeState(
 					csi->get_gchandle_intptr(), &properties, &state.event_signals);
 
 			for (const Variant *s = properties.next(nullptr); s != nullptr; s = properties.next(s)) {
@@ -873,7 +878,7 @@ void CSharpLanguage::reload_assemblies(bool p_soft_reload) {
 				continue;
 			}
 		} else {
-			bool success = GDMonoCache::managed_callbacks.ScriptManagerBridge_TryReloadRegisteredScriptWithClass(scr.ptr());
+			bool success = GDMonoCache::tools_managed_callbacks.ScriptManagerBridge_TryReloadRegisteredScriptWithClass(scr.ptr());
 
 			if (!success) {
 				// Couldn't reload
@@ -974,7 +979,7 @@ void CSharpLanguage::reload_assemblies(bool p_soft_reload) {
 
 			GCHandleIntPtr delegate = { nullptr };
 
-			bool success = GDMonoCache::managed_callbacks.DelegateUtils_TryDeserializeDelegateWithGCHandle(
+			bool success = GDMonoCache::tools_managed_callbacks.DelegateUtils_TryDeserializeDelegateWithGCHandle(
 					&serialized_data, &delegate);
 
 			if (success) {
@@ -1011,7 +1016,7 @@ void CSharpLanguage::reload_assemblies(bool p_soft_reload) {
 				}
 
 				// Restore serialized state and call OnAfterDeserialize.
-				GDMonoCache::managed_callbacks.CSharpInstanceBridge_DeserializeState(
+				GDMonoCache::tools_managed_callbacks.CSharpInstanceBridge_DeserializeState(
 						csi->get_gchandle_intptr(), &properties, &state_backup.event_signals);
 			}
 		}
@@ -1502,7 +1507,8 @@ bool CSharpInstance::set(const StringName &p_name, const Variant &p_value) {
 	if (unlikely(script->should_fallback_to_legacy_trampolines)) {
 		// The legacy CSharpInstanceBridge.Set already calls "_set" as a last resort,
 		// so don't continue after this branch.
-		return GDMonoCache::managed_callbacks.CSharpInstanceBridge_Set(
+		ERR_FAIL_NULL_LEGACY_CALLBACK_V(CSharpInstanceBridge_LegacySet, false);
+		return GDMonoCache::managed_callbacks.CSharpInstanceBridge_LegacySet(
 				gchandle.get_intptr(), &p_name, &p_value);
 	}
 
@@ -1542,8 +1548,10 @@ bool CSharpInstance::get(const StringName &p_name, Variant &r_ret) const {
 		// The legacy CSharpInstanceBridge.Get already handles signal and method objects,
 		// and calls "_get" as a last resort, so don't continue after this branch.
 
+		ERR_FAIL_NULL_LEGACY_CALLBACK_V(CSharpInstanceBridge_LegacyGet, false);
+
 		Variant ret_value;
-		if (GDMonoCache::managed_callbacks.CSharpInstanceBridge_Get(gchandle.get_intptr(), &p_name, &ret_value)) {
+		if (GDMonoCache::managed_callbacks.CSharpInstanceBridge_LegacyGet(gchandle.get_intptr(), &p_name, &ret_value)) {
 			r_ret = ret_value;
 			return true;
 		}
@@ -1729,7 +1737,9 @@ bool CSharpInstance::has_method(const StringName &p_method) const {
 		return false;
 	}
 
-	return GDMonoCache::managed_callbacks.CSharpInstanceBridge_HasMethodUnknownParams(
+	ERR_FAIL_NULL_LEGACY_CALLBACK_V(CSharpInstanceBridge_LegacyHasMethodUnknownParams, false);
+
+	return GDMonoCache::managed_callbacks.CSharpInstanceBridge_LegacyHasMethodUnknownParams(
 			gchandle.get_intptr(), &p_method);
 }
 
@@ -1782,8 +1792,11 @@ Variant CSharpInstance::_callp(const StringName &p_method, const Variant **p_arg
 		return Variant();
 	}
 
+	ERR_FAIL_NULL_LEGACY_CALLBACK_V_SET_CALL_ERROR(CSharpInstanceBridge_LegacyCall,
+			Variant(), r_error, CALL_ERROR_INVALID_METHOD);
+
 	Variant ret;
-	GDMonoCache::managed_callbacks.CSharpInstanceBridge_Call(
+	GDMonoCache::managed_callbacks.CSharpInstanceBridge_LegacyCall(
 			gchandle.get_intptr(), &p_method, p_args, p_argcount, &r_error, &ret);
 
 	return ret;
@@ -1822,7 +1835,10 @@ void CSharpInstance::raise_event_signal(const StringName &p_event_signal_name, c
 		return;
 	}
 
-	GDMonoCache::managed_callbacks.ScriptManagerBridge_RaiseEventSignal(
+	ERR_FAIL_NULL_LEGACY_CALLBACK_SET_CALL_ERROR(ScriptManagerBridge_LegacyRaiseEventSignal,
+			r_error, CALL_ERROR_INVALID_METHOD);
+
+	GDMonoCache::managed_callbacks.ScriptManagerBridge_LegacyRaiseEventSignal(
 			gchandle.get_intptr(), &p_event_signal_name,
 			p_args, p_argcount, &owner_is_null);
 
@@ -1877,6 +1893,7 @@ bool CSharpInstance::_unreference_owner_unsafe() {
 }
 
 bool CSharpScript::_unchecked_create_managed_for_godot_object_script_instance(Object *p_owner, const Variant **p_args, int p_argcount) {
+	// Must be checked by callers.
 	DEV_ASSERT(p_owner != nullptr);
 	DEV_ASSERT(can_instantiate());
 
@@ -1892,8 +1909,10 @@ bool CSharpScript::_unchecked_create_managed_for_godot_object_script_instance(Ob
 		}
 	}
 
+	ERR_FAIL_NULL_LEGACY_CALLBACK_V(ScriptManagerBridge_LegacyCreateManagedForGodotObjectScriptInstance, false);
+
 	// Legacy version.
-	return GDMonoCache::managed_callbacks.ScriptManagerBridge_CreateManagedForGodotObjectScriptInstance(
+	return GDMonoCache::managed_callbacks.ScriptManagerBridge_LegacyCreateManagedForGodotObjectScriptInstance(
 			this, p_owner, p_args, p_argcount);
 }
 
@@ -1902,7 +1921,16 @@ bool CSharpInstance::_internal_new_managed() {
 
 	ERR_FAIL_NULL_V(owner, false);
 	ERR_FAIL_COND_V(script.is_null(), false);
-	ERR_FAIL_COND_V(!script->can_instantiate(), false);
+
+	if (unlikely(!script->type_info.can_instantiate())) {
+		ERR_FAIL_COND_V_MSG(script->type_info.is_abstract, false,
+				vformat("Cannot create script instance because the class '%s' is abstract. Script: '%s'.",
+						script->type_info.class_name, script->get_path()));
+		ERR_FAIL_COND_V_MSG(script->type_info.is_generic_type_definition, false,
+				vformat("Cannot create script instance because the class '%s' is a generic type definition. Script: '%s'.",
+						script->type_info.class_name, script->get_path()));
+		ERR_FAIL_V_MSG(false, "Cannot instantiate C# script. Script: '" + script->get_path() + "'.");
+	}
 
 	const bool ok = script->_unchecked_create_managed_for_godot_object_script_instance(owner, nullptr, 0);
 
@@ -2574,7 +2602,15 @@ StringName CSharpScript::get_instance_base_type() const {
 }
 
 CSharpInstance *CSharpScript::_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_is_ref_counted, Callable::CallError &r_error) {
-	ERR_FAIL_COND_V_MSG(!type_info.can_instantiate(), nullptr, "Cannot instantiate C# script. Script: '" + get_path() + "'.");
+	if (unlikely(!type_info.can_instantiate())) {
+		ERR_FAIL_COND_V_MSG(type_info.is_abstract, nullptr,
+				vformat("Cannot create script instance because the class '%s' is abstract. Script: '%s'.",
+						type_info.class_name, get_path()));
+		ERR_FAIL_COND_V_MSG(type_info.is_generic_type_definition, nullptr,
+				vformat("Cannot create script instance because the class '%s' is a generic type definition. Script: '%s'.",
+						type_info.class_name, get_path()));
+		ERR_FAIL_V_MSG(nullptr, "Cannot instantiate C# script. Script: '" + get_path() + "'.");
+	}
 
 	/* STEP 1, CREATE */
 
@@ -2633,12 +2669,9 @@ Variant CSharpScript::_new(const Variant **p_args, int p_argcount, Callable::Cal
 
 	r_error.error = Callable::CallError::CALL_OK;
 
-	StringName native_name;
-	GDMonoCache::managed_callbacks.ScriptManagerBridge_GetScriptNativeName(this, &native_name);
+	ERR_FAIL_COND_V(type_info.native_base_name == StringName(), Variant());
 
-	ERR_FAIL_COND_V(native_name == StringName(), Variant());
-
-	Object *owner = ClassDB::instantiate(native_name);
+	Object *owner = ClassDB::instantiate(type_info.native_base_name);
 
 	Ref<RefCounted> ref;
 	RefCounted *r = Object::cast_to<RefCounted>(owner);
@@ -2666,18 +2699,15 @@ ScriptInstance *CSharpScript::instance_create(Object *p_this) {
 	CRASH_COND(!valid);
 #endif // DEBUG_ENABLED
 
-	StringName native_name;
-	GDMonoCache::managed_callbacks.ScriptManagerBridge_GetScriptNativeName(this, &native_name);
+	ERR_FAIL_COND_V(type_info.native_base_name == StringName(), nullptr);
 
-	ERR_FAIL_COND_V(native_name == StringName(), nullptr);
-
-	if (!ClassDB::is_parent_class(p_this->get_class_name(), native_name)) {
+	if (!p_this->is_class(type_info.native_base_name)) {
 		if (EngineDebugger::is_active()) {
 			CSharpLanguage::get_singleton()->debug_break_parse(get_path(), 0,
-					"Script inherits from native type '" + String(native_name) +
+					"Script inherits from native type '" + String(type_info.native_base_name) +
 							"', so it can't be assigned to an object of type: '" + p_this->get_class() + "'");
 		}
-		ERR_FAIL_V_MSG(nullptr, "Script inherits from native type '" + String(native_name) + "', so it can't be assigned to an object of type: '" + p_this->get_class() + "'.");
+		ERR_FAIL_V_MSG(nullptr, "Script inherits from native type '" + String(type_info.native_base_name) + "', so it can't be assigned to an object of type: '" + p_this->get_class() + "'.");
 	}
 
 	Callable::CallError unchecked_error;
@@ -2818,8 +2848,10 @@ bool CSharpScript::_callp_static(const CSharpScript *p_script, const StringName 
 		return false;
 	}
 
+	ERR_FAIL_NULL_LEGACY_CALLBACK_V(ScriptManagerBridge_LegacyCallStatic, false);
+
 	Variant ret;
-	return GDMonoCache::managed_callbacks.ScriptManagerBridge_CallStatic(
+	return GDMonoCache::managed_callbacks.ScriptManagerBridge_LegacyCallStatic(
 			p_script, &p_method, p_args, p_argcount, &r_error, &ret);
 }
 

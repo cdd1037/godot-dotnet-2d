@@ -169,49 +169,58 @@ namespace Godot.SourceGenerators
 
             source.Append("    }\n"); // end of class MethodName
 
+            source.Append("    ").Append(symbol.IsSealed ? "private " : "protected ")
+                .Append("new static partial class GodotInternal\n    {\n");
+
             // Generate GetGodotMethodList
 
-            if (godotClassMethods.Length > 0)
             {
                 const string ListType = "global::System.Collections.Generic.List<global::Godot.Bridge.MethodInfo>";
 
-                source.Append("    /// <summary>\n")
-                    .Append("    /// Get the method information for all the methods declared in this class.\n")
-                    .Append("    /// This method is used by Godot to register the available methods in the editor.\n")
-                    .Append("    /// Do not call this method.\n")
-                    .Append("    /// </summary>\n");
+                source.Append("        /// <summary>\n")
+                    .Append("        /// Get the method information for all the methods declared in this class.\n")
+                    .Append(
+                        "        /// This method is used by Godot to register the available methods in the editor.\n")
+                    .Append("        /// Do not call this method.\n")
+                    .Append("        /// </summary>\n");
 
-                source.Append(
-                    "    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]\n");
+                source.Append("        public static\n#nullable enable\n            ");
+                source.Append(ListType);
+                source.Append("?\n#nullable restore\n            GetGodotMethodList()\n        {\n");
 
-                source.Append("    internal new static ")
-                    .Append(ListType)
-                    .Append(" GetGodotMethodList()\n    {\n");
-
-                source.Append("        var methods = new ")
-                    .Append(ListType)
-                    .Append("(")
-                    .Append(godotClassMethods.Length)
-                    .Append(");\n");
-
-                foreach (var method in godotClassMethods)
+                if (godotClassMethods.Length > 0)
                 {
-                    var methodInfo = DetermineMethodInfo(method);
-                    AppendMethodInfo(source, methodInfo);
+                    source.Append("            var methods = new ")
+                        .Append(ListType)
+                        .Append("(")
+                        .Append(godotClassMethods.Length)
+                        .Append(");\n");
+
+                    foreach (var method in godotClassMethods)
+                    {
+                        var methodInfo = DetermineMethodInfo(method);
+                        AppendMethodInfo(source, methodInfo);
+                    }
+
+                    source.Append("            return methods;\n");
+                }
+                else
+                {
+                    source.Append("            return null;\n");
                 }
 
-                source.Append("        return methods;\n");
-                source.Append("    }\n");
+                source.Append("        }\n");
             }
 
-            source.Append("    ").Append(symbol.IsSealed ? "" : "protected ")
-                .Append("internal new static partial class GodotInternal\n    {\n");
+            bool isUnsafeAllowed = context.Compilation.Options is Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions { AllowUnsafe: true };
 
             // Generate GetGodotMethodTrampolines
             {
                 const string CollectorType = "global::Godot.Bridge.MethodTrampolineCollector";
 
-                source.Append("        public static void GetGodotMethodTrampolines(")
+                source.Append("        private static ")
+                    .Append(isUnsafeAllowed ? "unsafe " : "")
+                    .Append("void GetGodotMethodTrampolines(")
                     .Append(CollectorType).Append(" collector)\n        {\n");
 
                 foreach (var method in godotClassMethods)
@@ -224,7 +233,6 @@ namespace Godot.SourceGenerators
             }
 
             // Generate GetGodotConstructorTrampolines
-            bool isUnsafeAllowed = context.Compilation.Options is Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions { AllowUnsafe: true };
 
             // Constructed generic scripts retain the existing reflection construction path.
             if (!symbol.IsGenericType)
@@ -236,8 +244,12 @@ namespace Godot.SourceGenerators
 
                 if (constructorMethods.Length > 0)
                 {
+                    const string DynAccessedMembersFqn = "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes";
                     source
-                        .Append("        private static readonly global::System.Type CachedType = typeof(")
+                        .Append("        [global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(")
+                        .Append(DynAccessedMembersFqn).Append(".PublicConstructors | ")
+                        .Append(DynAccessedMembersFqn).Append(".NonPublicConstructors)]\n")
+                        .Append("        public static global::System.Type CachedType { get; } = typeof(")
                         .Append(symbol.FullQualifiedNameIncludeGlobal())
                         .Append(");\n");
 
@@ -250,7 +262,7 @@ namespace Godot.SourceGenerators
                 // Dispatch always calls this collector for non-generic scripts. Even a
                 // managed-only constructor (e.g. taking a Stream) needs an empty collector.
                 const string CollectorType = "global::Godot.Bridge.ConstructorTrampolineCollector";
-                source.Append("        public new static ")
+                source.Append("        private static ")
                     .Append(isUnsafeAllowed ? "unsafe " : "")
                     .Append("void GetGodotConstructorTrampolines(")
                     .Append(CollectorType).Append(" collector)\n        {\n");
@@ -261,6 +273,25 @@ namespace Godot.SourceGenerators
                     AppendConstructorTrampoline(source, constructorMethod, isUnsafeAllowed);
                 }
 
+                source.Append("        }\n");
+            }
+
+            if (symbol.IsGenericType)
+            {
+                source.Append("        private static ")
+                    .Append(isUnsafeAllowed ? "unsafe " : "")
+                    .Append("void GetGodotConstructorTrampolines(global::Godot.Bridge.ConstructorTrampolineCollector collector)\n        {\n");
+                var defaultConstructors = symbol.InstanceConstructors
+                    .WhereHasGodotCompatibleSignature(typeCache)
+                    .Where(constructor => constructor.ParamTypes.Length == 0).Take(1).ToArray();
+                if (!symbol.IsAbstract && defaultConstructors.Length != 0)
+                {
+                    source.Append("            static global::Godot.GodotObject trampoline_0(global::System.IntPtr ptr, NativeVariantPtrArgs args)\n            {\n")
+                        .Append("                if (args.Count != 0) throw new global::System.ArgumentException(\"Expected no constructor arguments.\");\n")
+                        .Append("                return global::Godot.Bridge.ScriptManagerBridge.Accessors.CreateKnownGenericScriptInstance<")
+                        .Append(symbol.FullQualifiedNameIncludeGlobal()).Append(">(ptr);\n            }\n");
+                    AppendConstructorTrampoline(source, defaultConstructors[0], isUnsafeAllowed);
+                }
                 source.Append("        }\n");
             }
 

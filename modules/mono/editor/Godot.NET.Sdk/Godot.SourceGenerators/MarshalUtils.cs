@@ -126,8 +126,11 @@ namespace Godot.SourceGenerators
 
                     if (typeKind == TypeKind.Struct)
                     {
-                        if (type.ContainingAssembly?.Name == "GodotSharp" &&
-                            type.ContainingNamespace?.Name == "Godot")
+                        if (type is
+                            {
+                                ContainingAssembly.Name: "GodotSharp",
+                                ContainingNamespace: { Name: "Godot", ContainingNamespace.IsGlobalNamespace: true }
+                            })
                         {
                             return type switch
                             {
@@ -183,8 +186,11 @@ namespace Godot.SourceGenerators
                         if (elementType.SimpleDerivesFrom(typeCache.GodotObjectType))
                             return MarshalType.GodotObjectOrDerivedArray;
 
-                        if (elementType.ContainingAssembly?.Name == "GodotSharp" &&
-                            elementType.ContainingNamespace?.Name == "Godot")
+                        if (elementType is
+                            {
+                                ContainingAssembly.Name: "GodotSharp",
+                                ContainingNamespace: { Name: "Godot", ContainingNamespace.IsGlobalNamespace: true }
+                            })
                         {
                             switch (elementType)
                             {
@@ -214,17 +220,22 @@ namespace Godot.SourceGenerators
 
                         if (type.ContainingAssembly?.Name == "GodotSharp")
                         {
-                            switch (type.ContainingNamespace?.Name)
+                            switch (type.ContainingNamespace)
                             {
-                                case "Godot":
+                                // Godot
+                                case { Name: "Godot", ContainingNamespace.IsGlobalNamespace: true }:
                                     return type switch
                                     {
                                         { Name: "StringName" } => MarshalType.StringName,
                                         { Name: "NodePath" } => MarshalType.NodePath,
                                         _ => null
                                     };
-                                case "Collections"
-                                    when type.ContainingNamespace?.FullQualifiedNameOmitGlobal() == "Godot.Collections":
+                                // Godot.Collections
+                                case
+                                {
+                                    Name: "Collections",
+                                    ContainingNamespace: { Name: "Godot", ContainingNamespace.IsGlobalNamespace: true }
+                                }:
                                     return type switch
                                     {
                                         { Name: "Dictionary" } =>
@@ -355,6 +366,10 @@ namespace Godot.SourceGenerators
                 // We need a special case for GodotObjectOrDerived[], because it's not supported by VariantUtils.CreateFrom<T>
                 MarshalType.GodotObjectOrDerivedArray =>
                     source.Append(VariantUtils, ".CreateFromSystemArrayOfGodotObject("),
+                // This overload has an explicit nullable object contract and preserves
+                // the same NIL conversion as generic CreateFrom<T>, without CS8604.
+                MarshalType.GodotObjectOrDerived when typeSymbol.NullableAnnotation == NullableAnnotation.Annotated =>
+                    source.Append(VariantUtils, ".CreateFromGodotObject("),
                 // We need a special case for generic Godot collections and GodotObjectOrDerived[], because VariantUtils.CreateFrom<T> is slower
                 MarshalType.GodotGenericDictionary =>
                     source.Append(VariantUtils, ".CreateFromDictionary("),

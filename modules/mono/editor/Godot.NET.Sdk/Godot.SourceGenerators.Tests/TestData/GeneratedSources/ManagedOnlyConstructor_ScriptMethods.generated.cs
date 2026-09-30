@@ -9,12 +9,25 @@ partial class ManagedOnlyConstructor
     /// </summary>
     public new class MethodName : global::Godot.GodotObject.MethodName {
     }
-    protected internal new static partial class GodotInternal
+    protected new static partial class GodotInternal
     {
-        public static void GetGodotMethodTrampolines(global::Godot.Bridge.MethodTrampolineCollector collector)
+        /// <summary>
+        /// Get the method information for all the methods declared in this class.
+        /// This method is used by Godot to register the available methods in the editor.
+        /// Do not call this method.
+        /// </summary>
+        public static
+#nullable enable
+            global::System.Collections.Generic.List<global::Godot.Bridge.MethodInfo>?
+#nullable restore
+            GetGodotMethodList()
+        {
+            return null;
+        }
+        private static unsafe void GetGodotMethodTrampolines(global::Godot.Bridge.MethodTrampolineCollector collector)
         {
         }
-        public new static unsafe void GetGodotConstructorTrampolines(global::Godot.Bridge.ConstructorTrampolineCollector collector)
+        private static unsafe void GetGodotConstructorTrampolines(global::Godot.Bridge.ConstructorTrampolineCollector collector)
         {
         }
     }

@@ -60,6 +60,7 @@ struct PluginCallbacks {
 
 class GDMono {
 	bool initialized = false;
+	bool initialization_attempted = false;
 	bool runtime_initialized = false;
 	bool finalizing_scripts_domain = false;
 
@@ -118,6 +119,9 @@ public:
 
 	_FORCE_INLINE_ bool is_initialized() const {
 		return initialized;
+	}
+	_FORCE_INLINE_ bool has_initialization_failed() const {
+		return initialization_attempted && !initialized;
 	}
 	_FORCE_INLINE_ bool is_runtime_initialized() const {
 		return runtime_initialized;

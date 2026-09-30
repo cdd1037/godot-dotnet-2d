@@ -1124,7 +1124,7 @@ void godotsharp_array_set_typed(Array *p_self, uint32_t p_elem_type, const Strin
 		elem_script_variant = Variant(p_elem_script->ptr());
 		elem_class_name = p_elem_script->ptr()->get_instance_base_type();
 	}
-	p_self->set_typed(p_elem_type, elem_class_name, p_elem_script->ptr());
+	p_self->set_typed(p_elem_type, elem_class_name, elem_script_variant);
 }
 
 bool godotsharp_array_is_typed(const Array *p_self) {

@@ -382,9 +382,13 @@ load_assembly_and_get_function_pointer_fn initialize_hostfxr_self_contained(
 #endif
 
 #ifdef TOOLS_ENABLED
-using godot_plugins_initialize_fn = bool (*)(void *, bool, gdmono::PluginCallbacks *, GDMonoCache::ManagedCallbacks *, const void **, int32_t);
+using godot_plugins_initialize_fn = bool (*)(void *p_godot_dll_handle, bool p_is_editor_hint,
+		gdmono::PluginCallbacks *r_plugin_callbacks_res, GDMonoCache::ManagedCallbacksInitContext *r_managed_callbacks_init_ctx,
+		const void **p_interop_funcs, int32_t p_interop_funcs_size);
 #else
-using godot_plugins_initialize_fn = bool (*)(void *, GDMonoCache::ManagedCallbacks *, const void **, int32_t);
+using godot_plugins_initialize_fn = bool (*)(void *p_godot_dll_handle,
+		GDMonoCache::ManagedCallbacksInitContext *r_managed_callbacks_init_ctx,
+		const void **p_interop_funcs, int32_t p_interop_funcs_size);
 #endif
 
 #ifdef TOOLS_ENABLED
@@ -533,6 +537,7 @@ static bool _on_core_api_assembly_loaded() {
 }
 
 void GDMono::initialize() {
+	initialization_attempted = true;
 	print_verbose(".NET: Initializing module...");
 
 	_init_godot_api_hashes();
@@ -545,6 +550,21 @@ void GDMono::initialize() {
 		ERR_FAIL_MSG(".NET: Assemblies not found");
 	}
 
+#ifndef TOOLS_ENABLED
+	const String publish_mode_path = GodotSharpDirs::get_api_assemblies_dir().path_join(".godot-dotnet-publish-mode");
+	const bool has_publish_mode = FileAccess::exists(publish_mode_path);
+	const String publish_mode = has_publish_mode ? FileAccess::get_file_as_string(publish_mode_path).strip_edges() : String();
+	ERR_FAIL_COND_MSG(has_publish_mode && publish_mode != "jit" && publish_mode != "trimmed-jit" && publish_mode != "aot",
+			".NET: Invalid publish-mode marker: " + publish_mode);
+	if (publish_mode == "aot") {
+		// Never let stale JIT files or an installed runtime change an AOT export's mode.
+		void *aot_dll_handle = nullptr;
+		godot_plugins_initialize = try_load_native_aot_library(aot_dll_handle);
+		ERR_FAIL_NULL_MSG(godot_plugins_initialize, ".NET: The declared NativeAOT game library could not be loaded.");
+		runtime_initialized = true;
+		print_verbose(".NET: Loading declared NativeAOT export");
+	} else
+#endif
 	if (load_hostfxr(hostfxr_dll_handle)) {
 		godot_plugins_initialize = initialize_hostfxr_and_godot_plugins(runtime_initialized);
 		ERR_FAIL_NULL(godot_plugins_initialize);
@@ -553,6 +573,7 @@ void GDMono::initialize() {
 		if (load_coreclr(coreclr_dll_handle)) {
 			godot_plugins_initialize = initialize_coreclr_and_godot_plugins(runtime_initialized);
 		} else {
+			ERR_FAIL_COND_MSG(!publish_mode.is_empty(), ".NET: The declared JIT export is missing its self-contained runtime.");
 			void *dll_handle = nullptr;
 			godot_plugins_initialize = try_load_native_aot_library(dll_handle);
 			if (godot_plugins_initialize != nullptr) {
@@ -575,6 +596,15 @@ void GDMono::initialize() {
 	const void **interop_funcs = godotsharp::get_runtime_interop_funcs(interop_funcs_size);
 
 	GDMonoCache::ManagedCallbacks managed_callbacks{};
+#ifdef TOOLS_ENABLED
+	GDMonoCache::ToolsBuildManagedCallbacks tools_managed_callbacks{};
+#endif
+
+#ifdef TOOLS_ENABLED
+	GDMonoCache::ManagedCallbacksInitContext managed_callbacks_init_ctx{ &managed_callbacks, &tools_managed_callbacks };
+#else
+	GDMonoCache::ManagedCallbacksInitContext managed_callbacks_init_ctx{ &managed_callbacks, nullptr };
+#endif
 
 	void *godot_dll_handle = nullptr;
 
@@ -587,18 +617,18 @@ void GDMono::initialize() {
 	gdmono::PluginCallbacks plugin_callbacks_res;
 	bool init_ok = godot_plugins_initialize(godot_dll_handle,
 			Engine::get_singleton()->is_editor_hint(),
-			&plugin_callbacks_res, &managed_callbacks,
+			&plugin_callbacks_res, &managed_callbacks_init_ctx,
 			interop_funcs, interop_funcs_size);
 	ERR_FAIL_COND_MSG(!init_ok, ".NET: GodotPlugins initialization failed");
 
 	plugin_callbacks = plugin_callbacks_res;
 #else
-	bool init_ok = godot_plugins_initialize(godot_dll_handle, &managed_callbacks,
+	bool init_ok = godot_plugins_initialize(godot_dll_handle, &managed_callbacks_init_ctx,
 			interop_funcs, interop_funcs_size);
 	ERR_FAIL_COND_MSG(!init_ok, ".NET: GodotPlugins initialization failed");
 #endif
 
-	GDMonoCache::update_godot_api_cache(managed_callbacks);
+	GDMonoCache::update_godot_api_cache(managed_callbacks_init_ctx);
 
 	print_verbose(".NET: GodotPlugins initialized");
 

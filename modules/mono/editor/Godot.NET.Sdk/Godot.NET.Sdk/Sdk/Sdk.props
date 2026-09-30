@@ -3,6 +3,7 @@
 
   <PropertyGroup>
     <UsingGodotNETSdk>true</UsingGodotNETSdk>
+    <IsGodotLibraryProject Condition=" '$(IsGodotLibraryProject)' == '' ">false</IsGodotLibraryProject>
 
     <!-- Determines if we should import Microsoft.NET.Sdk, if it wasn't already imported. -->
     <GodotSdkImportsMicrosoftNetSdk Condition=" '$(UsingMicrosoftNETSdk)' != 'true' ">true</GodotSdkImportsMicrosoftNetSdk>
@@ -12,6 +13,7 @@
     <Configurations>Debug;ExportDebug;ExportRelease</Configurations>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
 
+    <!-- GodotProjectDir and GodotProjectDirBase64 are visible to source generators. -->
     <GodotProjectDir Condition=" '$(GodotProjectDir)' == '' ">$(MSBuildProjectDirectory)</GodotProjectDir>
     <GodotProjectDir>$([MSBuild]::EnsureTrailingSlash('$(GodotProjectDir)'))</GodotProjectDir>
     <GodotProjectDirBase64 Condition=" $([MSBuild]::VersionGreaterThanOrEquals($(MSBuildAssemblyVersion), '17.3')) ">$([MSBuild]::ConvertToBase64('$(GodotProjectDir)'))</GodotProjectDirBase64>
@@ -28,6 +30,25 @@
 
     <!-- Do not append the target framework name to the output path. -->
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- $(GodotRegisterScriptPaths) is visible to source generators. -->
+    <!--
+    This makes it possible to use C# script resource files.
+    It can be disabled in projects that don't need this, such as libraries that are distributed as NuGet packages.
+    -->
+    <GodotRegisterScriptPaths>true</GodotRegisterScriptPaths>
+
+    <!-- $(GodotSupportLegacyNonTrimSafeAPIs) is visible to source generators. -->
+    <!--
+    Enable this to support using script types from assemblies that use legacy APIs that are
+    not compatible with trimming. This fork requires rebuilding scripts against its SDK; legacy support is opt-in for JIT only.
+
+    If your project doesn't depend on any assembly or package that rely on such legacy APIs,
+    you can disable this to benefit from trimming.
+    -->
+    <GodotSupportLegacyNonTrimSafeAPIs Condition=" '$(GodotSupportLegacyNonTrimSafeAPIs)' == '' ">false</GodotSupportLegacyNonTrimSafeAPIs>
   </PropertyGroup>
 
   <Target Condition=" $([MSBuild]::VersionLessThan($(MSBuildAssemblyVersion), '17.3')) " Name="GodotProjectDir" BeforeTargets="Build">
@@ -79,6 +100,19 @@
 
   <PropertyGroup>
     <GodotFloat64 Condition=" '$(GodotFloat64)' == '' ">false</GodotFloat64>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants Condition=" '$(PublishAot)' == 'true' ">$(DefineConstants);GODOT_AOT</DefineConstants>
+    <DefineConstants Condition=" '$(PublishTrimmed)' == 'true' ">$(DefineConstants);GODOT_TRIMMED</DefineConstants>
+  </PropertyGroup>
+
+  <!-- NativeAOT emits a loadable component; JIT exports need runtime host configuration. -->
+  <PropertyGroup>
+    <NativeLib Condition=" '$(PublishAot)' == 'true' and '$(NativeLib)' == '' ">Shared</NativeLib>
+    <GenerateRuntimeConfigurationFiles Condition=" '$(PublishAot)' != 'true' ">true</GenerateRuntimeConfigurationFiles>
+    <!-- .NET 8 linker otherwise removes hostfxr's component activation methods. -->
+    <_EnableConsumingManagedCodeFromNativeHosting Condition=" '$(PublishTrimmed)' == 'true' and '$(PublishAot)' != 'true' ">true</_EnableConsumingManagedCodeFromNativeHosting>
   </PropertyGroup>
 
   <!-- Godot DefineConstants. -->

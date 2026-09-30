@@ -132,8 +132,11 @@
 
 #include "modules/modules_enabled.gen.h" // For mono.
 
-#if defined(MODULE_MONO_ENABLED) && defined(TOOLS_ENABLED)
+#ifdef MODULE_MONO_ENABLED
+#include "modules/mono/mono_gd/gd_mono.h"
+#ifdef TOOLS_ENABLED
 #include "modules/mono/editor/bindings_generator.h"
+#endif
 #endif
 
 /* Static members */
@@ -3471,6 +3474,11 @@ Error Main::setup2(bool p_show_boot_logo) {
 	// This loads global classes, so it must happen before custom loaders and savers are registered
 	ScriptServer::init_languages();
 
+	bool managed_initialization_failed = false;
+#ifdef MODULE_MONO_ENABLED
+	managed_initialization_failed = GDMono::get_singleton() && GDMono::get_singleton()->has_initialization_failed();
+#endif
+
 #if TOOLS_ENABLED
 
 	// Setting up the callback to execute a scan for UIDs on disk when a UID
@@ -3482,8 +3490,12 @@ Error Main::setup2(bool p_show_boot_logo) {
 
 #endif
 
-	theme_db->initialize_theme();
-	audio_server->load_default_bus_layout();
+	// Do not load user resources through a failed language bridge. Complete the
+	// engine's setup so Main::start can report failure and use the full cleanup path.
+	if (!managed_initialization_failed) {
+		theme_db->initialize_theme();
+		audio_server->load_default_bus_layout();
+	}
 
 #if defined(MODULE_MONO_ENABLED) && defined(TOOLS_ENABLED)
 	// Hacky to have it here, but we don't have good facility yet to let modules
@@ -3500,7 +3512,7 @@ Error Main::setup2(bool p_show_boot_logo) {
 		EngineDebugger::get_singleton()->profiler_enable("scripts", true);
 	}
 
-	if (!project_manager) {
+	if (!project_manager && !managed_initialization_failed) {
 		// If not running the project manager, and now that the engine is
 		// able to load resources, load the global shader variables.
 		// If running on editor, don't load the textures because the editor
@@ -3620,6 +3632,11 @@ int Main::start() {
 	OS::get_singleton()->benchmark_begin_measure("Startup", "Main::Start");
 
 	ERR_FAIL_COND_V(!_start_success, EXIT_FAILURE);
+
+#ifdef MODULE_MONO_ENABLED
+	ERR_FAIL_COND_V_MSG(GDMono::get_singleton() && GDMono::get_singleton()->has_initialization_failed(),
+			EXIT_FAILURE, ".NET initialization failed. The project cannot start; see the preceding managed error.");
+#endif
 
 	bool has_icon = false;
 	String positional_arg;

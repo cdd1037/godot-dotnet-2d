@@ -30,4 +30,10 @@ public class ScriptMethodsGeneratorTests
             "ManagedOnlyConstructor_ScriptMethods.generated.cs"
         );
     }
+    [Fact]
+    public async Task NullableObjectReturn()
+    {
+        await CSharpSourceGeneratorVerifier<ScriptMethodsGenerator>.Verify(
+            "NullableObjectReturn.cs", "NullableObjectReturn_ScriptMethods.generated.cs");
+    }
 }

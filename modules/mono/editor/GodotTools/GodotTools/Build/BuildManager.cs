@@ -293,7 +293,8 @@ namespace GodotTools.Build
             string platform,
             string runtimeIdentifier,
             string publishOutputDir,
-            bool includeDebugSymbols = true
+            bool includeDebugSymbols = true,
+            int publishMode = 0
         )
         {
             var buildInfo = new BuildInfo(GodotSharpDirs.ProjectSlnPath, GodotSharpDirs.ProjectCsProjPath, configuration,
@@ -304,6 +305,13 @@ namespace GodotTools.Build
                 buildInfo.CustomProperties.Add("DebugType=None");
                 buildInfo.CustomProperties.Add("DebugSymbols=false");
             }
+
+            if (publishMode < 0 || publishMode > 2)
+                throw new ArgumentOutOfRangeException(nameof(publishMode));
+            buildInfo.CustomProperties.Add($"PublishAot={(publishMode == 2 ? "true" : "false")}");
+            buildInfo.CustomProperties.Add($"PublishTrimmed={(publishMode != 0 ? "true" : "false")}");
+            if (publishMode == 2)
+                buildInfo.CustomProperties.Add("NativeLib=Shared");
 
             buildInfo.CustomProperties.Add($"GodotTargetPlatform={platform}");
 
@@ -329,9 +337,10 @@ namespace GodotTools.Build
             string platform,
             string runtimeIdentifier,
             string publishOutputDir,
-            bool includeDebugSymbols = true
+            bool includeDebugSymbols = true,
+            int publishMode = 0
         ) => PublishProjectBlocking(CreatePublishBuildInfo(configuration,
-            platform, runtimeIdentifier, publishOutputDir, includeDebugSymbols));
+            platform, runtimeIdentifier, publishOutputDir, includeDebugSymbols, publishMode));
 
         public static bool EditorBuildCallback()
         {

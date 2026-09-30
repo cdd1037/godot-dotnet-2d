@@ -1,5 +1,6 @@
 using System;
 using Godot.NativeInterop;
+using JetBrains.Annotations;
 
 namespace Godot.Bridge;
 
@@ -12,6 +13,7 @@ namespace Godot.Bridge;
 /// contains an instance of this class. The user script can then call the
 /// <see cref="TryAdd"/> method of this class to add constructors to the script.<br/>
 /// </remarks>
+[PublicAPI]
 public class ConstructorTrampolineCollector
 {
     private IntPtr _scriptPtr;
@@ -52,6 +54,7 @@ public class ConstructorTrampolineCollector
 /// As a result, <see cref="TryAdd"/> will not add a method from a base class if the derived class
 /// has already added a method with the same MethodKey.
 /// </remarks>
+[PublicAPI]
 public class MethodTrampolineCollector
 {
     private IntPtr _scriptPtr;
@@ -95,6 +98,7 @@ public class MethodTrampolineCollector
 /// As a result, <see cref="TryAdd"/> will not add a property from a base class if the derived class
 /// has already added a property with the same name.
 /// </remarks>
+[PublicAPI]
 public class PropertyTrampolineCollector
 {
     private IntPtr _scriptPtr;
@@ -117,7 +121,7 @@ public class PropertyTrampolineCollector
     /// Adds property trampolines to the script if trampolines for the given property name don't already exist.
     /// If trampolines for the property already exist, but one of the getter or setter trampolines is missing,
     /// the missing trampoline will be added if provided. This allows a derived class to introduce a readonly
-    /// or writeonly property with the same name as a property in the base class, overriding that specific
+    /// or write-only property with the same name as a property in the base class, overriding that specific
     /// accessor while inheriting the other one. This is done only to match the behavior of the old
     /// trampoline system (SetGodotClassPropertyTrampoline and GetGodotClassPropertyTrampoline).
     /// </summary>
@@ -146,6 +150,7 @@ public class PropertyTrampolineCollector
 /// As a result, <see cref="TryAdd"/> will not add a signal from a base class if the derived class
 /// has already added a signal with the same SignalKey.
 /// </remarks>
+[PublicAPI]
 public class RaiseSignalTrampolineCollector
 {
     private IntPtr _scriptPtr;
@@ -178,6 +183,7 @@ public class RaiseSignalTrampolineCollector
 /// Group of collectors passed to the user script to collect trampolines
 /// and method name to proxy name mappings for a script.
 /// </summary>
+[PublicAPI]
 public class TrampolineCollectors(
     ConstructorTrampolineCollector constructorTrampolineCollector,
     MethodTrampolineCollector methodTrampolineCollector,
@@ -210,6 +216,7 @@ public class TrampolineCollectors(
 /// If true, the trampoline collection method of each ancestor class must be called
 /// after the trampoline collection method of the current class.
 /// </param>
+[PublicAPI]
 public class TrampolineCollectionOptions(bool includeAncestors)
 {
     public bool IncludeAncestors { get; } = includeAncestors;

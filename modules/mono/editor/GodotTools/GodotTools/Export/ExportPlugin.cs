@@ -81,6 +81,18 @@ namespace GodotTools.Export
                     { "default_value", false }
                 }
             );
+            exportOptionList.Add(new Godot.Collections.Dictionary
+            {
+                { "option", new Godot.Collections.Dictionary
+                    {
+                        { "name", "dotnet/publish_mode" },
+                        { "type", (int)Variant.Type.Int },
+                        { "hint", (int)PropertyHint.Enum },
+                        { "hint_string", "JIT (self-contained),Trimmed JIT (known scripts),NativeAOT (known scripts)" }
+                    }
+                },
+                { "default_value", 0 }
+            });
             return exportOptionList;
         }
 
@@ -205,6 +217,7 @@ namespace GodotTools.Export
             }
 
             var targets = new List<PublishConfig> { publishConfig };
+            int publishMode = (int)GetOption("dotnet/publish_mode");
 
             bool embedBuildResults = (bool)GetOption("dotnet/embed_build_outputs") && platform != OS.Platforms.MacOS;
 
@@ -226,7 +239,7 @@ namespace GodotTools.Export
 
                     // Create temporary publish output directory.
                     string publishOutputDir = Path.Combine(Path.GetTempPath(), "godot-publish-dotnet",
-                        $"{System.Environment.ProcessId}-{buildConfig}-{runtimeIdentifier}");
+                        $"{System.Environment.ProcessId}-{buildConfig}-{runtimeIdentifier}-{publishMode}-{Guid.NewGuid():N}");
                     _tempFolders.Add(publishOutputDir);
 
                     if (!Directory.Exists(publishOutputDir))
@@ -234,7 +247,7 @@ namespace GodotTools.Export
 
                     // Execute dotnet publish.
                     if (!BuildManager.PublishProjectBlocking(buildConfig, platform,
-                            runtimeIdentifier, publishOutputDir, includeDebugSymbols))
+                            runtimeIdentifier, publishOutputDir, includeDebugSymbols, publishMode))
                     {
                         throw new InvalidOperationException("Failed to build project. Check MSBuild panel for details.");
                     }
@@ -256,12 +269,28 @@ namespace GodotTools.Export
                             $"Publish succeeded but project assembly not found at '{assemblyPath}' or '{nativeAotPath}'.");
                     }
 
+                    string modeName = publishMode switch { 0 => "jit", 1 => "trimmed-jit", 2 => "aot", _ => throw new InvalidOperationException("Unknown publishing mode.") };
+                    const string modeFileName = ".godot-dotnet-publish-mode";
+                    System.IO.File.WriteAllText(Path.Combine(publishOutputDir, modeFileName), modeName + "\n", new UTF8Encoding(false));
+
+                    // Exporting does not grant permission to erase unrelated user files.
+                    // Warn about old payload files while the explicit marker keeps loading deterministic.
+                    if (!embedBuildResults && platform != OS.Platforms.MacOS)
+                    {
+                        string oldModePath = Path.Combine(Path.GetDirectoryName(path)!, projectDataDirName, modeFileName);
+                        if (File.Exists(oldModePath) && System.IO.File.ReadAllText(oldModePath).Trim() != modeName)
+                            GetExportPlatform().AddMessage(EditorExportPlatform.ExportMessageType.Warning, "Export .NET Project",
+                                "Publishing mode changed in an existing directory. The new mode is explicit, but old payload files may remain; use an empty export directory for clean package sizes.");
+                    }
+
                     var manifest = new StringBuilder();
 
                     // Add to the exported project shared object list or packed resources.
                     RecursePublishContents(publishOutputDir,
                         filterDir: _ => true,
-                        filterFile: _ => true,
+                        filterFile: file => includeDebugSymbols ||
+                            (!file.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) &&
+                             !file.EndsWith(".dbg", StringComparison.OrdinalIgnoreCase)),
                         recurseDir: _ => true,
                         addEntry: (path, isFile) =>
                         {

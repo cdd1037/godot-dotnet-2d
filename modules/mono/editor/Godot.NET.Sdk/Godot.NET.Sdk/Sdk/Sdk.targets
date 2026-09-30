@@ -54,4 +54,23 @@
     <Error Condition=" $(RuntimeIdentifier.StartsWith('android')) or $(RuntimeIdentifier.StartsWith('ios')) or $(RuntimeIdentifier.StartsWith('browser')) or $(RuntimeIdentifier.StartsWith('linux-bionic')) " Text="Mobile and Web runtime identifiers are not supported by this desktop-only Godot fork." />
   </Target>
 
+  <!-- A Godot game is a hosted library. Root its actual native-host entrypoint,
+       not a fake console Main or every method in the game assembly. -->
+  <Target Name="GodotRootHostedLibraryEntrypoint" AfterTargets="PrepareForILLink"
+          Condition=" '$(PublishTrimmed)' == 'true' and '$(PublishAot)' != 'true' and '$(IsGodotLibraryProject)' != 'true' ">
+    <PropertyGroup>
+      <_GodotTrimDescriptor>&lt;linker&gt;&lt;assembly fullname="$(AssemblyName)"&gt;&lt;type fullname="GodotPlugins.Game.Main"&gt;&lt;method name="InitializeFromGameProject" /&gt;&lt;/type&gt;&lt;/assembly&gt;&lt;/linker&gt;</_GodotTrimDescriptor>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)godot-entrypoint.xml" Lines="$(_GodotTrimDescriptor)" Overwrite="true" Encoding="UTF-8" />
+    <ItemGroup>
+      <TrimmerRootAssembly Remove="@(IntermediateAssembly)" />
+      <TrimmerRootDescriptor Include="$(IntermediateOutputPath)godot-entrypoint.xml" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ValidateGodotTrimMode" BeforeTargets="PrepareForBuild;Publish">
+    <Error Condition=" ('$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true') and '$(Configuration)' == 'Debug' " Text="Godot editor assemblies require JIT. Use ExportRelease for trimmed or NativeAOT publishing." />
+    <Error Condition=" ('$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true') and '$(GodotSupportLegacyNonTrimSafeAPIs)' == 'true' " Text="Trimmed/NativeAOT games require rebuilt script metadata; disable GodotSupportLegacyNonTrimSafeAPIs." />
+    <Error Condition=" '$(PublishAot)' == 'true' and '$(NativeLib)' != 'Shared' " Text="Godot NativeAOT exports must be shared libraries (NativeLib=Shared)." />
+  </Target>
 </Project>

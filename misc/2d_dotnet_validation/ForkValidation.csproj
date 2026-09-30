@@ -1,1 +1,1 @@
-<Project Sdk="Godot.NET.Sdk/4.7.2-2dinterop.2"><PropertyGroup><TargetFramework>net8.0</TargetFramework><EnableDynamicLoading>true</EnableDynamicLoading></PropertyGroup></Project>
+<Project Sdk="Godot.NET.Sdk/4.7.2-2dtrim.1"><PropertyGroup><TargetFramework>net8.0</TargetFramework><EnableDynamicLoading>true</EnableDynamicLoading></PropertyGroup></Project>

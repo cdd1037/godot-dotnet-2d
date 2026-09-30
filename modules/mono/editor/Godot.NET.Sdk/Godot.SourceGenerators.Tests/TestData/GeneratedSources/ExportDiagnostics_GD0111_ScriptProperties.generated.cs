@@ -41,9 +41,9 @@ partial class ExportDiagnostics_GD0111
         /// </summary>
         public new static readonly global::Godot.StringName @_backingField = "_backingField";
     }
-    protected internal new static partial class GodotInternal
+    protected new static partial class GodotInternal
     {
-        public static void GetGodotPropertyTrampolines(global::Godot.Bridge.PropertyTrampolineCollector collector)
+        private static unsafe void GetGodotPropertyTrampolines(global::Godot.Bridge.PropertyTrampolineCollector collector)
         {
             static godot_variant trampoline_get_MyButtonGet(object godotObject)
             {
@@ -117,21 +117,24 @@ partial class ExportDiagnostics_GD0111
             var aux_delegate_set__backingField = trampoline_set__backingField;
             collector.TryAdd(PropertyName.@_backingField, new(aux_delegate_get__backingField.Method.MethodHandle.GetFunctionPointer()), new(aux_delegate_set__backingField.Method.MethodHandle.GetFunctionPointer()));
         }
-    }
-    /// <summary>
-    /// Get the property information for all the properties declared in this class.
-    /// This method is used by Godot to register the available properties in the editor.
-    /// Do not call this method.
-    /// </summary>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    internal new static global::System.Collections.Generic.List<global::Godot.Bridge.PropertyInfo> GetGodotPropertyList()
-    {
-        var properties = new global::System.Collections.Generic.List<global::Godot.Bridge.PropertyInfo>();
+        /// <summary>
+        /// Get the property information for all the properties declared in this class.
+        /// This method is used by Godot to register the available properties in the editor.
+        /// Do not call this method.
+        /// </summary>
+        public static
+#nullable enable
+            global::System.Collections.Generic.List<global::Godot.Bridge.PropertyInfo>?
+#nullable restore
+            GetGodotPropertyList()
+        {
+            var properties = new global::System.Collections.Generic.List<global::Godot.Bridge.PropertyInfo>();
         properties.Add(new(type: (global::Godot.Variant.Type)25, name: PropertyName.@_backingField, hint: (global::Godot.PropertyHint)0, hintString: "", usage: (global::Godot.PropertyUsageFlags)4096, exported: false));
         properties.Add(new(type: (global::Godot.Variant.Type)25, name: PropertyName.@MyButtonOkWithCallableCreationExpression, hint: (global::Godot.PropertyHint)39, hintString: "", usage: (global::Godot.PropertyUsageFlags)4, exported: true));
         properties.Add(new(type: (global::Godot.Variant.Type)25, name: PropertyName.@MyButtonOkWithImplicitCallableCreationExpression, hint: (global::Godot.PropertyHint)39, hintString: "", usage: (global::Godot.PropertyUsageFlags)4, exported: true));
         properties.Add(new(type: (global::Godot.Variant.Type)25, name: PropertyName.@MyButtonOkWithCallableFromExpression, hint: (global::Godot.PropertyHint)39, hintString: "", usage: (global::Godot.PropertyUsageFlags)4, exported: true));
-        return properties;
+            return properties;
+        }
     }
 #pragma warning restore CS0109
 }

@@ -11,10 +11,32 @@ partial class NestedClass
     /// </summary>
     public new class MethodName : global::Godot.GodotObject.MethodName {
     }
-    protected internal new static partial class GodotInternal
+    protected new static partial class GodotInternal
     {
-        public static void GetGodotMethodTrampolines(global::Godot.Bridge.MethodTrampolineCollector collector)
+        /// <summary>
+        /// Get the method information for all the methods declared in this class.
+        /// This method is used by Godot to register the available methods in the editor.
+        /// Do not call this method.
+        /// </summary>
+        public static
+#nullable enable
+            global::System.Collections.Generic.List<global::Godot.Bridge.MethodInfo>?
+#nullable restore
+            GetGodotMethodList()
         {
+            return null;
+        }
+        private static unsafe void GetGodotMethodTrampolines(global::Godot.Bridge.MethodTrampolineCollector collector)
+        {
+        }
+        private static unsafe void GetGodotConstructorTrampolines(global::Godot.Bridge.ConstructorTrampolineCollector collector)
+        {
+            static global::Godot.GodotObject trampoline_0(global::System.IntPtr ptr, NativeVariantPtrArgs args)
+            {
+                if (args.Count != 0) throw new global::System.ArgumentException("Expected no constructor arguments.");
+                return global::Godot.Bridge.ScriptManagerBridge.Accessors.CreateKnownGenericScriptInstance<global::GenericClass<T>.NestedClass>(ptr);
+            }
+            collector.TryAdd(0, new(&trampoline_0));
         }
     }
 #pragma warning restore CS0109
