@@ -195,4 +195,26 @@ TEST_CASE("[Callable] Bound and unbound argument count") {
 	memdelete(test_instance);
 }
 
+TEST_CASE("[Callable][FirstFixBatch] Calling a freed target reports a null instance") {
+	Object *target = memnew(Object);
+	Callable callable(target, "get_instance_id");
+	Variant result;
+	Callable::CallError error;
+	callable.callp(nullptr, 0, result, error);
+	REQUIRE_EQ(error.error, Callable::CallError::CALL_OK);
+	CHECK_EQ(uint64_t(result), uint64_t(target->get_instance_id()));
+
+	memdelete(target);
+	CHECK_FALSE(callable.is_valid());
+	// This must also pass in template_release, without DEBUG_ENABLED.
+	result = 42;
+	error.argument = 123;
+	error.expected = 456;
+	callable.callp(nullptr, 0, result, error);
+	CHECK_EQ(error.error, Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL);
+	CHECK_EQ(error.argument, 0);
+	CHECK_EQ(error.expected, 0);
+	CHECK_EQ(result.get_type(), Variant::NIL);
+}
+
 } // namespace TestCallable

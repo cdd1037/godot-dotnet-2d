@@ -143,4 +143,35 @@ TEST_CASE("[Animation] Deleted track formats are rejected") {
 	CHECK(animation->get_track_count() == 0);
 }
 
+TEST_CASE("[Animation][FirstFixBatch] Moving tracks respects both boundaries") {
+	Ref<Animation> animation = memnew(Animation);
+	// Empty animations and invalid indices must be harmless.
+	animation->track_move_up(-1);
+	animation->track_move_up(0);
+	animation->track_move_down(0);
+	animation->track_move_down(1);
+	CHECK_EQ(animation->get_track_count(), 0);
+
+	animation->add_track(Animation::TYPE_VALUE);
+	animation->track_set_path(0, NodePath("First:position"));
+	animation->add_track(Animation::TYPE_VALUE);
+	animation->track_set_path(1, NodePath("Second:position"));
+
+	for (int invalid : { -1, 2, 100 }) {
+		animation->track_move_up(invalid);
+		animation->track_move_down(invalid);
+	}
+	animation->track_move_up(1);
+	animation->track_move_down(0);
+	CHECK_EQ(animation->track_get_path(0), NodePath("First:position"));
+	CHECK_EQ(animation->track_get_path(1), NodePath("Second:position"));
+
+	animation->track_move_up(0);
+	CHECK_EQ(animation->track_get_path(0), NodePath("Second:position"));
+	CHECK_EQ(animation->track_get_path(1), NodePath("First:position"));
+	animation->track_move_down(1);
+	CHECK_EQ(animation->track_get_path(0), NodePath("First:position"));
+	CHECK_EQ(animation->track_get_path(1), NodePath("Second:position"));
+}
+
 } // namespace TestAnimation

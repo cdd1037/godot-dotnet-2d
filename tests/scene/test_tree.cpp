@@ -35,6 +35,7 @@ TEST_FORCE_LINK(test_tree)
 #ifndef ADVANCED_GUI_DISABLED
 
 #include "scene/gui/tree.h"
+#include "tests/test_tools.h"
 
 namespace TestTree {
 
@@ -294,6 +295,19 @@ TEST_CASE("[SceneTree][Tree]") {
 		CHECK_EQ(child3->get_prev_in_tree(true), child2);
 
 		memdelete(tree);
+	}
+}
+
+TEST_CASE("[SceneTree][Tree][FirstFixBatch] Destruction frees canvas RIDs exactly once") {
+	// A duplicate free is reported by the real canvas RID owner, even headlessly.
+	for (int iteration = 0; iteration < 8; iteration++) {
+		Tree *tree = memnew(Tree);
+		TreeItem *root = tree->create_item();
+		root->set_text(0, "Root");
+		tree->create_item(root)->set_text(0, "Child");
+		ErrorDetector errors;
+		memdelete(tree);
+		CHECK_FALSE(errors.has_error);
 	}
 }
 
