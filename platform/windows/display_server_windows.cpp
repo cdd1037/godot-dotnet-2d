@@ -35,7 +35,6 @@
 #include "native_menu_windows.h"
 #include "os_windows.h"
 #include "tts_windows.h"
-#include "wgl_detect_version.h"
 #include "winrt_utils.h"
 
 #include "core/config/engine.h"

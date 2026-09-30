@@ -225,6 +225,11 @@ def get_opts():
         ("msvc_version", "MSVC version to use. Handled automatically by SCons if omitted.", ""),
         ("mssdk_version", "Windows SDK version to use. Handled automatically by SCons if omitted.", ""),
         BoolVariable("use_mingw", "Use the Mingw compiler, even if MSVC is installed.", False),
+        BoolVariable(
+            "mingw_lto_plugin",
+            "Experimental: enable GCC MinGW LTO linker plugin (retest GH-102867 for this toolchain).",
+            False,
+        ),
         BoolVariable("use_llvm", "Use the LLVM compiler", False),
         BoolVariable("use_static_cpp", "Link MinGW/MSVC C++ runtime libraries statically", True),
         BoolVariable("use_asan", "Use address sanitizer (ASAN)", False),
@@ -657,7 +662,10 @@ def configure_mingw(env: "SConsEnvironment"):
 
     # NOTE: Big objects have historically broken LTO on mingw-gcc specifically. While that no
     # longer appears to be the case, this notice is retained for posterity.
-    env.AppendUnique(CCFLAGS=["-Wa,-mbig-obj"])  # Support big objects.
+    # GCC 14's LTO reader cannot consume forced PE-bigobj inputs. The opt-in
+    # plugin path uses ordinary COFF objects; normal/default builds keep bigobj.
+    if not (env["mingw_lto_plugin"] and not env["use_llvm"] and env["lto"] != "none"):
+        env.AppendUnique(CCFLAGS=["-Wa,-mbig-obj"])
 
     if env["arch"] == "x86_32":
         env["x86_libtheora_opt_gcc"] = True
@@ -710,7 +718,12 @@ def configure_mingw(env: "SConsEnvironment"):
         else:
             env.Append(CCFLAGS=["-flto"])
             env.Append(LINKFLAGS=["-flto"])
-        if not env["use_llvm"]:
+        if not env["use_llvm"] and env["mingw_lto_plugin"]:
+            # Opt in only after testing the exact GCC/binutils pair. Keep the
+            # existing GH-102867 workaround as the default for other users.
+            env.Append(CCFLAGS=["-fuse-linker-plugin"])
+            env.Append(LINKFLAGS=["-fuse-linker-plugin"])
+        elif not env["use_llvm"]:
             # For mingw-gcc LTO, disable linker plugin and enable whole program to work around GH-102867.
             env.Append(CCFLAGS=["-fno-use-linker-plugin", "-fwhole-program"])
             env.Append(LINKFLAGS=["-fno-use-linker-plugin", "-fwhole-program"])
