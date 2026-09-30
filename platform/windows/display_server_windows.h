@@ -47,12 +47,6 @@
 #include "servers/rendering/rendering_device.h"
 #endif
 
-#if defined(GLES3_ENABLED)
-#if defined(ANGLE_ENABLED)
-#include "gl_manager_windows_angle.h"
-#endif // ANGLE_ENABLED
-#include "gl_manager_windows_native.h"
-#endif // GLES3_ENABLED
 
 #include <windows.h>
 
@@ -257,12 +251,6 @@ class DisplayServerWindows : public DisplayServer {
 	int old_x, old_y;
 	Point2i center;
 
-#if defined(GLES3_ENABLED)
-#if defined(ANGLE_ENABLED)
-	GLManagerANGLE_Windows *gl_manager_angle = nullptr;
-#endif
-	GLManagerNative_Windows *gl_manager_native = nullptr;
-#endif
 
 #if defined(RD_ENABLED)
 	RenderingContextDriver *rendering_context = nullptr;
@@ -318,9 +306,6 @@ class DisplayServerWindows : public DisplayServer {
 		bool exclusive = false;
 		bool rendering_context_window_created = false;
 		bool gl_native_window_created = false;
-#ifdef ANGLE_ENABLED
-		bool gl_angle_window_created = false;
-#endif
 		bool mpass = false;
 		bool sharp_corners = false;
 		bool hide_from_capture = false;
@@ -414,9 +399,6 @@ class DisplayServerWindows : public DisplayServer {
 	void _destroy_rendering_context_window(DisplayServerEnums::WindowID p_window_id);
 #endif
 
-#ifdef GLES3_ENABLED
-	Error _create_gl_window(DisplayServerEnums::WindowID p_window_id);
-#endif
 
 	DisplayServerEnums::WindowID window_id_counter = DisplayServerEnums::MAIN_WINDOW_ID;
 	RBMap<DisplayServerEnums::WindowID, WindowData> windows;

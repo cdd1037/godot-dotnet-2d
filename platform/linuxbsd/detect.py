@@ -544,8 +544,6 @@ def configure(env: "SConsEnvironment"):
             # No pkgconfig file so far, hardcode expected lib name.
             env.Append(LIBS=["glslang", "SPIRV", "glslang-default-resource-limits"])
 
-    if env["opengl3"]:
-        env.Append(CPPDEFINES=["GLES3_ENABLED"])
 
     env.Append(LIBS=["pthread"])
 

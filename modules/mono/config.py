@@ -29,5 +29,5 @@ def get_doc_path():
 
 
 def is_enabled():
-    # The module is disabled by default. Use module_mono_enabled=yes to enable it.
-    return False
+    # C# is the scripting language provided by this fork.
+    return True

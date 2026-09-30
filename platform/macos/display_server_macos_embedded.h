@@ -37,9 +37,6 @@
 class InputEvent;
 class NativeMenu;
 
-#ifdef GLES3_ENABLED
-class GLManagerEmbedded;
-#endif
 
 struct DisplayServerMacOSEmbeddedState {
 	/*! Default to a scale of 2.0, which is the most common. */
@@ -85,9 +82,6 @@ class DisplayServerMacOSEmbedded : public DisplayServerMacOSBase {
 	CAContext *ca_context = nullptr;
 	// Either be a CAMetalLayer or a CALayer depending on the rendering driver.
 	CALayer *layer = nullptr;
-#ifdef GLES3_ENABLED
-	GLManagerEmbedded *gl_manager = nullptr;
-#endif
 
 	String rendering_driver;
 

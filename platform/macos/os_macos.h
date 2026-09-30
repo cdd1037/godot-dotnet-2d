@@ -91,8 +91,6 @@ public:
 		"--dump-gdextension-interface-json",
 		"--dump-extension-api-with-docs",
 		"--validate-extension-api",
-		"--convert-3to4",
-		"--validate-conversion-3to4",
 		"--doctool",
 		"--test",
 	};

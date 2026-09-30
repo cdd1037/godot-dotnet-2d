@@ -60,11 +60,6 @@ def get_opts():
             os.path.join(deps_folder, "accesskit"),
         ),
         (
-            "angle_libs",
-            "Path to the ANGLE static libraries",
-            os.path.join(deps_folder, "angle"),
-        ),
-        (
             "bundle_sign_identity",
             "The 'Full Name', 'Common Name' or SHA-1 hash of the signing identity used to sign editor .app bundle.",
             "-",
@@ -88,6 +83,7 @@ def get_flags():
         "arch": detect_arch(),
         "use_volk": False,
         "metal": True,
+        "vulkan": False,
         "supported": ["library", "metal", "mono"],
     }
 
@@ -280,29 +276,6 @@ def configure(env: "SConsEnvironment"):
 
     extra_frameworks = set()
 
-    if env["opengl3"]:
-        env.Append(CPPDEFINES=["GLES3_ENABLED"])
-        if env["angle"]:
-            angle_path = env["angle_libs"] + "-" + env["arch"] + "-macos"
-            if not os.path.exists(angle_path):
-                angle_path = env["angle_libs"]
-            if os.path.exists(angle_path):
-                env.Prepend(CPPPATH=["#thirdparty/angle/include"])
-                env.AppendUnique(CPPDEFINES=["ANGLE_ENABLED", "EGL_STATIC"])
-                env.Append(LINKFLAGS=["-L" + angle_path])
-                env.Append(LINKFLAGS=["-lANGLE.macos." + env["arch"]])
-                env.Append(LINKFLAGS=["-lEGL.macos." + env["arch"]])
-                env.Append(LINKFLAGS=["-lGLES.macos." + env["arch"]])
-                extra_frameworks.add("Metal")
-            else:
-                print_warning(
-                    "The ANGLE rendering driver requires dependencies to be installed.\n"
-                    f"You can install them by running `python {os.path.join('misc', 'scripts', 'install_angle.py')}`.\n"
-                    "See the documentation for more information:\n"
-                    "\thttps://docs.godotengine.org/en/latest/engine_details/development/compiling/compiling_for_windows.html\n"
-                    "Alternatively, disable this driver by compiling with `angle=no` explicitly."
-                )
-                env["angle"] = False
 
     env.Append(LINKFLAGS=["-rpath", "@executable_path/../Frameworks", "-rpath", "@executable_path"])
 

@@ -134,9 +134,6 @@
 #include "main/splash_editor.gen.h"
 #endif
 
-#ifndef DISABLE_DEPRECATED
-#include "editor/project_upgrade/project_converter_3_to_4.h"
-#endif // DISABLE_DEPRECATED
 #endif // TOOLS_ENABLED
 
 #if defined(STEAMAPI_ENABLED)
@@ -148,13 +145,6 @@
 #if defined(MODULE_MONO_ENABLED) && defined(TOOLS_ENABLED)
 #include "modules/mono/editor/bindings_generator.h"
 #endif
-
-#ifdef MODULE_GDSCRIPT_ENABLED
-#include "modules/gdscript/gdscript.h"
-#if defined(TOOLS_ENABLED) && !defined(GDSCRIPT_NO_LSP)
-#include "modules/gdscript/language_server/gdscript_language_server.h"
-#endif // TOOLS_ENABLED && !GDSCRIPT_NO_LSP
-#endif // MODULE_GDSCRIPT_ENABLED
 
 /* Static members */
 
@@ -228,10 +218,6 @@ static bool auto_build_solutions = false;
 static String debug_server_uri;
 static bool wait_for_import = false;
 static bool restore_editor_window_layout = true;
-#ifndef DISABLE_DEPRECATED
-static int converter_max_kb_file = 4 * 1024; // 4MB
-static int converter_max_line_length = 100000;
-#endif // DISABLE_DEPRECATED
 
 HashMap<Main::CLIScope, Vector<String>> forwardable_cli_arguments;
 #endif
@@ -329,31 +315,6 @@ static String get_full_version_string() {
 	}
 	return String(GODOT_VERSION_FULL_BUILD) + hash;
 }
-
-#if defined(TOOLS_ENABLED) && defined(MODULE_GDSCRIPT_ENABLED)
-static Vector<String> get_files_with_extension(const String &p_root, const String &p_extension) {
-	Vector<String> paths;
-
-	Ref<DirAccess> dir = DirAccess::open(p_root);
-	if (dir.is_valid()) {
-		dir->list_dir_begin();
-		String fn = dir->get_next();
-		while (!fn.is_empty()) {
-			if (!dir->current_is_hidden() && fn != "." && fn != "..") {
-				if (dir->current_is_dir()) {
-					paths.append_array(get_files_with_extension(p_root.path_join(fn), p_extension));
-				} else if (fn.get_extension() == p_extension) {
-					paths.append(p_root.path_join(fn));
-				}
-			}
-			fn = dir->get_next();
-		}
-		dir->list_dir_end();
-	}
-
-	return paths;
-}
-#endif
 
 // FIXME: Could maybe be moved to have less code in main.cpp.
 void initialize_physics() {
@@ -564,10 +525,7 @@ void Main::print_help(const char *p_binary) {
 	print_help_option("-p, --project-manager", "Start the project manager, even if a project is auto-detected.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--recovery-mode", "Start the editor in recovery mode, which disables features that can typically cause startup crashes, such as tool scripts, editor plugins, GDExtension addons, and others.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--debug-server <uri>", "Start the editor debug server (<protocol>://<host/IP>[:port], e.g. tcp://127.0.0.1:6007)\n", CLI_OPTION_AVAILABILITY_EDITOR);
-	print_help_option("--dap-port <port>", "Use the specified port for the GDScript Debug Adapter Protocol. Recommended port range [1024, 49151].\n", CLI_OPTION_AVAILABILITY_EDITOR);
-#if defined(MODULE_GDSCRIPT_ENABLED) && !defined(GDSCRIPT_NO_LSP)
-	print_help_option("--lsp-port <port>", "Use the specified port for the GDScript Language Server Protocol. Recommended port range [1024, 49151].\n", CLI_OPTION_AVAILABILITY_EDITOR);
-#endif // MODULE_GDSCRIPT_ENABLED && !GDSCRIPT_NO_LSP
+	print_help_option("--dap-port <port>", "Use the specified port for the engine Debug Adapter Protocol. Recommended port range [1024, 49151].\n", CLI_OPTION_AVAILABILITY_EDITOR);
 #endif
 	print_help_option("--quit", "Quit after the first iteration.\n");
 	print_help_option("--quit-after <int>", "Quit after the given number of iterations. Set to 0 to disable.\n");
@@ -706,19 +664,9 @@ void Main::print_help(const char *p_binary) {
 	print_help_option("--export-patch <preset> <path>", "Export pack with changed files only. See --export-pack description for other considerations.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--patches <paths>", "List of patches to use with --export-patch. The list is comma-separated.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--install-android-build-template", "Install the Android build template. Used in conjunction with --export-release or --export-debug.\n", CLI_OPTION_AVAILABILITY_EDITOR);
-#ifndef DISABLE_DEPRECATED
-	// Commands are long; split the description to a second line.
-	print_help_option("--convert-3to4 ", "\n", CLI_OPTION_AVAILABILITY_HIDDEN);
-	print_help_option("  [max_file_kb] [max_line_size]", "Converts project from Godot 3.x to Godot 4.x.\n", CLI_OPTION_AVAILABILITY_EDITOR);
-	print_help_option("--validate-conversion-3to4 ", "\n", CLI_OPTION_AVAILABILITY_HIDDEN);
-	print_help_option("  [max_file_kb] [max_line_size]", "Shows what elements will be renamed when converting project from Godot 3.x to Godot 4.x.\n", CLI_OPTION_AVAILABILITY_EDITOR);
-#endif // DISABLE_DEPRECATED
 	print_help_option("--doctool [path]", "Dump the engine API reference to the given <path> (defaults to current directory) in XML format, merging if existing files are found.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--no-docbase", "Disallow dumping the base types (used with --doctool).\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--gdextension-docs", "Rather than dumping the engine API, generate API reference from all the GDExtensions loaded in the current project (used with --doctool).\n", CLI_OPTION_AVAILABILITY_EDITOR);
-#ifdef MODULE_GDSCRIPT_ENABLED
-	print_help_option("--gdscript-docs <path>", "Rather than dumping the engine API, generate API reference from the inline documentation in the GDScript files found in <path> (used with --doctool).\n", CLI_OPTION_AVAILABILITY_EDITOR);
-#endif
 	print_help_option("--build-solutions", "Build the scripting solutions (e.g. for C# projects). Implies --editor and requires a valid project to edit.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--dump-gdextension-interface", "Generate a GDExtension header file \"gdextension_interface.h\" in the current folder. This file is the base file required to implement a GDExtension.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--dump-gdextension-interface-json", "Generate a JSON dump of the GDExtension interface named \"gdextension_interface.json\" in the current folder.\n", CLI_OPTION_AVAILABILITY_EDITOR);
@@ -1707,36 +1655,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		} else if (arg == "--export") { // For users used to 3.x syntax.
 			OS::get_singleton()->print("The Godot 3 --export option was changed to more explicit --export-release / --export-debug / --export-pack options.\nSee the --help output for details.\n");
 			goto error;
-		} else if (arg == "--convert-3to4") {
-			// Actually handling is done in start().
-			cmdline_tool = true;
-			main_args.push_back(arg);
-
-			if (N && !N->get().begins_with("-")) {
-				if (itos(N->get().to_int()) == N->get()) {
-					converter_max_kb_file = N->get().to_int();
-				}
-				if (N->next() && !N->next()->get().begins_with("-")) {
-					if (itos(N->next()->get().to_int()) == N->next()->get()) {
-						converter_max_line_length = N->next()->get().to_int();
-					}
-				}
-			}
-		} else if (arg == "--validate-conversion-3to4") {
-			// Actually handling is done in start().
-			cmdline_tool = true;
-			main_args.push_back(arg);
-
-			if (N && !N->get().begins_with("-")) {
-				if (itos(N->get().to_int()) == N->get()) {
-					converter_max_kb_file = N->get().to_int();
-				}
-				if (N->next() && !N->next()->get().begins_with("-")) {
-					if (itos(N->next()->get().to_int()) == N->next()->get()) {
-						converter_max_line_length = N->next()->get().to_int();
-					}
-				}
-			}
 #endif // DISABLE_DEPRECATED
 		} else if (arg == "--doctool") {
 			// Actually handling is done in start().
@@ -1747,22 +1665,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			audio_driver = NULL_AUDIO_DRIVER;
 			display_driver = NULL_DISPLAY_DRIVER;
 			main_args.push_back(arg);
-#ifdef MODULE_GDSCRIPT_ENABLED
-		} else if (arg == "--gdscript-docs") {
-			if (N) {
-				project_path = N->get();
-				// Will be handled in start()
-				main_args.push_back(arg);
-				main_args.push_back(N->get());
-				N = N->next();
-				// GDScript docgen requires Autoloads, but loading those also creates a main loop.
-				// This forces main loop to quit without adding more GDScript-specific exceptions to setup.
-				quit_after = 1;
-			} else {
-				OS::get_singleton()->print("Missing relative or absolute path to project for --gdscript-docs, aborting.\n");
-				goto error;
-			}
-#endif // MODULE_GDSCRIPT_ENABLED
 #endif // TOOLS_ENABLED
 
 		} else if (arg == "--path") { // set path of project to start or edit
@@ -2019,21 +1921,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing <path> argument for --benchmark-file <path>.\n");
 				goto error;
 			}
-#if defined(TOOLS_ENABLED) && defined(MODULE_GDSCRIPT_ENABLED) && !defined(GDSCRIPT_NO_LSP)
-		} else if (arg == "--lsp-port") {
-			if (N) {
-				int port_override = N->get().to_int();
-				if (port_override < 0 || port_override > 65535) {
-					OS::get_singleton()->print("<port> argument for --lsp-port <port> must be between 0 and 65535.\n");
-					goto error;
-				}
-				GDScriptLanguageServer::port_override = port_override;
-				N = N->next();
-			} else {
-				OS::get_singleton()->print("Missing <port> argument for --lsp-port <port>.\n");
-				goto error;
-			}
-#endif // TOOLS_ENABLED && MODULE_GDSCRIPT_ENABLED && !GDSCRIPT_NO_LSP
 #if defined(TOOLS_ENABLED)
 		} else if (arg == "--dap-port") {
 			if (N) {
@@ -2381,109 +2268,19 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 	// Always include all supported drivers as hint, as this is used by the editor host platform
 	// for project settings. For example, a Linux user should be able to configure that they want
-	// to export for D3D12 on Windows and Metal on macOS even if their host platform can't use those.
+	// to export for Vulkan on Windows and Metal on macOS even if their host platform cannot use those.
 
 	{
 		// RenderingDevice driver overrides per platform.
 		GLOBAL_DEF_RST("rendering/rendering_device/driver", "vulkan");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.windows", PROPERTY_HINT_ENUM, "vulkan,d3d12"), "vulkan");
+		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.windows", PROPERTY_HINT_ENUM, "vulkan"), "vulkan");
 		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.linuxbsd", PROPERTY_HINT_ENUM, "vulkan"), "vulkan");
 		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.android", PROPERTY_HINT_ENUM, "vulkan"), "vulkan");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.ios", PROPERTY_HINT_ENUM, "metal,vulkan"), "metal");
+		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.ios", PROPERTY_HINT_ENUM, "metal"), "metal");
 		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.visionos", PROPERTY_HINT_ENUM, "metal"), "metal");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.macos", PROPERTY_HINT_ENUM, "metal,vulkan"), "metal");
+		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/rendering_device/driver.macos", PROPERTY_HINT_ENUM, "metal"), "metal");
 
 		GLOBAL_DEF_RST("rendering/rendering_device/fallback_to_vulkan", true);
-		GLOBAL_DEF_RST("rendering/rendering_device/fallback_to_d3d12", true);
-		GLOBAL_DEF_RST("rendering/rendering_device/fallback_to_opengl3", true);
-	}
-
-	{
-		// GL Compatibility driver overrides per platform.
-		GLOBAL_DEF_RST("rendering/gl_compatibility/driver", "opengl3");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/gl_compatibility/driver.windows", PROPERTY_HINT_ENUM, "opengl3,opengl3_angle"), "opengl3");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/gl_compatibility/driver.linuxbsd", PROPERTY_HINT_ENUM, "opengl3,opengl3_es"), "opengl3");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/gl_compatibility/driver.web", PROPERTY_HINT_ENUM, "opengl3"), "opengl3");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/gl_compatibility/driver.android", PROPERTY_HINT_ENUM, "opengl3"), "opengl3");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/gl_compatibility/driver.ios", PROPERTY_HINT_ENUM, "opengl3"), "opengl3");
-		GLOBAL_DEF_RST(PropertyInfo(Variant::STRING, "rendering/gl_compatibility/driver.macos", PROPERTY_HINT_ENUM, "opengl3,opengl3_angle"), "opengl3");
-
-		GLOBAL_DEF_RST("rendering/gl_compatibility/nvidia_disable_threaded_optimization", true);
-		GLOBAL_DEF_RST("rendering/gl_compatibility/fallback_to_angle", true);
-		GLOBAL_DEF_RST("rendering/gl_compatibility/fallback_to_native", true);
-		GLOBAL_DEF_RST("rendering/gl_compatibility/fallback_to_gles", true);
-
-		Array force_angle_list;
-
-#define FORCE_ANGLE(m_vendor, m_name) \
-	{ \
-		Dictionary device; \
-		device["vendor"] = m_vendor; \
-		device["name"] = m_name; \
-		force_angle_list.push_back(device); \
-	}
-
-		// AMD GPUs.
-		FORCE_ANGLE("ATI", "Radeon 9"); // ATI Radeon 9000 Series
-		FORCE_ANGLE("ATI", "Radeon X"); // ATI Radeon X500-X2000 Series
-		FORCE_ANGLE("ATI", "Radeon HD 2"); // AMD/ATI (Mobility) Radeon HD 2xxx Series
-		FORCE_ANGLE("ATI", "Radeon HD 3"); // AMD/ATI (Mobility) Radeon HD 3xxx Series
-		FORCE_ANGLE("ATI", "Radeon HD 4"); // AMD/ATI (Mobility) Radeon HD 4xxx Series
-		FORCE_ANGLE("ATI", "Radeon HD 5"); // AMD/ATI (Mobility) Radeon HD 5xxx Series
-		FORCE_ANGLE("ATI", "Radeon HD 6"); // AMD/ATI (Mobility) Radeon HD 6xxx Series
-		FORCE_ANGLE("ATI", "Radeon HD 7"); // AMD/ATI (Mobility) Radeon HD 7xxx Series
-		FORCE_ANGLE("ATI", "Radeon HD 8"); // AMD/ATI (Mobility) Radeon HD 8xxx Series
-		FORCE_ANGLE("ATI", "Radeon(TM) R2 Graphics"); // APUs
-		FORCE_ANGLE("ATI", "Radeon(TM) R3 Graphics");
-		FORCE_ANGLE("ATI", "Radeon(TM) R4 Graphics");
-		FORCE_ANGLE("ATI", "Radeon(TM) R5 Graphics");
-		FORCE_ANGLE("ATI", "Radeon(TM) R6 Graphics");
-		FORCE_ANGLE("ATI", "Radeon(TM) R7 Graphics");
-		FORCE_ANGLE("AMD", "Radeon(TM) R7 Graphics");
-		FORCE_ANGLE("AMD", "Radeon(TM) R8 Graphics");
-		FORCE_ANGLE("ATI", "Radeon R5 Graphics");
-		FORCE_ANGLE("ATI", "Radeon R6 Graphics");
-		FORCE_ANGLE("ATI", "Radeon R7 Graphics");
-		FORCE_ANGLE("AMD", "Radeon R7 Graphics");
-		FORCE_ANGLE("AMD", "Radeon R8 Graphics");
-		FORCE_ANGLE("ATI", "Radeon R5 2"); // Rx 2xx Series
-		FORCE_ANGLE("ATI", "Radeon R7 2");
-		FORCE_ANGLE("ATI", "Radeon R9 2");
-		FORCE_ANGLE("ATI", "Radeon R5 M2"); // Rx M2xx Series
-		FORCE_ANGLE("ATI", "Radeon R7 M2");
-		FORCE_ANGLE("ATI", "Radeon R9 M2");
-		FORCE_ANGLE("ATI", "Radeon (TM) R9 Fury");
-		FORCE_ANGLE("ATI", "Radeon (TM) R5 3"); // Rx 3xx Series
-		FORCE_ANGLE("AMD", "Radeon (TM) R5 3");
-		FORCE_ANGLE("ATI", "Radeon (TM) R7 3");
-		FORCE_ANGLE("AMD", "Radeon (TM) R7 3");
-		FORCE_ANGLE("ATI", "Radeon (TM) R9 3");
-		FORCE_ANGLE("AMD", "Radeon (TM) R9 3");
-		FORCE_ANGLE("ATI", "Radeon (TM) R5 M3"); // Rx M3xx Series
-		FORCE_ANGLE("AMD", "Radeon (TM) R5 M3");
-		FORCE_ANGLE("ATI", "Radeon (TM) R7 M3");
-		FORCE_ANGLE("AMD", "Radeon (TM) R7 M3");
-		FORCE_ANGLE("ATI", "Radeon (TM) R9 M3");
-		FORCE_ANGLE("AMD", "Radeon (TM) R9 M3");
-
-		// Intel GPUs (Gen7-Gen9.5 devices).
-		FORCE_ANGLE("Intel", "Intel(R) HD Graphics");
-		FORCE_ANGLE("Intel", "Intel HD Graphics");
-		FORCE_ANGLE("Intel", "Intel(R) Vallyview Graphics");
-		FORCE_ANGLE("Intel", "Intel(R) Iris(TM) Graphics 5100");
-		FORCE_ANGLE("Intel", "Intel(R) Iris(TM) Pro Graphics 5200");
-		FORCE_ANGLE("Intel", "Intel(R) Iris(TM) Graphics 6100");
-		FORCE_ANGLE("Intel", "Intel(R) Iris(TM) Pro Graphics 6200");
-		FORCE_ANGLE("Intel", "Intel(R) Iris(TM) Pro Graphics P6300");
-		FORCE_ANGLE("Intel", "Intel(R) Iris Graphics 540");
-		FORCE_ANGLE("Intel", "Intel(R) Iris Plus Graphics 640");
-		FORCE_ANGLE("Intel", "Intel(R) Iris Plus Graphics 650");
-		FORCE_ANGLE("Intel", "Intel(R) Iris Pro Graphics 580");
-		FORCE_ANGLE("Intel", "Intel(R) Iris Pro Graphics P580");
-
-#undef FORCE_ANGLE
-
-		GLOBAL_DEF_RST_NOVAL(PropertyInfo(Variant::ARRAY, "rendering/gl_compatibility/force_angle_on_devices", PROPERTY_HINT_ARRAY_TYPE, vformat("%s/%s:%s", Variant::DICTIONARY, PROPERTY_HINT_NONE, String())), force_angle_list);
 	}
 
 	// Start with RenderingDevice-based backends.
@@ -2493,26 +2290,10 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 #endif
 
 	// And Compatibility next, or first if Vulkan is disabled.
-#ifdef GLES3_ENABLED
-	if (!renderer_hints.is_empty()) {
-		renderer_hints += ",";
-	}
-	renderer_hints += "gl_compatibility";
-	if (default_renderer_mobile.is_empty()) {
-		default_renderer_mobile = "gl_compatibility";
-	}
-	// Default to Compatibility when using the project manager.
-	if (rendering_driver.is_empty() && rendering_method.is_empty() && project_manager) {
-		rendering_driver = "opengl3";
-		rendering_method = "gl_compatibility";
-		default_renderer_mobile = "gl_compatibility";
-	}
-#endif
 
 	if (!rendering_method.is_empty()) {
 		if (rendering_method != "forward_plus" &&
 				rendering_method != "mobile" &&
-				rendering_method != "gl_compatibility" &&
 				rendering_method != "dummy") {
 			OS::get_singleton()->print("Unknown rendering method '%s', aborting.\nValid options are ",
 					rendering_method.utf8().get_data());
@@ -2587,8 +2368,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		if (rendering_method.is_empty()) {
 			if (rendering_driver == "dummy") {
 				rendering_method = "dummy";
-			} else if (rendering_driver == "opengl3" || rendering_driver == "opengl3_angle" || rendering_driver == "opengl3_es") {
-				rendering_method = "gl_compatibility";
 			} else {
 				rendering_method = "forward_plus";
 			}
@@ -2601,20 +2380,10 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 #ifdef VULKAN_ENABLED
 			available_drivers.push_back("vulkan");
 #endif
-#ifdef D3D12_ENABLED
-			available_drivers.push_back("d3d12");
-#endif
 #ifdef METAL_ENABLED
 			available_drivers.push_back("metal");
 #endif
 		}
-#ifdef GLES3_ENABLED
-		if (rendering_method == "gl_compatibility") {
-			available_drivers.push_back("opengl3");
-			available_drivers.push_back("opengl3_angle");
-			available_drivers.push_back("opengl3_es");
-		}
-#endif
 		if (rendering_method == "dummy") {
 			available_drivers.push_back("dummy");
 		}
@@ -2646,7 +2415,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	default_renderer = renderer_hints.get_slicec(',', 0);
 	GLOBAL_DEF_RST_BASIC(PropertyInfo(Variant::STRING, "rendering/renderer/rendering_method", PROPERTY_HINT_ENUM, renderer_hints), default_renderer);
 	GLOBAL_DEF_RST_BASIC("rendering/renderer/rendering_method.mobile", default_renderer_mobile);
-	GLOBAL_DEF_RST_BASIC(PropertyInfo(Variant::STRING, "rendering/renderer/rendering_method.web", PROPERTY_HINT_ENUM, "gl_compatibility"), "gl_compatibility"); // This is a bit of a hack until we have WebGPU support.
 
 	// Default to ProjectSettings default if nothing set on the command line.
 	if (rendering_method.is_empty()) {
@@ -2657,9 +2425,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	if (rendering_driver.is_empty()) {
 		if (rendering_method == "dummy") {
 			rendering_driver = "dummy";
-		} else if (rendering_method == "gl_compatibility") {
-			rendering_driver = GLOBAL_GET("rendering/gl_compatibility/driver");
-			rendering_driver_source = OS::RenderingSource::RENDERING_SOURCE_PROJECT_SETTING;
 		} else {
 			rendering_driver = GLOBAL_GET("rendering/rendering_device/driver");
 			rendering_driver_source = OS::RenderingSource::RENDERING_SOURCE_PROJECT_SETTING;
@@ -4033,13 +3798,6 @@ int Main::start() {
 	bool export_pack_only = false;
 	bool install_android_build_template = false;
 	bool export_patch = false;
-#ifdef MODULE_GDSCRIPT_ENABLED
-	String gdscript_docs_path;
-#endif
-#ifndef DISABLE_DEPRECATED
-	bool converting_project = false;
-	bool validating_converting_project = false;
-#endif // DISABLE_DEPRECATED
 #endif // TOOLS_ENABLED
 
 	main_timer_sync.init(OS::get_singleton()->get_ticks_usec());
@@ -4058,12 +3816,6 @@ int Main::start() {
 		} else if (E->get() == "--gdextension-docs") {
 			gen_flags.set_flag(DocTools::GENERATE_FLAG_SKIP_BASIC_TYPES);
 			gen_flags.set_flag(DocTools::GENERATE_FLAG_EXTENSION_CLASSES_ONLY);
-#ifndef DISABLE_DEPRECATED
-		} else if (E->get() == "--convert-3to4") {
-			converting_project = true;
-		} else if (E->get() == "--validate-conversion-3to4") {
-			validating_converting_project = true;
-#endif // DISABLE_DEPRECATED
 		} else if (E->get() == "-e" || E->get() == "--editor") {
 			editor = true;
 		} else if (E->get() == "-p" || E->get() == "--project-manager") {
@@ -4128,10 +3880,6 @@ int Main::start() {
 					doc_tool_implicit_cwd = true;
 					parsed_pair = false;
 				}
-#ifdef MODULE_GDSCRIPT_ENABLED
-			} else if (E->get() == "--gdscript-docs") {
-				gdscript_docs_path = E->next()->get();
-#endif
 			} else if (E->get() == "--export-release") {
 				ERR_FAIL_COND_V_MSG(!editor && !found_project, EXIT_FAILURE, "Please provide a valid project path when exporting, aborting.");
 				editor = true; //needs editor
@@ -4180,11 +3928,7 @@ int Main::start() {
 	}
 
 #ifdef TOOLS_ENABLED
-#ifdef MODULE_GDSCRIPT_ENABLED
-	if (!doc_tool_path.is_empty() && gdscript_docs_path.is_empty()) {
-#else
 	if (!doc_tool_path.is_empty()) {
-#endif
 		// Needed to instance editor-only classes for their default values
 		Engine::get_singleton()->set_editor_hint(true);
 
@@ -4305,17 +4049,6 @@ int Main::start() {
 			return valid ? EXIT_SUCCESS : EXIT_FAILURE;
 		}
 	}
-
-#ifndef DISABLE_DEPRECATED
-	if (converting_project) {
-		int ret = ProjectConverter3To4(converter_max_kb_file, converter_max_line_length).convert();
-		return ret ? EXIT_SUCCESS : EXIT_FAILURE;
-	}
-	if (validating_converting_project) {
-		bool ret = ProjectConverter3To4(converter_max_kb_file, converter_max_line_length).validate_conversion();
-		return ret ? EXIT_SUCCESS : EXIT_FAILURE;
-	}
-#endif // DISABLE_DEPRECATED
 
 #endif // TOOLS_ENABLED
 
@@ -4567,36 +4300,6 @@ int Main::start() {
 		}
 
 #ifdef TOOLS_ENABLED
-#ifdef MODULE_GDSCRIPT_ENABLED
-		if (!doc_tool_path.is_empty() && !gdscript_docs_path.is_empty()) {
-			DocTools docs;
-			Error err;
-
-			Vector<String> paths = get_files_with_extension(gdscript_docs_path, "gd");
-			ERR_FAIL_COND_V_MSG(paths.is_empty(), EXIT_FAILURE, "Couldn't find any GDScript files under the given directory: " + gdscript_docs_path);
-
-			for (const String &path : paths) {
-				Ref<GDScript> gdscript = ResourceLoader::load(path);
-				for (const DocData::ClassDoc &class_doc : gdscript->get_documentation()) {
-					docs.add_doc(class_doc);
-				}
-			}
-
-			if (doc_tool_implicit_cwd) {
-				doc_tool_path = "./docs";
-			}
-
-			Ref<DirAccess> da = DirAccess::create_for_path(doc_tool_path);
-			err = da->make_dir_recursive(doc_tool_path);
-			ERR_FAIL_COND_V_MSG(err != OK, EXIT_FAILURE, "Error: Can't create GDScript docs directory: " + doc_tool_path + ": " + itos(err));
-
-			HashMap<String, String> doc_data_classes;
-			err = docs.save_classes(doc_tool_path, doc_data_classes, false);
-			ERR_FAIL_COND_V_MSG(err != OK, EXIT_FAILURE, "Error saving GDScript docs:" + itos(err));
-
-			return EXIT_SUCCESS;
-		}
-#endif // MODULE_GDSCRIPT_ENABLED
 
 		EditorNode *editor_node = nullptr;
 		if (editor) {

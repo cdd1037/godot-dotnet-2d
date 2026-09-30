@@ -26,11 +26,9 @@ if env["xaudio2"]:
     SConscript("xaudio2/SCsub")
 
 # Shared Apple platform drivers
-if env["platform"] in ["macos", "ios", "visionos"]:
+if env["platform"] == "macos":
     SConscript("apple/SCsub")
     SConscript("coreaudio/SCsub")
-if env["platform"] in ["ios", "visionos"]:
-    SConscript("apple_embedded/SCsub")
 
 # Accessibility
 if env["accesskit"] and env["platform"] in ["macos", "windows", "linuxbsd"]:
@@ -45,15 +43,6 @@ SConscript("winmidi/SCsub")
 # Graphics drivers
 if env["vulkan"]:
     SConscript("vulkan/SCsub")
-if env["d3d12"]:
-    if "d3d12" not in supported:
-        print_error("Target platform '{}' does not support the D3D12 rendering driver".format(env["platform"]))
-        Exit(255)
-    SConscript("d3d12/SCsub")
-if env["opengl3"]:
-    SConscript("gl_context/SCsub")
-    SConscript("gles3/SCsub")
-    SConscript("egl/SCsub")
 if env["metal"]:
     if "metal" not in supported:
         print_error("Target platform '{}' does not support the Metal rendering driver".format(env["platform"]))
@@ -61,7 +50,7 @@ if env["metal"]:
     SConscript("metal/SCsub")
 
 # Input drivers
-if env["sdl"] and env["platform"] in ["linuxbsd", "macos", "windows", "ios", "visionos"]:
+if env["sdl"] and env["platform"] in ["linuxbsd", "macos", "windows"]:
     # TODO: Evaluate support for Android and Web.
     SConscript("sdl/SCsub")
 

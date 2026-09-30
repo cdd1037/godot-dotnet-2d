@@ -34,9 +34,6 @@
 
 #include "core/config/engine.h"
 
-#ifdef D3D12_ENABLED
-#include "core/os/os.h"
-#endif
 
 GODOT_GCC_WARNING_PUSH_AND_IGNORE("-Wshadow")
 
@@ -82,12 +79,6 @@ Vector<uint8_t> compile_glslang_shader(RenderingDeviceCommons::ShaderStage p_sta
 	}
 
 	bool generate_spirv_debug_info = Engine::get_singleton()->is_generate_spirv_debug_info_enabled();
-#ifdef D3D12_ENABLED
-	if (OS::get_singleton()->get_current_rendering_driver_name() == "d3d12") {
-		// SPIRV to DXIL conversion does not support debug info.
-		generate_spirv_debug_info = false;
-	}
-#endif
 
 	EShMessages messages = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
 	if (generate_spirv_debug_info) {

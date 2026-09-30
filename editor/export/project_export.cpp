@@ -451,9 +451,6 @@ void ProjectExportDialog::_edit_preset(int p_index) {
 		script_key_error->hide();
 	}
 
-	int script_export_mode = int(current->get_script_export_mode());
-	script_mode->select(script_export_mode);
-
 	updating = false;
 }
 
@@ -716,19 +713,6 @@ bool ProjectExportDialog::_validate_script_encryption_key(const String &p_key) {
 	return is_valid;
 }
 
-void ProjectExportDialog::_script_export_mode_changed(EditorExportPreset::ScriptExportMode p_mode) {
-	if (updating) {
-		return;
-	}
-
-	Ref<EditorExportPreset> current = get_current_preset();
-	ERR_FAIL_COND(current.is_null());
-
-	current->set_script_export_mode(p_mode);
-
-	_update_current_preset();
-}
-
 void ProjectExportDialog::_duplicate_preset() {
 	Ref<EditorExportPreset> current = get_current_preset();
 	if (current.is_null()) {
@@ -779,7 +763,6 @@ void ProjectExportDialog::_duplicate_preset() {
 	preset->set_enc_pck(current->get_enc_pck());
 	preset->set_enc_directory(current->get_enc_directory());
 	preset->set_script_encryption_key(current->get_script_encryption_key());
-	preset->set_script_export_mode(current->get_script_export_mode());
 
 	for (const KeyValue<StringName, Variant> &E : current->get_values()) {
 		preset->set(E.key, E.value);
@@ -1921,21 +1904,6 @@ ProjectExportDialog::ProjectExportDialog() {
 	sec_more_info->set_text(TTRC("More Info..."));
 	sec_more_info->connect(SceneStringName(pressed), callable_mp(this, &ProjectExportDialog::_open_key_help_link));
 	sec_vb->add_child(sec_more_info);
-
-	// Script export parameters.
-
-	VBoxContainer *script_vb = memnew(VBoxContainer);
-	script_vb->set_name(TTRC("Scripts"));
-
-	script_mode = memnew(OptionButton);
-	script_mode->set_accessibility_name(TTRC("GDScript Export Mode:"));
-	script_vb->add_margin_child(TTRC("GDScript Export Mode:"), script_mode);
-	script_mode->add_item(TTRC("Text (easier debugging)"), (int)EditorExportPreset::MODE_SCRIPT_TEXT);
-	script_mode->add_item(TTRC("Binary tokens (faster loading)"), (int)EditorExportPreset::MODE_SCRIPT_BINARY_TOKENS);
-	script_mode->add_item(TTRC("Compressed binary tokens (smaller files)"), (int)EditorExportPreset::MODE_SCRIPT_BINARY_TOKENS_COMPRESSED);
-	script_mode->connect(SceneStringName(item_selected), callable_mp(this, &ProjectExportDialog::_script_export_mode_changed));
-
-	sections->add_child(script_vb);
 
 	sections->connect("tab_changed", callable_mp(this, &ProjectExportDialog::_tab_changed));
 

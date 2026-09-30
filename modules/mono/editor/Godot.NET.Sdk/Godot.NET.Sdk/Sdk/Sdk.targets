@@ -48,7 +48,10 @@
     <Error Text="The project or one of its dependencies references GodotSharp packages which is incompatible with the active Godot C# bindings. The active C# bindings is Godot .NET." Condition="$([System.String]::Copy('%(Reference.Identity)').Contains('GodotSharp.dll'))" />
   </Target>
 
-  <!-- iOS-specific build targets -->
-  <Import Project="$(MSBuildThisFileDirectory)\iOS.targets" Condition=" '$(GodotTargetPlatform)' == 'ios' " />
+
+  <Target Name="ValidateDesktopGodotPlatform" BeforeTargets="PrepareForBuild;Publish">
+    <Error Condition=" '$(GodotTargetPlatform)' != 'windows' and '$(GodotTargetPlatform)' != 'linuxbsd' and '$(GodotTargetPlatform)' != 'macos' " Text="This Godot fork supports only Windows, Linux/BSD, and macOS targets." />
+    <Error Condition=" $(RuntimeIdentifier.StartsWith('android')) or $(RuntimeIdentifier.StartsWith('ios')) or $(RuntimeIdentifier.StartsWith('browser')) or $(RuntimeIdentifier.StartsWith('linux-bionic')) " Text="Mobile and Web runtime identifiers are not supported by this desktop-only Godot fork." />
+  </Target>
 
 </Project>

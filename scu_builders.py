@@ -290,9 +290,6 @@ def generate_scu_files(max_includes_per_scu):
     process_folder(["drivers/unix"])
     process_folder(["drivers/png"])
 
-    process_folder(["drivers/gles3"])
-    process_folder(["drivers/gles3/effects"])
-    process_folder(["drivers/gles3/storage"])
 
     process_folder(["drivers/vulkan"])
 
@@ -338,9 +335,6 @@ def generate_scu_files(max_includes_per_scu):
 
     process_folder(["modules/csg"])
     process_folder(["modules/betsy"])
-    process_folder(["modules/gdscript"])
-    process_folder(["modules/gdscript/editor"])
-    process_folder(["modules/gdscript/language_server"])
     process_folder(["modules/gltf"])
     process_folder(["modules/gltf/structures"])
     process_folder(["modules/gltf/editor"])

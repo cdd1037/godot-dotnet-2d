@@ -3675,47 +3675,7 @@ void ScriptEditor::_on_find_in_files_result_selected(const String &fpath, int li
 			}
 			return;
 		} else if (fpath.has_extension("tscn")) {
-			const PackedStringArray lines = FileAccess::get_file_as_string(fpath).split("\n");
-			if (line_number > lines.size()) {
-				return;
-			}
-
-			const char *scr_header = "[sub_resource type=\"GDScript\" id=\"";
-			const char *source_header = "script/source = \"";
-			String script_id;
-
-			// Search the scene backwards from the found line.
-			int scan_line = line_number - 1;
-			while (scan_line >= 0) {
-				const String &line = lines[scan_line];
-				if (line.begins_with(source_header)) {
-					// Adjust line relative to the script beginning.
-					line_number -= scan_line + 1;
-				} else if (line.begins_with(scr_header)) {
-					script_id = line.trim_prefix(scr_header).get_slicec('"', 0);
-					break;
-				}
-				scan_line--;
-			}
-
 			EditorNode::get_singleton()->open_scene(fpath);
-			if (!script_id.is_empty()) {
-				Ref<Script> scr = ResourceLoader::load(fpath + "::" + script_id, "Script");
-				if (scr.is_valid()) {
-					edit(scr);
-					ScriptTextEditor *ste = Object::cast_to<ScriptTextEditor>(_get_current_editor());
-
-					if (ste) {
-						callable_mp(EditorInterface::get_singleton(), &EditorInterface::set_main_screen_editor).call_deferred("Script");
-						if (line_number == 0) {
-							const int source_len = strlen(source_header);
-							ste->goto_line_selection(line_number, begin - source_len, end - source_len);
-						} else {
-							ste->goto_line_selection(line_number, begin, end);
-						}
-					}
-				}
-			}
 
 			return;
 		} else {

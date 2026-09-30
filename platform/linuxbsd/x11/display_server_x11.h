@@ -49,7 +49,7 @@
 #ifdef XKB_ENABLED
 #include "xkbcommon-so_wrap.h"
 #endif
-#else // !SOWRAP_ENABLED
+#else
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput2.h>
@@ -72,10 +72,6 @@ class RenderingDevice;
 class RenderingContextDriver;
 #endif
 
-#ifdef GLES3_ENABLED
-class GLManager_X11;
-class GLManagerEGL_X11;
-#endif
 
 #ifdef DBUS_ENABLED
 class FreeDesktopPortalDesktop;
@@ -118,10 +114,6 @@ class DisplayServerX11 : public DisplayServer {
 	Atom requested = None;
 	int xdnd_version = 5;
 
-#if defined(GLES3_ENABLED)
-	GLManager_X11 *gl_manager = nullptr;
-	GLManagerEGL_X11 *gl_manager_egl = nullptr;
-#endif
 #if defined(RD_ENABLED)
 	RenderingContextDriver *rendering_context = nullptr;
 	RenderingDevice *rendering_device = nullptr;

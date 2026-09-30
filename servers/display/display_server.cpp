@@ -52,9 +52,6 @@ STATIC_ASSERT_INCOMPLETE_TYPE(class, RenderingServer);
 #if defined(VULKAN_ENABLED)
 #include "drivers/vulkan/rendering_context_driver_vulkan.h"
 #endif
-#if defined(D3D12_ENABLED)
-#include "drivers/d3d12/rendering_context_driver_d3d12.h"
-#endif
 #if defined(METAL_ENABLED)
 #include "drivers/metal/rendering_context_driver_metal.h"
 #endif
@@ -2122,17 +2119,12 @@ bool DisplayServer::is_rendering_device_supported() {
 	} else {
 		supported_rendering_device = DisplayServerEnums::RenderingDeviceCreationStatus::FAILURE;
 	}
-#else // WINDOWS_ENABLED
+#else
 
 	RenderingContextDriver *rcd = nullptr;
 
 #if defined(VULKAN_ENABLED)
 	rcd = memnew(RenderingContextDriverVulkan);
-#endif
-#ifdef D3D12_ENABLED
-	if (rcd == nullptr) {
-		rcd = memnew(RenderingContextDriverD3D12);
-	}
 #endif
 #ifdef METAL_ENABLED
 	if (rcd == nullptr) {
@@ -2204,17 +2196,12 @@ bool DisplayServer::can_create_rendering_device() {
 	} else {
 		created_rendering_device = DisplayServerEnums::RenderingDeviceCreationStatus::FAILURE;
 	}
-#else // WINDOWS_ENABLED
+#else
 
 	RenderingContextDriver *rcd = nullptr;
 
 #if defined(VULKAN_ENABLED)
 	rcd = memnew(RenderingContextDriverVulkan);
-#endif
-#ifdef D3D12_ENABLED
-	if (rcd == nullptr) {
-		rcd = memnew(RenderingContextDriverD3D12);
-	}
 #endif
 #ifdef METAL_ENABLED
 	if (rcd == nullptr) {

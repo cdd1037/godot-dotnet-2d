@@ -35,7 +35,6 @@
 
 class CheckBox;
 class EditorAbout;
-class EditorAssetLibrary;
 class EditorFileDialog;
 class EditorTitleBar;
 class HFlowContainer;
@@ -68,7 +67,6 @@ class ProjectManager : public Control {
 	enum PostDuplicateAction {
 		POST_DUPLICATE_ACTION_NONE,
 		POST_DUPLICATE_ACTION_OPEN,
-		POST_DUPLICATE_ACTION_FULL_CONVERSION,
 	};
 
 	PostDuplicateAction post_duplicate_action = POST_DUPLICATE_ACTION_NONE;
@@ -96,7 +94,6 @@ class ProjectManager : public Control {
 
 	enum MainViewTab {
 		MAIN_VIEW_PROJECTS,
-		MAIN_VIEW_ASSETLIB,
 		MAIN_VIEW_MAX
 	};
 
@@ -112,12 +109,10 @@ class ProjectManager : public Control {
 	void _select_main_view(int p_id);
 
 	VBoxContainer *local_projects_vb = nullptr;
-	EditorAssetLibrary *asset_library = nullptr;
 
 	EditorAbout *about_dialog = nullptr;
 
 	void _show_about();
-	void _open_asset_library_confirmed();
 	void _project_list_menu_option(int p_option);
 
 	AcceptDialog *error_dialog = nullptr;
@@ -138,8 +133,6 @@ class ProjectManager : public Control {
 	RichTextLabel *empty_list_message = nullptr;
 	Button *empty_list_create_project = nullptr;
 	Button *empty_list_import_project = nullptr;
-	Button *empty_list_open_assetlib = nullptr;
-	Label *empty_list_online_warning = nullptr;
 
 	void _update_list_placeholder();
 
@@ -242,12 +235,10 @@ class ProjectManager : public Control {
 
 	// Project converter/migration tool.
 
-	ConfirmationDialog *ask_full_convert_dialog = nullptr;
 	ConfirmationDialog *ask_update_settings = nullptr;
 	VBoxContainer *ask_update_vb = nullptr;
 	Label *ask_update_label = nullptr;
 	CheckBox *ask_update_backup = nullptr;
-	Button *full_convert_button = nullptr;
 	Button *migration_guide_button = nullptr;
 
 	String version_convert_feature;
@@ -257,9 +248,7 @@ class ProjectManager : public Control {
 #ifndef DISABLE_DEPRECATED
 	void _minor_project_migrate();
 #endif
-	void _full_convert_button_pressed();
 	void _migration_guide_button_pressed();
-	void _perform_full_project_conversion();
 
 	// Input and I/O.
 

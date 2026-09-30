@@ -50,7 +50,6 @@
 #include "core/string/translation_server.h"
 #include "core/version.h"
 #include "editor/animation/animation_player_editor_plugin.h"
-#include "editor/asset_library/asset_library_editor_plugin.h"
 #include "editor/audio/audio_stream_preview.h"
 #include "editor/audio/editor_audio_buses.h"
 #include "editor/debugger/debugger_editor_plugin.h"
@@ -185,10 +184,6 @@
 #include "editor/shader/shader_baker/shader_baker_export_plugin_platform_vulkan.h"
 #endif
 
-#ifdef D3D12_ENABLED
-#include "editor/shader/shader_baker/shader_baker_export_plugin_platform_d3d12.h"
-#endif
-
 #ifdef METAL_ENABLED
 #include "editor/shader/shader_baker/shader_baker_export_plugin_platform_metal.h"
 #endif
@@ -205,7 +200,7 @@
 #include "editor/gui/touch_actions_panel.h"
 #endif // ANDROID_ENABLED
 
-#include "modules/modules_enabled.gen.h" // For gdscript, mono.
+#include "modules/modules_enabled.gen.h" // For mono.
 
 #include <cstdlib>
 
@@ -424,8 +419,7 @@ void EditorNode::shortcut_input(const Ref<InputEvent> &p_event) {
 			editor_main_screen->select(EditorMainScreen::EDITOR_GAME);
 		} else if (ED_IS_SHORTCUT("editor/editor_help", p_event)) {
 			emit_signal(SNAME("request_help_search"), "");
-		} else if (ED_IS_SHORTCUT("editor/editor_assetlib", p_event) && AssetLibraryEditorPlugin::is_available()) {
-			editor_main_screen->select(EditorMainScreen::EDITOR_ASSETLIB);
+
 		} else if (ED_IS_SHORTCUT("editor/editor_next", p_event)) {
 			editor_main_screen->select_next();
 		} else if (ED_IS_SHORTCUT("editor/editor_prev", p_event)) {
@@ -626,7 +620,7 @@ void EditorNode::_gdextensions_reloaded() {
 	// In case the developer is inspecting an object that will be changed by the reload.
 	InspectorDock::get_inspector_singleton()->update_tree();
 
-	// Reload script editor to revalidate GDScript if classes are added or removed.
+	// Reload script editor to revalidate scripts if classes are added or removed.
 	ScriptEditor::get_singleton()->reload_scripts(true);
 
 	// Regenerate documentation without using script documentation cache since that would
@@ -694,7 +688,7 @@ void EditorNode::_update_theme(bool p_skip_creation) {
 		theme = EditorThemeManager::generate_theme(theme);
 		DisplayServer::set_early_window_clear_color_override(true, theme->get_color(SNAME("background"), EditorStringName(Editor)));
 
-#if defined(MODULE_GDSCRIPT_ENABLED) || defined(MODULE_MONO_ENABLED)
+#if defined(MODULE_MONO_ENABLED)
 		if (EditorHelpHighlighter::get_singleton()) {
 			// Update syntax colors.
 			EditorHelpHighlighter::free_singleton();
@@ -876,7 +870,7 @@ void EditorNode::_notification(int p_what) {
 
 		case NOTIFICATION_POSTINITIALIZE: {
 			EditorHelp::generate_doc();
-#if defined(MODULE_GDSCRIPT_ENABLED) || defined(MODULE_MONO_ENABLED)
+#if defined(MODULE_MONO_ENABLED)
 			EditorHelpHighlighter::create_singleton();
 #endif
 		} break;
@@ -1165,7 +1159,7 @@ void EditorNode::_notification(int p_what) {
 				DisplayServer::get_singleton()->screen_set_keep_on(EDITOR_GET("interface/editor/display/keep_screen_on"));
 			}
 
-#if defined(MODULE_GDSCRIPT_ENABLED) || defined(MODULE_MONO_ENABLED)
+#if defined(MODULE_MONO_ENABLED)
 			if (EditorSettings::get_singleton()->check_changed_settings_in_group("text_editor/theme/highlighting")) {
 				EditorHelpHighlighter::get_singleton()->reset_cache();
 			}
@@ -6071,23 +6065,10 @@ String EditorNode::_get_system_info() const {
 		rendering_method = "Forward+";
 	} else if (rendering_method == "mobile") {
 		rendering_method = "Mobile";
-	} else if (rendering_method == "gl_compatibility") {
-		rendering_method = "Compatibility";
+
 	}
 	if (driver_name == "vulkan") {
 		driver_name = "Vulkan";
-	} else if (driver_name == "d3d12") {
-		driver_name = "Direct3D 12";
-	} else if (driver_name == "opengl3_angle") {
-		driver_name = "OpenGL ES 3/ANGLE";
-	} else if (driver_name == "opengl3_es") {
-		driver_name = "OpenGL ES 3";
-	} else if (driver_name == "opengl3") {
-		if (OS::get_singleton()->get_gles_over_gl()) {
-			driver_name = "OpenGL 3";
-		} else {
-			driver_name = "OpenGL ES 3";
-		}
 	} else if (driver_name == "metal") {
 		driver_name = "Metal";
 	}
@@ -6567,9 +6548,7 @@ void EditorNode::run_editor_script(const Ref<Script> &p_script) {
 	if (!p_script->is_tool()) {
 		is_runnable = false;
 
-		if (p_script->get_class() == "GDScript") {
-			EditorToaster::get_singleton()->popup_str(TTR("Cannot run the script because it's not a tool script (add the @tool annotation at the top)."), EditorToaster::SEVERITY_WARNING);
-		} else if (p_script->get_class() == "CSharpScript") {
+		if (p_script->get_class() == "CSharpScript") {
 			EditorToaster::get_singleton()->popup_str(TTR("Cannot run the script because it's not a tool script (add the [Tool] attribute above the class definition)."), EditorToaster::SEVERITY_WARNING);
 		} else {
 			EditorToaster::get_singleton()->popup_str(TTR("Cannot run the script because it's not a tool script."), EditorToaster::SEVERITY_WARNING);
@@ -7787,12 +7766,8 @@ void EditorNode::_renderer_selected(int p_index) {
 		video_restart_dialog->disconnect(SceneStringName(confirmed), callable_mp(this, &EditorNode::_set_renderer_name_save_and_restart));
 	}
 
-	const String mobile_rendering_method = rendering_method == "forward_plus" ? "mobile" : rendering_method;
-	const String web_rendering_method = "gl_compatibility";
 	video_restart_dialog->connect(SceneStringName(confirmed), callable_mp(this, &EditorNode::_set_renderer_name_save_and_restart).bind(rendering_method));
-	video_restart_dialog->set_text(
-			vformat(TTR("Changing the renderer requires restarting the editor.\n\nChoosing Save & Restart will change the renderer to:\n- Desktop platforms: %s\n- Mobile platforms: %s\n- Web platform: %s"),
-					_to_rendering_method_display_name(rendering_method), _to_rendering_method_display_name(mobile_rendering_method), _to_rendering_method_display_name(web_rendering_method)));
+	video_restart_dialog->set_text(vformat(TTR("Changing the renderer requires restarting the editor. Save and restart with %s?"), _to_rendering_method_display_name(rendering_method)));
 	video_restart_dialog->popup_centered();
 
 	_update_renderer_color();
@@ -7805,24 +7780,11 @@ String EditorNode::_to_rendering_method_display_name(const String &p_rendering_m
 	if (p_rendering_method == "mobile") {
 		return TTR("Mobile");
 	}
-	if (p_rendering_method == "gl_compatibility") {
-		return TTR("Compatibility");
-	}
 	return p_rendering_method;
 }
 
 void EditorNode::_set_renderer_name_save_and_restart(const String &p_rendering_method) {
 	ProjectSettings::get_singleton()->set("rendering/renderer/rendering_method", p_rendering_method);
-
-	if (p_rendering_method == "mobile" || p_rendering_method == "gl_compatibility") {
-		// Also change the mobile override if changing to a compatible renderer.
-		// This prevents visual discrepancies between desktop and mobile platforms.
-		ProjectSettings::get_singleton()->set("rendering/renderer/rendering_method.mobile", p_rendering_method);
-	} else if (p_rendering_method == "forward_plus") {
-		// Use the equivalent mobile renderer. This prevents the renderer from staying
-		// on its old choice if moving from `gl_compatibility` to `forward_plus`.
-		ProjectSettings::get_singleton()->set("rendering/renderer/rendering_method.mobile", "mobile");
-	}
 
 	ProjectSettings::get_singleton()->save();
 
@@ -7863,9 +7825,7 @@ void EditorNode::_feature_profile_changed() {
 		if (!Engine::get_singleton()->is_recovery_mode_hint()) {
 			editor_main_screen->set_button_enabled(EditorMainScreen::EDITOR_GAME, !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_GAME));
 		}
-		if (AssetLibraryEditorPlugin::is_available()) {
-			editor_main_screen->set_button_enabled(EditorMainScreen::EDITOR_ASSETLIB, !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_ASSET_LIB));
-		}
+
 	} else {
 		editor_dock_manager->set_dock_enabled(ImportDock::get_singleton(), true);
 		editor_dock_manager->set_dock_enabled(SignalsDock::get_singleton(), true);
@@ -7877,9 +7837,7 @@ void EditorNode::_feature_profile_changed() {
 		if (!Engine::get_singleton()->is_recovery_mode_hint()) {
 			editor_main_screen->set_button_enabled(EditorMainScreen::EDITOR_GAME, true);
 		}
-		if (AssetLibraryEditorPlugin::is_available()) {
-			editor_main_screen->set_button_enabled(EditorMainScreen::EDITOR_ASSETLIB, true);
-		}
+
 	}
 
 	editor_dock_manager->update_docks_menu();
@@ -8348,7 +8306,7 @@ HashMap<String, Variant> EditorNode::get_initial_settings() {
 	settings["display/window/stretch/aspect"] = "expand";
 	settings["display/window/stretch/mode"] = "canvas_items";
 	settings["physics/3d/physics_engine"] = "Jolt Physics";
-	settings["rendering/rendering_device/driver.windows"] = "d3d12";
+	settings["rendering/rendering_device/driver.windows"] = "vulkan";
 	return settings;
 }
 
@@ -9000,13 +8958,11 @@ EditorNode::EditorNode() {
 	ED_SHORTCUT_AND_COMMAND("editor/editor_3d", TTRC("Open 3D Workspace"), KeyModifierMask::CTRL | Key::F2);
 	ED_SHORTCUT_AND_COMMAND("editor/editor_script", TTRC("Open Script Editor"), KeyModifierMask::CTRL | Key::F3);
 	ED_SHORTCUT_AND_COMMAND("editor/editor_game", TTRC("Open Game View"), KeyModifierMask::CTRL | Key::F4);
-	ED_SHORTCUT_AND_COMMAND("editor/editor_assetlib", TTRC("Open Asset Store"), KeyModifierMask::CTRL | Key::F5);
 
 	ED_SHORTCUT_OVERRIDE("editor/editor_2d", "macos", KeyModifierMask::META | KeyModifierMask::CTRL | Key::KEY_1);
 	ED_SHORTCUT_OVERRIDE("editor/editor_3d", "macos", KeyModifierMask::META | KeyModifierMask::CTRL | Key::KEY_2);
 	ED_SHORTCUT_OVERRIDE("editor/editor_script", "macos", KeyModifierMask::META | KeyModifierMask::CTRL | Key::KEY_3);
 	ED_SHORTCUT_OVERRIDE("editor/editor_game", "macos", KeyModifierMask::META | KeyModifierMask::CTRL | Key::KEY_4);
-	ED_SHORTCUT_OVERRIDE("editor/editor_assetlib", "macos", KeyModifierMask::META | KeyModifierMask::CTRL | Key::KEY_5);
 
 	ED_SHORTCUT_AND_COMMAND("editor/editor_next", TTRC("Open the next Editor"));
 	ED_SHORTCUT_AND_COMMAND("editor/editor_prev", TTRC("Open the previous Editor"));
@@ -9402,11 +9358,6 @@ EditorNode::EditorNode() {
 	TextEditor::register_editor();
 	TextShaderEditor::register_editor();
 
-	if (AssetLibraryEditorPlugin::is_available()) {
-		add_editor_plugin(memnew(AssetLibraryEditorPlugin));
-	} else {
-		print_verbose("Asset Store not available (due to using Web editor, or SSL support disabled).");
-	}
 
 	// More visually meaningful to have this later.
 	add_editor_plugin(memnew(AnimationPlayerEditorPlugin));
@@ -9504,12 +9455,6 @@ EditorNode::EditorNode() {
 	Ref<ShaderBakerExportPluginPlatformVulkan> shader_baker_export_plugin_platform_vulkan;
 	shader_baker_export_plugin_platform_vulkan.instantiate();
 	shader_baker_export_plugin->add_platform(shader_baker_export_plugin_platform_vulkan);
-#endif
-
-#ifdef D3D12_ENABLED
-	Ref<ShaderBakerExportPluginPlatformD3D12> shader_baker_export_plugin_platform_d3d12;
-	shader_baker_export_plugin_platform_d3d12.instantiate();
-	shader_baker_export_plugin->add_platform(shader_baker_export_plugin_platform_d3d12);
 #endif
 
 #ifdef METAL_ENABLED
@@ -9638,7 +9583,7 @@ EditorNode::~EditorNode() {
 
 	remove_print_handler(&print_handler);
 	EditorHelp::cleanup_doc();
-#if defined(MODULE_GDSCRIPT_ENABLED) || defined(MODULE_MONO_ENABLED)
+#if defined(MODULE_MONO_ENABLED)
 	EditorHelpHighlighter::free_singleton();
 #endif
 	memdelete(editor_selection);

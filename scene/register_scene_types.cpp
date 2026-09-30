@@ -96,7 +96,6 @@
 #include "scene/gui/texture_progress_bar.h"
 #include "scene/gui/texture_rect.h"
 #include "scene/gui/tree.h"
-#include "scene/gui/video_stream_player.h"
 #include "scene/gui/virtual_joystick.h"
 #include "scene/main/canvas_item.h"
 #include "scene/main/canvas_layer.h"
@@ -164,7 +163,6 @@
 #include "scene/resources/texture.h"
 #include "scene/resources/texture_rd.h"
 #include "scene/resources/theme.h"
-#include "scene/resources/video_stream.h"
 #include "scene/theme/theme_db.h"
 #include "servers/display/display_server.h"
 #include "servers/rendering/rendering_server.h"
@@ -522,9 +520,6 @@ void register_scene_types() {
 	GDREGISTER_CLASS(ItemList);
 
 	GDREGISTER_CLASS(LineEdit);
-	GDREGISTER_CLASS(VideoStreamPlayer);
-	GDREGISTER_VIRTUAL_CLASS(VideoStreamPlayback);
-	GDREGISTER_VIRTUAL_CLASS(VideoStream);
 
 #ifndef ADVANCED_GUI_DISABLED
 	GDREGISTER_CLASS(AcceptDialog);
@@ -1180,7 +1175,6 @@ void register_scene_types() {
 	ClassDB::add_compatibility_class("StaticBody", "StaticBody3D");
 	ClassDB::add_compatibility_class("StreamTexture", "CompressedTexture2D");
 	ClassDB::add_compatibility_class("TextureProgress", "TextureProgressBar");
-	ClassDB::add_compatibility_class("VideoPlayer", "VideoStreamPlayer");
 	ClassDB::add_compatibility_class("ViewportContainer", "SubViewportContainer");
 	ClassDB::add_compatibility_class("Viewport", "SubViewport");
 	ClassDB::add_compatibility_class("VisibilityEnabler", "VisibleOnScreenEnabler3D");

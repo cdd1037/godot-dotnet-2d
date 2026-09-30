@@ -37,9 +37,6 @@
 #include "core/object/script_language.h"
 #include "scene/debugger/scene_debugger_object.h"
 
-#if defined(MODULE_GDSCRIPT_ENABLED) && defined(DEBUG_ENABLED)
-#include "modules/gdscript/gdscript.h"
-#endif
 
 SnapshotDataObject::SnapshotDataObject(SceneDebuggerObject &p_obj, GameStateSnapshot *p_snapshot, ResourceCache &resource_cache) :
 		snapshot(p_snapshot) {
@@ -151,13 +148,8 @@ String SnapshotDataObject::get_node_path() {
 }
 
 String SnapshotDataObject::_get_script_name(Ref<Script> p_script) {
-#if defined(MODULE_GDSCRIPT_ENABLED) && defined(DEBUG_ENABLED)
-	// GDScripts have more specific names than base scripts, so use those names if possible.
-	return GDScript::debug_get_script_name(p_script);
-#else
 	// Otherwise fallback to the base script's name.
 	return p_script->get_global_name();
-#endif
 }
 
 String SnapshotDataObject::get_name() {

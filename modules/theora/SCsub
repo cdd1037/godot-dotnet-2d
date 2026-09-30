@@ -14,8 +14,6 @@ if env["builtin_libtheora"]:
     thirdparty_dir = "#thirdparty/libtheora/"
     thirdparty_sources = [
         "bitpack.c",
-        "decinfo.c",
-        "decode.c",
         "dequant.c",
         "fragment.c",
         "huffdec.c",

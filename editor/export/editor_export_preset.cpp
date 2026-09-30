@@ -116,7 +116,6 @@ void EditorExportPreset::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_encrypt_pck"), &EditorExportPreset::get_enc_pck);
 	ClassDB::bind_method(D_METHOD("get_encrypt_directory"), &EditorExportPreset::get_enc_directory);
 	ClassDB::bind_method(D_METHOD("get_encryption_key"), &EditorExportPreset::get_script_encryption_key);
-	ClassDB::bind_method(D_METHOD("get_script_export_mode"), &EditorExportPreset::get_script_export_mode);
 
 	ClassDB::bind_method(D_METHOD("get_or_env", "name", "env_var"), &EditorExportPreset::_get_or_env);
 	ClassDB::bind_method(D_METHOD("get_version", "name", "windows_version"), &EditorExportPreset::get_version);
@@ -132,9 +131,6 @@ void EditorExportPreset::_bind_methods() {
 	BIND_ENUM_CONSTANT(MODE_FILE_KEEP);
 	BIND_ENUM_CONSTANT(MODE_FILE_REMOVE);
 
-	BIND_ENUM_CONSTANT(MODE_SCRIPT_TEXT);
-	BIND_ENUM_CONSTANT(MODE_SCRIPT_BINARY_TOKENS);
-	BIND_ENUM_CONSTANT(MODE_SCRIPT_BINARY_TOKENS_COMPRESSED);
 }
 
 String EditorExportPreset::_get_property_warning(const StringName &p_name) const {
@@ -560,15 +556,6 @@ void EditorExportPreset::set_script_encryption_key(const String &p_key) {
 
 String EditorExportPreset::get_script_encryption_key() const {
 	return script_key;
-}
-
-void EditorExportPreset::set_script_export_mode(ScriptExportMode p_mode) {
-	script_mode = p_mode;
-	EditorExport::singleton->save_presets();
-}
-
-EditorExportPreset::ScriptExportMode EditorExportPreset::get_script_export_mode() const {
-	return script_mode;
 }
 
 Variant EditorExportPreset::get_or_env(const StringName &p_name, const String &p_env_var, bool *r_valid) const {

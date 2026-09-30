@@ -45,9 +45,6 @@ class RenderingDevice;
 class RenderingContextDriver;
 #endif
 
-#ifdef GLES3_ENABLED
-class EGLManager;
-#endif
 
 #ifdef DBUS_ENABLED
 class FreeDesktopPortalDesktop;
@@ -81,9 +78,6 @@ class DisplayServerWayland : public DisplayServer {
 
 		bool emulate_vsync = false;
 
-#ifdef GLES3_ENABLED
-		struct wl_egl_window *wl_egl_window = nullptr;
-#endif
 
 		// Whether a `WaylandThread` equivalent exists or not.
 		bool created = false;
@@ -162,9 +156,6 @@ class DisplayServerWayland : public DisplayServer {
 	RenderingDevice *rendering_device = nullptr;
 #endif
 
-#ifdef GLES3_ENABLED
-	EGLManager *egl_manager = nullptr;
-#endif
 
 #ifdef SPEECHD_ENABLED
 	TTS_Linux *tts = nullptr;
