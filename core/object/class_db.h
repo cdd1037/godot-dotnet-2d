@@ -586,4 +586,9 @@ public:
 		::ClassDB::register_runtime_class<m_class>(); \
 	}
 
+#define GDREGISTER_CUSTOM_INSTANCE_CLASS(m_class) \
+	if constexpr (GD_IS_CLASS_ENABLED(m_class)) { \
+		::ClassDB::register_custom_instance_class<m_class>(); \
+	}
+
 #define GDREGISTER_NATIVE_STRUCT(m_class, m_code) ClassDB::register_native_struct(#m_class, m_code, sizeof(m_class))

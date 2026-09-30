@@ -227,19 +227,19 @@ void register_core_types() {
 
 	GDREGISTER_ABSTRACT_CLASS(WorkerThreadPool);
 
-	ClassDB::register_custom_instance_class<HTTPClient>();
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(HTTPClient);
 
 	// Crypto
 	GDREGISTER_CLASS(HashingContext);
 	GDREGISTER_CLASS(AESContext);
-	ClassDB::register_custom_instance_class<X509Certificate>();
-	ClassDB::register_custom_instance_class<CryptoKey>();
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(X509Certificate);
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(CryptoKey);
 	GDREGISTER_ABSTRACT_CLASS(TLSOptions);
-	ClassDB::register_custom_instance_class<HMACContext>();
-	ClassDB::register_custom_instance_class<Crypto>();
-	ClassDB::register_custom_instance_class<StreamPeerTLS>();
-	ClassDB::register_custom_instance_class<PacketPeerDTLS>();
-	ClassDB::register_custom_instance_class<DTLSServer>();
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(HMACContext);
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(Crypto);
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(StreamPeerTLS);
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(PacketPeerDTLS);
+	GDREGISTER_CUSTOM_INSTANCE_CLASS(DTLSServer);
 
 	if constexpr (GD_IS_CLASS_ENABLED(Crypto)) {
 		resource_format_saver_crypto.instantiate();
