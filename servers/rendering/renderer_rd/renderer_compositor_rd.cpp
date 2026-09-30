@@ -35,8 +35,6 @@
 #include "core/io/dir_access.h"
 #include "core/os/os.h"
 #include "servers/display/display_server.h"
-#include "servers/rendering/renderer_rd/forward_clustered/render_forward_clustered.h"
-#include "servers/rendering/renderer_rd/forward_mobile/render_forward_mobile.h"
 #include "servers/rendering/rendering_server_types.h"
 
 void RendererCompositorRD::blit_render_targets_to_screen(DisplayServerEnums::WindowID p_screen, const RenderingServerTypes::BlitToScreen *p_render_targets, int p_amount) {
@@ -129,7 +127,6 @@ void RendererCompositorRD::begin_frame(double frame_step) {
 	time = Math::fmod(time, time_roll_over);
 
 	canvas->set_time(time);
-	scene->set_time(time, frame_step);
 }
 
 void RendererCompositorRD::end_frame(bool p_present) {
@@ -172,8 +169,9 @@ uint64_t RendererCompositorRD::frame = 1;
 
 void RendererCompositorRD::finalize() {
 	texture_storage->_tex_blit_shader_free();
-	memdelete(scene);
 	memdelete(canvas);
+	memdelete(copy_effects);
+	memdelete(gi);
 	memdelete(fog);
 	memdelete(particles_storage);
 	memdelete(light_storage);
@@ -364,29 +362,14 @@ RendererCompositorRD::RendererCompositorRD() {
 	texture_storage = memnew(RendererRD::TextureStorage);
 	material_storage = memnew(RendererRD::MaterialStorage);
 	mesh_storage = memnew(RendererRD::MeshStorage);
-	light_storage = memnew(RendererRD::LightStorage);
+	light_storage = memnew(RendererDummy::LightStorage);
 	particles_storage = memnew(RendererRD::ParticlesStorage);
-	fog = memnew(RendererRD::Fog);
+	fog = memnew(RendererDummy::Fog);
+	gi = memnew(RendererDummy::GI);
+	copy_effects = memnew(RendererRD::CopyEffects({}));
 	canvas = memnew(RendererCanvasRenderRD());
 	texture_storage->_tex_blit_shader_initialize();
 
-	String rendering_method = OS::get_singleton()->get_current_rendering_method();
-	uint64_t textures_per_stage = RD::get_singleton()->limit_get(RD::LIMIT_MAX_TEXTURES_PER_SHADER_STAGE);
-
-	if (rendering_method == "mobile" || textures_per_stage < 48) {
-		if (rendering_method == "forward_plus") {
-			WARN_PRINT_ONCE("Platform supports less than 48 textures per stage which is less than required by the Clustered renderer. Defaulting to Mobile renderer.");
-		}
-		scene = memnew(RendererSceneRenderImplementation::RenderForwardMobile());
-	} else if (rendering_method == "forward_plus") {
-		scene = memnew(RendererSceneRenderImplementation::RenderForwardClustered());
-	} else {
-		// Fall back to our high end renderer.
-		ERR_PRINT(vformat("Cannot instantiate RenderingDevice-based renderer with renderer type '%s'. Defaulting to Forward+ renderer.", rendering_method));
-		scene = memnew(RendererSceneRenderImplementation::RenderForwardClustered());
-	}
-
-	scene->init();
 }
 
 RendererCompositorRD::~RendererCompositorRD() {

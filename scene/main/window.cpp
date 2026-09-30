@@ -1302,12 +1302,6 @@ void Window::_update_window_size() {
 void Window::_update_viewport_size() {
 	//update the viewport part
 
-#ifndef XR_DISABLED
-	// If `use_xr` set, we should skip this logic.
-	if (is_using_xr()) {
-		return;
-	}
-#endif // XR_DISABLED
 
 	Size2i final_size;
 	Size2 final_size_override;

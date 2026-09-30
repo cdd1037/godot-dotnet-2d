@@ -51,29 +51,29 @@
 
 const char *EditorBuildProfile::build_option_identifiers[BUILD_OPTION_MAX] = {
 	// This maps to SCons build options.
-	"disable_3d",
+	nullptr, // Reserved upstream ID.
 	"disable_navigation_2d",
-	"disable_navigation_3d",
+	nullptr, // Reserved upstream ID.
 	"accesskit",
 	"sdl",
-	"disable_xr",
-	"module_openxr_enabled",
+	nullptr, // Reserved upstream ID.
+	nullptr, // Reserved upstream ID.
 	"wayland",
 	"x11",
 	"pulseaudio",
 	"alsa",
 	"rendering_device", // FIXME: There's no scons option to disable rendering device.
-	"forward_plus_renderer",
-	"forward_mobile_renderer",
+	nullptr, // Reserved upstream ID.
+	nullptr, // Reserved upstream ID.
 	"vulkan",
-	"d3d12",
+	nullptr, // Reserved upstream ID.
 	"metal",
-	"opengl3",
+	nullptr, // Reserved upstream ID.
 	"disable_physics_2d",
 	"module_godot_physics_2d_enabled",
-	"disable_physics_3d",
-	"module_godot_physics_3d_enabled",
-	"module_jolt_physics_enabled",
+	nullptr, // Reserved upstream ID.
+	nullptr, // Reserved upstream ID.
+	nullptr, // Reserved upstream ID.
 	"module_text_server_fb_enabled",
 	"module_text_server_adv_enabled",
 	"module_freetype_enabled",
@@ -84,29 +84,29 @@ const char *EditorBuildProfile::build_option_identifiers[BUILD_OPTION_MAX] = {
 
 const bool EditorBuildProfile::build_option_disabled_by_default[BUILD_OPTION_MAX] = {
 	// This maps to SCons build options.
-	false, // 3D
+	false, // Reserved upstream ID.
 	false, // NAVIGATION_2D
-	false, // NAVIGATION_3D
+	false, // Reserved upstream ID.
 	false, // ACCESSKIT
 	false, // SDL
-	false, // XR
-	false, // OPENXR
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // WAYLAND
 	false, // X11
 	false, // PULSEAUDIO
 	false, // ALSA
 	false, // RENDERING_DEVICE
-	false, // FORWARD_RENDERER
-	false, // MOBILE_RENDERER
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // VULKAN
-	false, // D3D12
+	false, // Reserved upstream ID.
 	false, // METAL
-	false, // OPENGL
+	false, // Reserved upstream ID.
 	false, // PHYSICS_2D
 	false, // PHYSICS_GODOT_2D
-	false, // PHYSICS_3D
-	false, // PHYSICS_GODOT_3D
-	false, // PHYSICS_JOLT
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	true, // TEXT_SERVER_FALLBACK
 	false, // TEXT_SERVER_ADVANCED
 	false, // DYNAMIC_FONTS
@@ -117,29 +117,29 @@ const bool EditorBuildProfile::build_option_disabled_by_default[BUILD_OPTION_MAX
 
 const bool EditorBuildProfile::build_option_disable_values[BUILD_OPTION_MAX] = {
 	// This maps to SCons build options.
-	true, // 3D
+	false, // Reserved upstream ID.
 	true, // NAVIGATION_2D
-	true, // NAVIGATION_3D
+	false, // Reserved upstream ID.
 	false, // ACCESSKIT
 	false, // SDL
-	true, // XR
-	false, // OPENXR
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // WAYLAND
 	false, // X11
 	false, // PULSEAUDIO
 	false, // ALSA
 	false, // RENDERING_DEVICE
-	false, // FORWARD_RENDERER
-	false, // MOBILE_RENDERER
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // VULKAN
-	false, // D3D12
+	false, // Reserved upstream ID.
 	false, // METAL
-	false, // OPENGL
+	false, // Reserved upstream ID.
 	true, // PHYSICS_2D
 	false, // PHYSICS_GODOT_2D
-	true, // PHYSICS_3D
-	false, // PHYSICS_GODOT_3D
-	false, // PHYSICS_JOLT
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // TEXT_SERVER_FALLBACK
 	false, // TEXT_SERVER_ADVANCED
 	false, // DYNAMIC_FONTS
@@ -150,29 +150,29 @@ const bool EditorBuildProfile::build_option_disable_values[BUILD_OPTION_MAX] = {
 
 // Options that require some resource explicitly asking for them when detecting from the project.
 const bool EditorBuildProfile::build_option_explicit_use[BUILD_OPTION_MAX] = {
-	false, // 3D
+	false, // Reserved upstream ID.
 	false, // NAVIGATION_2D
-	false, // NAVIGATION_3D
+	false, // Reserved upstream ID.
 	false, // ACCESSKIT
 	false, // SDL
-	false, // XR
-	false, // OPENXR
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // WAYLAND
 	false, // X11
 	false, // PULSEAUDIO
 	false, // ALSA
 	false, // RENDERING_DEVICE
-	false, // FORWARD_RENDERER
-	false, // MOBILE_RENDERER
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // VULKAN
-	false, // D3D12
+	false, // Reserved upstream ID.
 	false, // METAL
-	false, // OPENGL
+	false, // Reserved upstream ID.
 	false, // PHYSICS_2D
 	false, // PHYSICS_GODOT_2D
-	false, // PHYSICS_3D
-	false, // PHYSICS_GODOT_3D
-	false, // PHYSICS_JOLT
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
+	false, // Reserved upstream ID.
 	false, // TEXT_SERVER_FALLBACK
 	false, // TEXT_SERVER_ADVANCED
 	false, // DYNAMIC_FONTS
@@ -182,29 +182,29 @@ const bool EditorBuildProfile::build_option_explicit_use[BUILD_OPTION_MAX] = {
 };
 
 const EditorBuildProfile::BuildOptionCategory EditorBuildProfile::build_option_category[BUILD_OPTION_MAX] = {
-	BUILD_OPTION_CATEGORY_GENERAL, // 3D
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
 	BUILD_OPTION_CATEGORY_GENERAL, // NAVIGATION_2D
-	BUILD_OPTION_CATEGORY_GENERAL, // NAVIGATION_3D
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
 	BUILD_OPTION_CATEGORY_GENERAL, // ACCESSKIT
 	BUILD_OPTION_CATEGORY_GENERAL, // SDL
-	BUILD_OPTION_CATEGORY_GENERAL, // XR
-	BUILD_OPTION_CATEGORY_GENERAL, // OPENXR
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
 	BUILD_OPTION_CATEGORY_GENERAL, // WAYLAND
 	BUILD_OPTION_CATEGORY_GENERAL, // X11
 	BUILD_OPTION_CATEGORY_GENERAL, // PULSEAUDIO
 	BUILD_OPTION_CATEGORY_GENERAL, // ALSA
 	BUILD_OPTION_CATEGORY_GRAPHICS, // RENDERING_DEVICE
-	BUILD_OPTION_CATEGORY_GRAPHICS, // FORWARD_RENDERER
-	BUILD_OPTION_CATEGORY_GRAPHICS, // MOBILE_RENDERER
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
 	BUILD_OPTION_CATEGORY_GRAPHICS, // VULKAN
-	BUILD_OPTION_CATEGORY_GRAPHICS, // D3D12
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
 	BUILD_OPTION_CATEGORY_GRAPHICS, // METAL
-	BUILD_OPTION_CATEGORY_GRAPHICS, // OPENGL
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
 	BUILD_OPTION_CATEGORY_PHYSICS, // PHYSICS_2D
 	BUILD_OPTION_CATEGORY_PHYSICS, // PHYSICS_GODOT_2D
-	BUILD_OPTION_CATEGORY_PHYSICS, // PHYSICS_3D
-	BUILD_OPTION_CATEGORY_PHYSICS, // PHYSICS_GODOT_3D
-	BUILD_OPTION_CATEGORY_PHYSICS, // PHYSICS_JOLT
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
+	BUILD_OPTION_CATEGORY_GENERAL, // Reserved upstream ID.
 	BUILD_OPTION_CATEGORY_TEXT_SERVER, // TEXT_SERVER_FALLBACK
 	BUILD_OPTION_CATEGORY_TEXT_SERVER, // TEXT_SERVER_ADVANCED
 	BUILD_OPTION_CATEGORY_TEXT_SERVER, // DYNAMIC_FONTS
@@ -219,35 +219,14 @@ HashMap<EditorBuildProfile::BuildOption, HashMap<String, LocalVector<Variant>>> 
 /* clang-format off */
 
 const HashMap<EditorBuildProfile::BuildOption, LocalVector<EditorBuildProfile::BuildOption>> EditorBuildProfile::build_option_dependencies = {
-	{ BUILD_OPTION_OPENXR, {
-			BUILD_OPTION_XR,
-	} },
-	{ BUILD_OPTION_FORWARD_RENDERER, {
-			BUILD_OPTION_RENDERING_DEVICE,
-	} },
-	{ BUILD_OPTION_MOBILE_RENDERER, {
-			BUILD_OPTION_RENDERING_DEVICE,
-	} },
 	{ BUILD_OPTION_VULKAN, {
-			BUILD_OPTION_FORWARD_RENDERER,
-			BUILD_OPTION_MOBILE_RENDERER,
-	} },
-	{ BUILD_OPTION_D3D12, {
-			BUILD_OPTION_FORWARD_RENDERER,
-			BUILD_OPTION_MOBILE_RENDERER,
+			BUILD_OPTION_RENDERING_DEVICE,
 	} },
 	{ BUILD_OPTION_METAL, {
-			BUILD_OPTION_FORWARD_RENDERER,
-			BUILD_OPTION_MOBILE_RENDERER,
+			BUILD_OPTION_RENDERING_DEVICE,
 	} },
 	{ BUILD_OPTION_PHYSICS_GODOT_2D, {
 			BUILD_OPTION_PHYSICS_2D,
-	} },
-	{ BUILD_OPTION_PHYSICS_GODOT_3D, {
-			BUILD_OPTION_PHYSICS_3D,
-	} },
-	{ BUILD_OPTION_PHYSICS_JOLT, {
-			BUILD_OPTION_PHYSICS_3D,
 	} },
 	{ BUILD_OPTION_DYNAMIC_FONTS, {
 			BUILD_OPTION_TEXT_SERVER_ADVANCED,
@@ -262,9 +241,6 @@ const HashMap<EditorBuildProfile::BuildOption, LocalVector<EditorBuildProfile::B
 
 // Should also contain classes not derived from either `Resource` or `Node`.
 const HashMap<EditorBuildProfile::BuildOption, LocalVector<String>> EditorBuildProfile::build_option_classes = {
-	{ BUILD_OPTION_3D, {
-			"Node3D",
-	} },
 	{ BUILD_OPTION_NAVIGATION_2D, {
 			"NavigationAgent2D",
 			"NavigationLink2D",
@@ -272,31 +248,6 @@ const HashMap<EditorBuildProfile::BuildOption, LocalVector<String>> EditorBuildP
 			"NavigationObstacle2D",
 			"NavigationPolygon",
 			"NavigationRegion2D",
-	} },
-	{ BUILD_OPTION_NAVIGATION_3D, {
-			"NavigationAgent3D",
-			"NavigationLink3D",
-			"NavigationMeshSourceGeometryData3D",
-			"NavigationObstacle3D",
-			"NavigationRegion3D",
-	} },
-	{ BUILD_OPTION_XR, {
-			"XRBodyModifier3D",
-			"XRBodyTracker",
-			"XRControllerTracker",
-			"XRFaceModifier3D",
-			"XRFaceTracker",
-			"XRHandModifier3D",
-			"XRHandTracker",
-			"XRInterface",
-			"XRInterfaceExtension",
-			"XRNode3D",
-			"XROrigin3D",
-			"XRPose",
-			"XRPositionalTracker",
-			"XRServer",
-			"XRTracker",
-			"XRVRS",
 	} },
 	{ BUILD_OPTION_RENDERING_DEVICE, {
 			"RenderingDevice",
@@ -311,23 +262,6 @@ const HashMap<EditorBuildProfile::BuildOption, LocalVector<String>> EditorBuildP
 			"ShapeCast2D",
 			"RayCast2D",
 			"TouchScreenButton",
-	} },
-	{ BUILD_OPTION_PHYSICS_3D, {
-			"CollisionObject3D",
-			"CollisionPolygon3D",
-			"CollisionShape3D",
-			"CSGShape3D",
-			"GPUParticlesAttractor3D",
-			"GPUParticlesCollision3D",
-			"Joint3D",
-			"PhysicalBoneSimulator3D",
-			"PhysicsServer3D",
-			"PhysicsServer3DManager",
-			"PhysicsServer3DRenderingServerHandler",
-			"RayCast3D",
-			"SoftBody3D",
-			"SpringArm3D",
-			"VehicleWheel3D",
 	} },
 	{ BUILD_OPTION_TEXT_SERVER_ADVANCED, {
 			"CanvasItem",
@@ -367,6 +301,7 @@ bool EditorBuildProfile::is_item_collapsed(const StringName &p_class) const {
 
 void EditorBuildProfile::set_disable_build_option(BuildOption p_build_option, bool p_disable) {
 	ERR_FAIL_INDEX(p_build_option, BUILD_OPTION_MAX);
+	ERR_FAIL_COND(!is_build_option_available(p_build_option));
 	build_options_disabled[p_build_option] = p_disable;
 }
 
@@ -377,21 +312,27 @@ void EditorBuildProfile::clear_disabled_classes() {
 
 bool EditorBuildProfile::is_build_option_disabled(BuildOption p_build_option) const {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, false);
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), false);
 	return build_options_disabled[p_build_option];
 }
 
 bool EditorBuildProfile::get_build_option_disable_value(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, false);
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), false);
 	return build_option_disable_values[p_build_option];
 }
 
 bool EditorBuildProfile::get_build_option_explicit_use(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, false);
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), false);
 	return build_option_explicit_use[p_build_option];
 }
 
 void EditorBuildProfile::reset_build_options() {
 	for (int i = 0; i < EditorBuildProfile::BUILD_OPTION_MAX; i++) {
+		if (!EditorBuildProfile::is_build_option_available(EditorBuildProfile::BuildOption(i))) {
+			continue;
+		}
 		build_options_disabled[i] = build_option_disabled_by_default[i];
 	}
 }
@@ -404,32 +345,37 @@ String EditorBuildProfile::get_force_detect_classes() const {
 	return force_detect_classes;
 }
 
+bool EditorBuildProfile::is_build_option_available(BuildOption p_build_option) {
+	return p_build_option >= 0 && p_build_option < BUILD_OPTION_MAX && build_option_identifiers[p_build_option] != nullptr;
+}
+
 String EditorBuildProfile::get_build_option_name(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, String());
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), String());
 	const char *build_option_names[BUILD_OPTION_MAX] = {
-		TTRC("3D Engine"),
+		nullptr, // Reserved upstream ID.
 		TTRC("Navigation (2D)"),
-		TTRC("Navigation (3D)"),
+		nullptr, // Reserved upstream ID.
 		TTRC("Accessibility Support (AccessKit)"),
 		TTRC("Improved Gamepad Support (SDL)"),
-		TTRC("XR"),
-		TTRC("OpenXR"),
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
 		TTRC("Wayland"),
 		TTRC("X11"),
 		TTRC("PulseAudio"),
 		TTRC("ALSA"),
 		TTRC("RenderingDevice"),
-		TTRC("Forward+ Renderer"),
-		TTRC("Mobile Renderer"),
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
 		TTRC("Vulkan"),
-		TTRC("D3D12"),
+		nullptr, // Reserved upstream ID.
 		TTRC("Metal"),
-		TTRC("OpenGL"),
+		nullptr, // Reserved upstream ID.
 		TTRC("Physics Server (2D)"),
 		TTRC("Godot Physics (2D)"),
-		TTRC("Physics Server (3D)"),
-		TTRC("Godot Physics (3D)"),
-		TTRC("Jolt Physics"),
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
 		TTRC("Text Server: Fallback"),
 		TTRC("Text Server: Advanced"),
 		TTRC("TTF, OTF, Type 1, WOFF1 Fonts"),
@@ -442,31 +388,32 @@ String EditorBuildProfile::get_build_option_name(BuildOption p_build_option) {
 
 String EditorBuildProfile::get_build_option_description(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, String());
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), String());
 
 	const char *build_option_descriptions[BUILD_OPTION_MAX] = {
-		TTRC("3D Nodes as well as RenderingServer access to 3D features.\nNote that the Geometry3D singleton remains available even with this item disabled."),
+		nullptr, // Reserved upstream ID.
 		TTRC("NavigationServer and capabilities for 2D."),
-		TTRC("NavigationServer and capabilities for 3D."),
+		nullptr, // Reserved upstream ID.
 		TTRC("Support for screen readers using the AccessKit library."),
 		TTRC("Improved gamepad support on Windows, macOS, and Linux using the SDL library.\nIf disabled, built-in custom code is used for gamepad support instead, which may be less reliable for certain controller models."),
-		TTRC("XR (AR and VR)."),
-		TTRC("OpenXR standard implementation (requires XR to be enabled)."),
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
 		TTRC("Wayland display server support (Linux only)."),
 		TTRC("X11 display server support (Linux only)."),
 		TTRC("PulseAudio audio driver (Linux only)."),
 		TTRC("ALSA audio driver (Linux only)."),
-		TTRC("RenderingDevice-based rendering (if disabled, the OpenGL backend is required)."),
-		TTRC("Forward+ renderer for advanced 3D graphics."),
-		TTRC("Mobile renderer for less advanced 3D graphics."),
+		TTRC("RenderingDevice-based 2D rendering and compute using Vulkan or Metal."),
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
 		TTRC("Vulkan backend of RenderingDevice."),
-		TTRC("Direct3D 12 backend of RenderingDevice."),
+		nullptr, // Reserved upstream ID.
 		TTRC("Metal backend of RenderingDevice (Apple arm64 only)."),
-		TTRC("OpenGL backend (if disabled, the RenderingDevice backend is required)."),
+		nullptr, // Reserved upstream ID.
 		TTRC("PhysicsServer and capabilities for 2D."),
 		TTRC("Godot Physics backend (2D)."),
-		TTRC("PhysicsServer and capabilities for 3D."),
-		TTRC("Godot Physics backend (3D)."),
-		TTRC("Jolt Physics backend (3D only)."),
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
+		nullptr, // Reserved upstream ID.
 		TTRC("Fallback implementation of Text Server\nSupports basic text layouts."),
 		TTRC("Text Server implementation powered by ICU and HarfBuzz libraries.\nSupports complex text layouts, BiDi, and contextual OpenType font features."),
 		TTRC("TrueType, OpenType, Type 1, and WOFF1 font format support using FreeType library (if disabled, WOFF2 support is also disabled)."),
@@ -480,26 +427,31 @@ String EditorBuildProfile::get_build_option_description(BuildOption p_build_opti
 
 String EditorBuildProfile::get_build_option_identifier(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, String());
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), String());
 	return build_option_identifiers[p_build_option];
 }
 
 EditorBuildProfile::BuildOptionCategory EditorBuildProfile::get_build_option_category(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, BUILD_OPTION_CATEGORY_GENERAL);
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), BUILD_OPTION_CATEGORY_GENERAL);
 	return build_option_category[p_build_option];
 }
 
 LocalVector<EditorBuildProfile::BuildOption> EditorBuildProfile::get_build_option_dependencies(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, LocalVector<EditorBuildProfile::BuildOption>());
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), LocalVector<EditorBuildProfile::BuildOption>());
 	return build_option_dependencies.has(p_build_option) ? LocalVector<EditorBuildProfile::BuildOption>(build_option_dependencies[p_build_option]) : LocalVector<EditorBuildProfile::BuildOption>();
 }
 
 HashMap<String, LocalVector<Variant>> EditorBuildProfile::get_build_option_settings(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, (HashMap<String, LocalVector<Variant>>()));
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), (HashMap<String, LocalVector<Variant>>()));
 	return build_option_settings.has(p_build_option) ? HashMap<String, LocalVector<Variant>>(build_option_settings[p_build_option]) : HashMap<String, LocalVector<Variant>>();
 }
 
 LocalVector<String> EditorBuildProfile::get_build_option_classes(BuildOption p_build_option) {
 	ERR_FAIL_INDEX_V(p_build_option, BUILD_OPTION_MAX, LocalVector<String>());
+	ERR_FAIL_COND_V(!is_build_option_available(p_build_option), LocalVector<String>());
 	return build_option_classes.has(p_build_option) ? LocalVector<String>(build_option_classes[p_build_option]) : LocalVector<String>();
 }
 
@@ -528,6 +480,9 @@ Error EditorBuildProfile::save_to_file(const String &p_path) {
 
 	Dictionary dis_build_options;
 	for (int i = 0; i < BUILD_OPTION_MAX; i++) {
+		if (!EditorBuildProfile::is_build_option_available(EditorBuildProfile::BuildOption(i))) {
+			continue;
+		}
 		if (build_options_disabled[i] != build_option_disabled_by_default[i]) {
 			if (build_options_disabled[i]) {
 				dis_build_options[build_option_identifiers[i]] = build_option_disable_values[i];
@@ -582,6 +537,9 @@ Error EditorBuildProfile::load_from_file(const String &p_path) {
 	}
 
 	for (int i = 0; i < BUILD_OPTION_MAX; i++) {
+		if (!EditorBuildProfile::is_build_option_available(EditorBuildProfile::BuildOption(i))) {
+			continue;
+		}
 		build_options_disabled[i] = build_option_disabled_by_default[i];
 	}
 
@@ -592,6 +550,9 @@ Error EditorBuildProfile::load_from_file(const String &p_path) {
 			String key = kv.key;
 
 			for (int i = 0; i < BUILD_OPTION_MAX; i++) {
+				if (!EditorBuildProfile::is_build_option_available(EditorBuildProfile::BuildOption(i))) {
+					continue;
+				}
 				String f = build_option_identifiers[i];
 				if (f == key) {
 					build_options_disabled[i] = true;
@@ -619,26 +580,14 @@ void EditorBuildProfile::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("save_to_file", "path"), &EditorBuildProfile::save_to_file);
 	ClassDB::bind_method(D_METHOD("load_from_file", "path"), &EditorBuildProfile::load_from_file);
-
-	BIND_ENUM_CONSTANT(BUILD_OPTION_3D);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_NAVIGATION_2D);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_NAVIGATION_3D);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_XR);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_OPENXR);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_WAYLAND);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_X11);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_RENDERING_DEVICE);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_FORWARD_RENDERER);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_MOBILE_RENDERER);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_VULKAN);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_D3D12);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_METAL);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_OPENGL);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_PHYSICS_2D);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_PHYSICS_GODOT_2D);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_PHYSICS_3D);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_PHYSICS_GODOT_3D);
-	BIND_ENUM_CONSTANT(BUILD_OPTION_PHYSICS_JOLT);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_TEXT_SERVER_FALLBACK);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_TEXT_SERVER_ADVANCED);
 	BIND_ENUM_CONSTANT(BUILD_OPTION_DYNAMIC_FONTS);
@@ -657,11 +606,6 @@ void EditorBuildProfile::_bind_methods() {
 EditorBuildProfile::EditorBuildProfile() {
 	reset_build_options();
 
-	HashMap<String, LocalVector<Variant>> settings_openxr = {
-		{ "xr/openxr/enabled", { true } },
-	};
-	build_option_settings.insert(BUILD_OPTION_OPENXR, settings_openxr);
-
 	HashMap<String, LocalVector<Variant>> settings_wayland = {
 		{ "display/display_server/driver.linuxbsd", { "default", "wayland" } },
 	};
@@ -674,8 +618,6 @@ EditorBuildProfile::EditorBuildProfile() {
 
 	HashMap<String, LocalVector<Variant>> settings_rd = {
 		{ "rendering/renderer/rendering_method", { "forward_plus", "mobile" } },
-		{ "rendering/renderer/rendering_method.mobile", { "forward_plus", "mobile" } },
-		{ "rendering/renderer/rendering_method.web", { "forward_plus", "mobile" } },
 	};
 	build_option_settings.insert(BUILD_OPTION_RENDERING_DEVICE, settings_rd);
 
@@ -683,48 +625,16 @@ EditorBuildProfile::EditorBuildProfile() {
 		{ "rendering/rendering_device/driver", { "vulkan" } },
 		{ "rendering/rendering_device/driver.windows", { "vulkan" } },
 		{ "rendering/rendering_device/driver.linuxbsd", { "vulkan" } },
-		{ "rendering/rendering_device/driver.android", { "vulkan" } },
-		{ "rendering/rendering_device/driver.ios", { "vulkan" } },
 		{ "rendering/rendering_device/driver.macos", { "vulkan" } },
 		{ "rendering/rendering_device/fallback_to_vulkan", { true } },
 	};
 	build_option_settings.insert(BUILD_OPTION_VULKAN, settings_vulkan);
 
-	HashMap<String, LocalVector<Variant>> settings_d3d12 = {
-		{ "rendering/rendering_device/driver", { "d3d12" } },
-		{ "rendering/rendering_device/driver.windows", { "d3d12" } },
-		{ "rendering/rendering_device/driver.linuxbsd", { "d3d12" } },
-		{ "rendering/rendering_device/driver.android", { "d3d12" } },
-		{ "rendering/rendering_device/driver.ios", { "d3d12" } },
-		{ "rendering/rendering_device/driver.macos", { "d3d12" } },
-		{ "rendering/rendering_device/fallback_to_d3d12", { true } },
-	};
-	build_option_settings.insert(BUILD_OPTION_D3D12, settings_d3d12);
-
 	HashMap<String, LocalVector<Variant>> settings_metal = {
 		{ "rendering/rendering_device/driver", { "metal" } },
-		{ "rendering/rendering_device/driver.ios", { "metal" } },
 		{ "rendering/rendering_device/driver.macos", { "metal" } },
 	};
 	build_option_settings.insert(BUILD_OPTION_METAL, settings_metal);
-
-	HashMap<String, LocalVector<Variant>> settings_opengl = {
-		{ "rendering/renderer/rendering_method", { "gl_compatibility" } },
-		{ "rendering/renderer/rendering_method.mobile", { "gl_compatibility" } },
-		{ "rendering/renderer/rendering_method.web", { "gl_compatibility" } },
-		{ "rendering/rendering_device/fallback_to_opengl3", { true } },
-	};
-	build_option_settings.insert(BUILD_OPTION_OPENGL, settings_opengl);
-
-	HashMap<String, LocalVector<Variant>> settings_phy_godot_3d = {
-		{ "physics/3d/physics_engine", { "DEFAULT", "GodotPhysics3D" } },
-	};
-	build_option_settings.insert(BUILD_OPTION_PHYSICS_GODOT_3D, settings_phy_godot_3d);
-
-	HashMap<String, LocalVector<Variant>> settings_jolt = {
-		{ "physics/3d/physics_engine", { "Jolt Physics" } },
-	};
-	build_option_settings.insert(BUILD_OPTION_PHYSICS_JOLT, settings_jolt);
 
 	HashMap<String, LocalVector<Variant>> settings_msdfgen = {
 		{ "gui/theme/default_font_multichannel_signed_distance_field", { true } },
@@ -1036,6 +946,9 @@ void EditorBuildProfileManager::_detect_from_project() {
 	edited->reset_build_options();
 
 	for (int i = 0; i < EditorBuildProfile::BUILD_OPTION_MAX; i++) {
+		if (!EditorBuildProfile::is_build_option_available(EditorBuildProfile::BuildOption(i))) {
+			continue;
+		}
 		// Check if the build option requires other options that are currently disabled.
 		LocalVector<EditorBuildProfile::BuildOption> dependencies = EditorBuildProfile::get_build_option_dependencies(EditorBuildProfile::BuildOption(i));
 		if (!dependencies.is_empty()) {
@@ -1284,6 +1197,9 @@ void EditorBuildProfileManager::_update_edited_profile() {
 	}
 
 	for (int i = 0; i < EditorBuildProfile::BUILD_OPTION_MAX; i++) {
+		if (!EditorBuildProfile::is_build_option_available(EditorBuildProfile::BuildOption(i))) {
+			continue;
+		}
 		TreeItem *build_option;
 		build_option = class_list->create_item(subcats[EditorBuildProfile::get_build_option_category(EditorBuildProfile::BuildOption(i))]);
 

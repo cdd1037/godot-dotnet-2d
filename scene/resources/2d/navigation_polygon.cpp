@@ -83,10 +83,6 @@ bool NavigationPolygon::_edit_is_selected_on_click(const Point2 &p_point, double
 
 void NavigationPolygon::set_vertices(const Vector<Vector2> &p_vertices) {
 	RWLockWrite write_lock(rwlock);
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 	vertices = p_vertices;
 	rect_cache_dirty = true;
 }
@@ -98,10 +94,6 @@ Vector<Vector2> NavigationPolygon::get_vertices() const {
 
 void NavigationPolygon::_set_polygons(const TypedArray<Vector<int32_t>> &p_array) {
 	RWLockWrite write_lock(rwlock);
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 	polygons.resize(p_array.size());
 	for (int i = 0; i < p_array.size(); i++) {
 		polygons.write[i] = p_array[i];
@@ -142,10 +134,6 @@ TypedArray<Vector<Vector2>> NavigationPolygon::_get_outlines() const {
 void NavigationPolygon::add_polygon(const Vector<int> &p_polygon) {
 	RWLockWrite write_lock(rwlock);
 	polygons.push_back(p_polygon);
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 }
 
 void NavigationPolygon::add_outline_at_index(const Vector<Vector2> &p_outline, int p_index) {
@@ -168,30 +156,18 @@ Vector<int> NavigationPolygon::get_polygon(int p_idx) {
 void NavigationPolygon::clear_polygons() {
 	RWLockWrite write_lock(rwlock);
 	polygons.clear();
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 }
 
 void NavigationPolygon::clear() {
 	RWLockWrite write_lock(rwlock);
 	polygons.clear();
 	vertices.clear();
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 }
 
 void NavigationPolygon::set_data(const Vector<Vector2> &p_vertices, const Vector<Vector<int>> &p_polygons) {
 	RWLockWrite write_lock(rwlock);
 	vertices = p_vertices;
 	polygons = p_polygons;
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 }
 
 void NavigationPolygon::set_data(const Vector<Vector2> &p_vertices, const Vector<Vector<int>> &p_polygons, const Vector<Vector<Vector2>> &p_outlines) {
@@ -200,10 +176,6 @@ void NavigationPolygon::set_data(const Vector<Vector2> &p_vertices, const Vector
 	polygons = p_polygons;
 	outlines = p_outlines;
 	rect_cache_dirty = true;
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 }
 
 void NavigationPolygon::get_data(Vector<Vector2> &r_vertices, Vector<Vector<int>> &r_polygons) {
@@ -219,34 +191,6 @@ void NavigationPolygon::get_data(Vector<Vector2> &r_vertices, Vector<Vector<int>
 	r_outlines = outlines;
 }
 
-Ref<NavigationMesh> NavigationPolygon::get_navigation_mesh() {
-	MutexLock lock(navigation_mesh_generation);
-
-	if (navigation_mesh.is_null()) {
-		navigation_mesh.instantiate();
-		Vector<Vector3> verts;
-		Vector<Vector<int>> polys;
-		{
-			verts.resize(get_vertices().size());
-			Vector3 *w = verts.ptrw();
-
-			const Vector2 *r = get_vertices().ptr();
-
-			for (int i(0); i < get_vertices().size(); i++) {
-				w[i] = Vector3(r[i].x, 0.0, r[i].y);
-			}
-		}
-
-		for (int i(0); i < get_polygon_count(); i++) {
-			polys.push_back(get_polygon(i));
-		}
-
-		navigation_mesh->set_data(verts, polys);
-		navigation_mesh->set_cell_size(cell_size); // Needed to not fail the cell size check on the server
-	}
-
-	return navigation_mesh;
-}
 
 void NavigationPolygon::set_outlines(const Vector<Vector<Vector2>> &p_outlines) {
 	RWLockWrite write_lock(rwlock);
@@ -262,10 +206,6 @@ Vector<Vector<Vector2>> NavigationPolygon::get_outlines() const {
 void NavigationPolygon::set_polygons(const Vector<Vector<int>> &p_polygons) {
 	RWLockWrite write_lock(rwlock);
 	polygons = p_polygons;
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 }
 
 Vector<Vector<int>> NavigationPolygon::get_polygons() const {
@@ -316,10 +256,6 @@ void NavigationPolygon::make_polygons_from_outlines() {
 	WARN_PRINT("Function make_polygons_from_outlines() is deprecated."
 			   "\nUse NavigationServer2D.parse_source_geometry_data() and NavigationServer2D.bake_from_source_geometry_data() instead.");
 
-	{
-		MutexLock lock(navigation_mesh_generation);
-		navigation_mesh.unref();
-	}
 	List<TPPLPoly> in_poly, out_poly;
 
 	Vector2 outside_point(-1e10, -1e10);
@@ -418,7 +354,6 @@ void NavigationPolygon::make_polygons_from_outlines() {
 
 void NavigationPolygon::set_cell_size(real_t p_cell_size) {
 	cell_size = p_cell_size;
-	get_navigation_mesh()->set_cell_size(cell_size);
 }
 
 real_t NavigationPolygon::get_cell_size() const {
@@ -532,7 +467,6 @@ void NavigationPolygon::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_polygon_count"), &NavigationPolygon::get_polygon_count);
 	ClassDB::bind_method(D_METHOD("get_polygon", "idx"), &NavigationPolygon::get_polygon);
 	ClassDB::bind_method(D_METHOD("clear_polygons"), &NavigationPolygon::clear_polygons);
-	ClassDB::bind_method(D_METHOD("get_navigation_mesh"), &NavigationPolygon::get_navigation_mesh);
 
 	ClassDB::bind_method(D_METHOD("add_outline", "outline"), &NavigationPolygon::add_outline);
 	ClassDB::bind_method(D_METHOD("add_outline_at_index", "outline", "index"), &NavigationPolygon::add_outline_at_index);

@@ -1,0 +1,12 @@
+config_version=5
+[application]
+config/name="2D DotNet validation"
+run/main_scene="res://Main.tscn"
+[display]
+window/size/viewport_width=320
+window/size/viewport_height=240
+[dotnet]
+project/assembly_name="ForkValidation"
+[rendering]
+renderer/rendering_method="forward_plus"
+textures/default_filters/use_nearest_mipmap_filter=false

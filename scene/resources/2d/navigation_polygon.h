@@ -30,7 +30,10 @@
 
 #pragma once
 
-#include "scene/resources/navigation_mesh.h"
+#include "core/io/resource.h"
+#include "core/os/rw_lock.h"
+#include "core/variant/typed_array.h"
+
 #include "servers/navigation_2d/navigation_constants_2d.h"
 
 class NavigationPolygon : public Resource {
@@ -44,9 +47,6 @@ class NavigationPolygon : public Resource {
 	mutable Rect2 item_rect;
 	mutable bool rect_cache_dirty = true;
 
-	Mutex navigation_mesh_generation;
-	// Navigation mesh
-	Ref<NavigationMesh> navigation_mesh;
 
 	real_t cell_size = NavigationDefaults2D::NAV_MESH_CELL_SIZE;
 	real_t border_size = 0.0f;
@@ -145,7 +145,6 @@ public:
 	void set_agent_radius(real_t p_value);
 	real_t get_agent_radius() const;
 
-	Ref<NavigationMesh> get_navigation_mesh();
 
 	void set_cell_size(real_t p_cell_size);
 	real_t get_cell_size() const;

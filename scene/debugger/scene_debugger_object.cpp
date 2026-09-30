@@ -59,11 +59,7 @@ SceneDebuggerObject::SceneDebuggerObject(Object *p_obj) {
 			properties.push_back(SceneDebuggerProperty(pi, node->get_name()));
 		}
 
-		// For debugging multiplayer.
-		{
-			PropertyInfo pi(Variant::INT, String("Node/multiplayer_authority"), PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY);
-			properties.push_back(SceneDebuggerProperty(pi, node->get_multiplayer_authority()));
-		}
+
 
 		// Add specialized NodePath info (if inside tree).
 		if (node->is_inside_tree()) {

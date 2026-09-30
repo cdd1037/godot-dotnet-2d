@@ -714,7 +714,6 @@ public:
 	FUNC2(camera_set_transform, RID, const Transform3D &)
 	FUNC2(camera_set_cull_mask, RID, uint32_t)
 	FUNC2(camera_set_environment, RID, RID)
-	FUNC2(camera_set_camera_attributes, RID, RID)
 	FUNC2(camera_set_compositor, RID, RID)
 	FUNC2(camera_set_use_vertical_aspect, RID, bool)
 
@@ -732,9 +731,6 @@ public:
 
 	FUNCRIDSPLIT(viewport)
 
-#ifndef XR_DISABLED
-	FUNC2(viewport_set_use_xr, RID, bool)
-#endif // XR_DISABLED
 
 	FUNC4(viewport_set_size, RID, int, int, int)
 
@@ -899,23 +895,6 @@ public:
 	FUNC1(lightmaps_set_bicubic_filter, bool);
 	FUNC1(material_set_use_debanding, bool);
 
-	/* CAMERA ATTRIBUTES */
-
-#undef server_name
-#undef ServerName
-//from now on, calls forwarded to this singleton
-#define ServerName RendererCameraAttributes
-#define server_name RSG::camera_attributes
-
-	FUNCRIDSPLIT(camera_attributes)
-
-	FUNC2(camera_attributes_set_dof_blur_quality, RSE::DOFBlurQuality, bool)
-	FUNC1(camera_attributes_set_dof_blur_bokeh_shape, RSE::DOFBokehShape)
-
-	FUNC8(camera_attributes_set_dof_blur, RID, bool, float, float, bool, float, float, float)
-	FUNC3(camera_attributes_set_exposure, RID, float, float)
-	FUNC6(camera_attributes_set_auto_exposure, RID, bool, float, float, float, float)
-
 	/* SCENARIO API */
 
 #undef server_name
@@ -927,7 +906,6 @@ public:
 	FUNCRIDSPLIT(scenario)
 
 	FUNC2(scenario_set_environment, RID, RID)
-	FUNC2(scenario_set_camera_attributes, RID, RID)
 	FUNC2(scenario_set_fallback_environment, RID, RID)
 	FUNC2(scenario_set_compositor, RID, RID)
 

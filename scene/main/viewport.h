@@ -46,12 +46,6 @@ class Viewport;
 class Window;
 class World2D;
 
-#ifndef _3D_DISABLED
-class AudioListener3D;
-class Camera3D;
-class CollisionObject3D;
-class World3D;
-#endif // _3D_DISABLED
 
 class ViewportTexture : public Texture2D {
 	GDCLASS(ViewportTexture, Texture2D);
@@ -275,7 +269,7 @@ private:
 	bool snap_2d_transforms_to_pixel = false;
 	bool snap_2d_vertices_to_pixel = false;
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	bool physics_object_picking = false;
 	bool physics_object_picking_sort = false;
 	bool physics_object_picking_first_only = false;
@@ -526,7 +520,7 @@ protected:
 	bool _is_size_allocated() const;
 
 	void _notification(int p_what);
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	void _process_picking();
 #endif // !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
 	static void _bind_methods();
@@ -647,7 +641,7 @@ public:
 	Point2 wrap_mouse_in_rect(const Vector2 &p_relative, const Rect2 &p_rect);
 	virtual void update_mouse_cursor_state();
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	void set_physics_object_picking(bool p_enable);
 	bool get_physics_object_picking();
 	void set_physics_object_picking_sort(bool p_enable);
@@ -820,78 +814,6 @@ public:
 	Camera2D *get_camera_2d() const;
 	void assign_next_enabled_camera_2d(const StringName &p_camera_group);
 
-#ifndef _3D_DISABLED
-private:
-	// 3D audio, camera, physics, and world.
-#ifndef XR_DISABLED
-	bool use_xr = false;
-#endif // XR_DISABLED
-	friend class AudioListener3D;
-	AudioListener3D *audio_listener_3d = nullptr;
-	HashSet<AudioListener3D *> audio_listener_3d_set;
-	bool is_audio_listener_3d_enabled = false;
-	RID internal_audio_listener_3d;
-	void _update_audio_listener_3d();
-	void _listener_transform_3d_changed_notify();
-	void _audio_listener_3d_set(AudioListener3D *p_listener);
-	bool _audio_listener_3d_add(AudioListener3D *p_listener); //true if first
-	void _audio_listener_3d_remove(AudioListener3D *p_listener);
-	void _audio_listener_3d_make_next_current(AudioListener3D *p_exclude);
-
-#ifndef PHYSICS_3D_DISABLED
-	void _collision_object_3d_input_event(CollisionObject3D *p_object, Camera3D *p_camera, const Ref<InputEvent> &p_input_event, const Vector3 &p_pos, const Vector3 &p_normal, int p_shape);
-#endif // PHYSICS_3D_DISABLED
-
-	friend class Camera3D;
-	Camera3D *camera_3d = nullptr;
-#if DEBUG_ENABLED
-	CameraOverride<Camera3D> camera_3d_override;
-#endif // DEBUG_ENABLED
-	HashSet<Camera3D *> camera_3d_set;
-	void _camera_3d_transform_changed_notify();
-	void _camera_3d_set(Camera3D *p_camera);
-	bool _camera_3d_add(Camera3D *p_camera); //true if first
-	void _camera_3d_remove(Camera3D *p_camera);
-	void _camera_3d_make_next_current(Camera3D *p_exclude);
-
-	Ref<World3D> world_3d;
-	Ref<World3D> own_world_3d;
-	void _own_world_3d_changed();
-	void _propagate_enter_world_3d(Node *p_node);
-	void _propagate_exit_world_3d(Node *p_node);
-
-public:
-	AudioListener3D *get_audio_listener_3d() const;
-	void set_as_audio_listener_3d(bool p_enable);
-	bool is_audio_listener_3d() const;
-
-	Camera3D *get_camera_3d() const;
-
-#if DEBUG_ENABLED
-	void enable_camera_3d_override(bool p_enable);
-	bool is_camera_3d_override_enabled() const;
-	Camera3D *get_overridden_camera_3d() const;
-	Camera3D *get_override_camera_3d() const;
-#endif // DEBUG_ENABLED
-
-	void set_disable_3d(bool p_disable);
-	bool is_3d_disabled() const;
-
-	void set_world_3d(const Ref<World3D> &p_world_3d);
-	Ref<World3D> get_world_3d() const;
-	Ref<World3D> find_world_3d() const;
-	void set_use_own_world_3d(bool p_use_own_world_3d);
-	bool is_using_own_world_3d() const;
-
-#ifndef XR_DISABLED
-	void set_use_xr(bool p_use_xr);
-	bool is_using_xr() const;
-
-#ifndef DISABLE_DEPRECATED
-	bool _is_using_xr_115799();
-#endif
-#endif // XR_DISABLED
-#endif // _3D_DISABLED
 
 	Viewport();
 	~Viewport();

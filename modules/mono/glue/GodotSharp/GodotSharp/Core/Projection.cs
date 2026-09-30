@@ -13,7 +13,7 @@ namespace Godot
     /// <see cref="Vector4"/> columns.
     /// For purely linear transformations (translation, rotation, and scale), it is recommended to use
     /// <see cref="Transform3D"/>, as it is more performant and has a lower memory footprint.
-    /// Used internally as <see cref="Camera3D"/>'s projection matrix.
+    /// Represents a projection matrix for shared mathematical operations.
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]

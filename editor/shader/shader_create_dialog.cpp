@@ -49,8 +49,11 @@
 void ShaderCreateDialog::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
-			current_mode = EditorSettings::get_singleton()->get_project_metadata("shader_setup", "last_selected_mode", 0);
-			mode_menu->select(current_mode);
+			current_mode = EditorSettings::get_singleton()->get_project_metadata("shader_setup", "last_selected_mode", Shader::MODE_CANVAS_ITEM);
+			if (mode_menu->get_item_index(current_mode) < 0) {
+				current_mode = Shader::MODE_CANVAS_ITEM;
+			}
+			mode_menu->select(mode_menu->get_item_index(current_mode));
 		} break;
 
 		case NOTIFICATION_THEME_CHANGED: {
@@ -111,8 +114,8 @@ void ShaderCreateDialog::_path_hbox_sorted() {
 }
 
 void ShaderCreateDialog::_mode_changed(int p_mode) {
-	current_mode = p_mode;
-	EditorSettings::get_singleton()->set_project_metadata("shader_setup", "last_selected_mode", p_mode);
+	current_mode = mode_menu->get_item_id(p_mode);
+	EditorSettings::get_singleton()->set_project_metadata("shader_setup", "last_selected_mode", current_mode);
 }
 
 void ShaderCreateDialog::_template_changed(int p_template) {
@@ -378,8 +381,12 @@ void ShaderCreateDialog::config(const String &p_base_path, bool p_built_in_enabl
 	}
 
 	if (p_preferred_mode > -1) {
-		mode_menu->select(p_preferred_mode);
-		_mode_changed(p_preferred_mode);
+		int index = mode_menu->get_item_index(p_preferred_mode);
+		if (index < 0) {
+			index = mode_menu->get_item_index(Shader::MODE_CANVAS_ITEM);
+		}
+		mode_menu->select(index);
+		_mode_changed(index);
 	}
 
 	_type_changed(current_type);
@@ -524,9 +531,9 @@ ShaderCreateDialog::ShaderCreateDialog() {
 	mode_menu = memnew(OptionButton);
 	mode_menu->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
 	mode_menu->set_accessibility_name(TTRC("Mode:"));
-	for (const String &type_name : ShaderTypes::get_singleton()->get_types_list()) {
-		mode_menu->add_item(type_name.capitalize());
-	}
+	mode_menu->add_item("Canvas Item", Shader::MODE_CANVAS_ITEM);
+	mode_menu->add_item("Particles", Shader::MODE_PARTICLES);
+	mode_menu->add_item("Texture Blit", Shader::MODE_TEXTURE_BLIT);
 	gc->add_child(memnew(Label(TTR("Mode:"))));
 	gc->add_child(mode_menu);
 	mode_menu->connect(SceneStringName(item_selected), callable_mp(this, &ShaderCreateDialog::_mode_changed));

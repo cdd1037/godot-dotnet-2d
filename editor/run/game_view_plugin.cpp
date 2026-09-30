@@ -74,54 +74,6 @@ void GameViewDebugger::_session_started(Ref<EditorDebuggerSession> p_session) {
 	settings["canvas_item_editor/pan_view"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("canvas_item_editor/pan_view"));
 	settings["box_selection_fill_color"] = EditorNode::get_singleton()->get_editor_theme()->get_color(SNAME("box_selection_fill_color"), EditorStringName(Editor));
 	settings["box_selection_stroke_color"] = EditorNode::get_singleton()->get_editor_theme()->get_color(SNAME("box_selection_stroke_color"), EditorStringName(Editor));
-#ifndef _3D_DISABLED
-	settings["editors/3d/default_fov"] = EDITOR_GET("editors/3d/default_fov");
-	settings["editors/3d/default_z_near"] = EDITOR_GET("editors/3d/default_z_near");
-	settings["editors/3d/default_z_far"] = EDITOR_GET("editors/3d/default_z_far");
-	settings["editors/3d/navigation/invert_x_axis"] = EDITOR_GET("editors/3d/navigation/invert_x_axis");
-	settings["editors/3d/navigation/invert_y_axis"] = EDITOR_GET("editors/3d/navigation/invert_y_axis");
-	settings["editors/3d/navigation/warped_mouse_panning"] = EDITOR_GET("editors/3d/navigation/warped_mouse_panning");
-	settings["editors/3d/navigation/pan_mouse_button"] = EDITOR_GET("editors/3d/navigation/pan_mouse_button");
-	settings["editors/3d/freelook/freelook_activation_modifier"] = EDITOR_GET("editors/3d/freelook/freelook_activation_modifier");
-	settings["editors/3d/freelook/freelook_navigation_scheme"] = EDITOR_GET("editors/3d/freelook/freelook_navigation_scheme");
-	settings["editors/3d/freelook/freelook_base_speed"] = EDITOR_GET("editors/3d/freelook/freelook_base_speed");
-	settings["editors/3d/freelook/freelook_sensitivity"] = EDITOR_GET("editors/3d/freelook/freelook_sensitivity");
-	settings["editors/3d/freelook/freelook_inertia"] = EDITOR_GET("editors/3d/freelook/freelook_inertia");
-	settings["editors/3d/freelook/freelook_speed_zoom_link"] = EDITOR_GET("editors/3d/freelook/freelook_speed_zoom_link");
-	settings["editors/3d/freelook/freelook_invert_y_axis"] = EDITOR_GET("editors/3d/freelook/freelook_invert_y_axis");
-	settings["editors/3d/navigation/orbit_mouse_button"] = EDITOR_GET("editors/3d/navigation/orbit_mouse_button");
-	settings["editors/3d/navigation_feel/orbit_sensitivity"] = EDITOR_GET("editors/3d/navigation_feel/orbit_sensitivity");
-	settings["editors/3d/navigation_feel/orbit_inertia"] = EDITOR_GET("editors/3d/navigation_feel/orbit_inertia");
-	settings["editors/3d/navigation/zoom_style"] = EDITOR_GET("editors/3d/navigation/zoom_style");
-	settings["editors/3d/navigation_feel/zoom_inertia"] = EDITOR_GET("editors/3d/navigation_feel/zoom_inertia");
-	settings["editors/3d/navigation/zoom_mouse_button"] = EDITOR_GET("editors/3d/navigation/zoom_mouse_button");
-	settings["editors/3d/navigation_feel/translation_sensitivity"] = EDITOR_GET("editors/3d/navigation_feel/translation_sensitivity");
-	settings["editors/3d/navigation_feel/translation_inertia"] = EDITOR_GET("editors/3d/navigation_feel/translation_inertia");
-	settings["editors/3d/navigation_feel/angle_snap_threshold"] = EDITOR_GET("editors/3d/navigation_feel/angle_snap_threshold");
-	settings["editors/3d/navigation/emulate_3_button_mouse"] = EDITOR_GET("editors/3d/navigation/emulate_3_button_mouse");
-	settings["editors/3d/navigation/emulate_numpad"] = EDITOR_GET("editors/3d/navigation/emulate_numpad");
-	settings["editors/3d/selection_box_color"] = EDITOR_GET("editors/3d/selection_box_color");
-	settings["spatial_editor/decrease_fov"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/decrease_fov"));
-	settings["spatial_editor/increase_fov"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/increase_fov"));
-	settings["spatial_editor/reset_fov"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/reset_fov"));
-	settings["spatial_editor/viewport_pan_modifier_1"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_pan_modifier_1"));
-	settings["spatial_editor/viewport_pan_modifier_2"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_pan_modifier_2"));
-	settings["spatial_editor/viewport_orbit_modifier_1"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_orbit_modifier_1"));
-	settings["spatial_editor/viewport_orbit_modifier_2"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_orbit_modifier_2"));
-	settings["spatial_editor/viewport_orbit_snap_modifier_1"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_orbit_snap_modifier_1"));
-	settings["spatial_editor/viewport_orbit_snap_modifier_2"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_orbit_snap_modifier_2"));
-	settings["spatial_editor/viewport_zoom_modifier_1"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_zoom_modifier_1"));
-	settings["spatial_editor/viewport_zoom_modifier_2"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/viewport_zoom_modifier_2"));
-	settings["spatial_editor/freelook_forward"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_forward"));
-	settings["spatial_editor/freelook_backwards"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_backwards"));
-	settings["spatial_editor/freelook_left"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_left"));
-	settings["spatial_editor/freelook_right"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_right"));
-	settings["spatial_editor/freelook_up"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_up"));
-	settings["spatial_editor/freelook_down"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_down"));
-	settings["spatial_editor/freelook_toggle"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_toggle"));
-	settings["spatial_editor/freelook_speed_modifier"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_speed_modifier"));
-	settings["spatial_editor/freelook_slow_modifier"] = DebuggerMarshalls::serialize_key_shortcut(ED_GET_SHORTCUT("spatial_editor/freelook_slow_modifier"));
-#endif // _3D_DISABLED
 
 	Array setup_data;
 	setup_data.append(settings);
@@ -1137,7 +1089,6 @@ void GameView::_notification(int p_what) {
 
 			node_type_button[RuntimeNodeSelect::NODE_TYPE_NONE]->set_button_icon(get_editor_theme_icon(SNAME("InputEventJoypadMotion")));
 			node_type_button[RuntimeNodeSelect::NODE_TYPE_2D]->set_button_icon(get_editor_theme_icon(SNAME("2DNodes")));
-			node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->set_button_icon(get_editor_theme_icon(SNAME("Node3D")));
 
 			select_mode_button[RuntimeNodeSelect::SELECT_MODE_SINGLE]->set_button_icon(get_editor_theme_icon(SNAME("ToolSelect")));
 			select_mode_button[RuntimeNodeSelect::SELECT_MODE_LIST]->set_button_icon(get_editor_theme_icon(SNAME("ListSelect")));
@@ -1425,11 +1376,7 @@ void GameView::_feature_profile_changed() {
 
 	is_feature_enabled = is_profile_null || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_GAME);
 
-	bool is_3d_enabled = is_profile_null || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D);
-	if (!is_3d_enabled && node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->is_pressed()) {
-		_node_type_pressed(RuntimeNodeSelect::NODE_TYPE_NONE);
-	}
-	node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->set_visible(is_3d_enabled);
+
 }
 
 GameView::GameView(Ref<GameViewDebugger> p_debugger, EmbeddedProcessBase *p_embedded_process, WindowWrapper *p_wrapper) {
@@ -1508,13 +1455,6 @@ GameView::GameView(Ref<GameViewDebugger> p_debugger, EmbeddedProcessBase *p_embe
 	node_type_button[RuntimeNodeSelect::NODE_TYPE_2D]->connect(SceneStringName(pressed), callable_mp(this, &GameView::_node_type_pressed).bind(RuntimeNodeSelect::NODE_TYPE_2D));
 	node_type_button[RuntimeNodeSelect::NODE_TYPE_2D]->set_tooltip_text(TTRC("Disable game input and allow to select Node2Ds, Controls, and manipulate the 2D camera."));
 
-	node_type_button[RuntimeNodeSelect::NODE_TYPE_3D] = memnew(Button);
-	input_hb->add_child(node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]);
-	node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->set_text(TTRC("3D"));
-	node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->set_toggle_mode(true);
-	node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->set_theme_type_variation("FlatButtonNoIconTint");
-	node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->connect(SceneStringName(pressed), callable_mp(this, &GameView::_node_type_pressed).bind(RuntimeNodeSelect::NODE_TYPE_3D));
-	node_type_button[RuntimeNodeSelect::NODE_TYPE_3D]->set_tooltip_text(TTRC("Disable game input and allow to select Node3Ds and manipulate the 3D camera."));
 
 	input_hb->add_child(memnew(VSeparator));
 
@@ -1527,7 +1467,7 @@ GameView::GameView(Ref<GameViewDebugger> p_debugger, EmbeddedProcessBase *p_embe
 	select_mode_button[RuntimeNodeSelect::SELECT_MODE_SINGLE]->set_pressed(true);
 	select_mode_button[RuntimeNodeSelect::SELECT_MODE_SINGLE]->set_theme_type_variation(SceneStringName(FlatButton));
 	select_mode_button[RuntimeNodeSelect::SELECT_MODE_SINGLE]->connect(SceneStringName(pressed), callable_mp(this, &GameView::_select_mode_pressed).bind(RuntimeNodeSelect::SELECT_MODE_SINGLE));
-	select_mode_button[RuntimeNodeSelect::SELECT_MODE_SINGLE]->set_shortcut(ED_GET_SHORTCUT("spatial_editor/tool_select"));
+	select_mode_button[RuntimeNodeSelect::SELECT_MODE_SINGLE]->set_shortcut(ED_GET_SHORTCUT("canvas_item_editor/select_mode"));
 	select_mode_button[RuntimeNodeSelect::SELECT_MODE_SINGLE]->set_shortcut_context(this);
 
 	select_mode_button[RuntimeNodeSelect::SELECT_MODE_LIST] = memnew(Button);

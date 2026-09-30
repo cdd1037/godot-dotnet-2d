@@ -30,7 +30,7 @@
 
 #include "physics_material.h"
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 
 #include "core/object/class_db.h"
 

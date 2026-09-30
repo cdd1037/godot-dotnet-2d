@@ -88,7 +88,6 @@ class SceneTreeDock : public EditorDock {
 		TOOL_SCENE_OPEN_INHERITED,
 		TOOL_TOGGLE_SCENE_UNIQUE_NAME,
 		TOOL_CREATE_2D_SCENE,
-		TOOL_CREATE_3D_SCENE,
 		TOOL_CREATE_USER_INTERFACE,
 		TOOL_CREATE_FAVORITE,
 		TOOL_CENTER_PARENT,
@@ -123,7 +122,6 @@ class SceneTreeDock : public EditorDock {
 	VBoxContainer *favorite_node_shortcuts = nullptr;
 
 	Button *button_2d = nullptr;
-	Button *button_3d = nullptr;
 	Button *button_ui = nullptr;
 	Button *button_custom = nullptr;
 	Button *button_clipboard = nullptr;

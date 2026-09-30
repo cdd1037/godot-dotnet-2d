@@ -159,7 +159,6 @@ namespace Godot.Bridge
 
                 _ = ctor.Invoke(obj, invokeParams);
 
-
                 return godot_bool.True;
             }
             catch (Exception e)
@@ -760,7 +759,7 @@ namespace Godot.Bridge
 
         [UnmanagedCallersOnly]
         internal static unsafe void UpdateScriptClassInfo(IntPtr scriptPtr, godot_csharp_type_info* outTypeInfo,
-            godot_array* outMethodsDest, godot_dictionary* outRpcFunctionsDest, godot_dictionary* outEventSignalsDest, godot_ref* outBaseScript)
+            godot_array* outMethodsDest, godot_dictionary* outEventSignalsDest, godot_ref* outBaseScript)
         {
             try
             {
@@ -777,7 +776,6 @@ namespace Godot.Bridge
                 // Performance is not critical here as this will be replaced with source generators.
                 using var methods = new Collections.Array();
 
-                Type? top = scriptType;
                 if (scriptType != native)
                 {
                     var methodList = GetMethodListForType(scriptType);
@@ -835,47 +833,6 @@ namespace Godot.Bridge
 
                 *outMethodsDest = NativeFuncs.godotsharp_array_new_copy(
                     (godot_array)methods.NativeValue);
-
-                // RPC functions
-
-                Collections.Dictionary rpcFunctions = new();
-
-                top = scriptType;
-
-                while (top != null && top != native)
-                {
-                    foreach (var method in top.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance |
-                                                          BindingFlags.NonPublic | BindingFlags.Public))
-                    {
-                        if (method.IsStatic)
-                            continue;
-
-                        string methodName = method.Name;
-
-                        if (rpcFunctions.ContainsKey(methodName))
-                            continue;
-
-                        var rpcAttr = method.GetCustomAttributes(inherit: false)
-                            .OfType<RpcAttribute>().FirstOrDefault();
-
-                        if (rpcAttr == null)
-                            continue;
-
-                        var rpcConfig = new Collections.Dictionary();
-
-                        rpcConfig["rpc_mode"] = (long)rpcAttr.Mode;
-                        rpcConfig["call_local"] = rpcAttr.CallLocal;
-                        rpcConfig["transfer_mode"] = (long)rpcAttr.TransferMode;
-                        rpcConfig["channel"] = rpcAttr.TransferChannel;
-
-                        rpcFunctions.Add(methodName, rpcConfig);
-                    }
-
-                    top = top.BaseType;
-                }
-
-                *outRpcFunctionsDest = NativeFuncs.godotsharp_dictionary_new_copy(
-                    (godot_dictionary)rpcFunctions.NativeValue);
 
                 // Event signals
 
@@ -941,7 +898,6 @@ namespace Godot.Bridge
                 ExceptionUtils.LogException(e);
                 *outTypeInfo = default;
                 *outMethodsDest = NativeFuncs.godotsharp_array_new();
-                *outRpcFunctionsDest = NativeFuncs.godotsharp_dictionary_new();
                 *outEventSignalsDest = NativeFuncs.godotsharp_dictionary_new();
                 *outBaseScript = default;
             }

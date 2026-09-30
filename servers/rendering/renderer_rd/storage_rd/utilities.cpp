@@ -30,9 +30,6 @@
 
 #include "utilities.h"
 
-#include "servers/rendering/renderer_rd/environment/fog.h"
-#include "servers/rendering/renderer_rd/environment/gi.h"
-#include "servers/rendering/renderer_rd/storage_rd/light_storage.h"
 #include "servers/rendering/renderer_rd/storage_rd/mesh_storage.h"
 #include "servers/rendering/renderer_rd/storage_rd/particles_storage.h"
 #include "servers/rendering/renderer_rd/storage_rd/texture_storage.h"
@@ -58,30 +55,18 @@ RSE::InstanceType Utilities::get_base_type(RID p_rid) const {
 	if (RendererRD::MeshStorage::get_singleton()->owns_multimesh(p_rid)) {
 		return RSE::INSTANCE_MULTIMESH;
 	}
-	if (RendererRD::LightStorage::get_singleton()->owns_reflection_probe(p_rid)) {
-		return RSE::INSTANCE_REFLECTION_PROBE;
-	}
+
 	if (RendererRD::TextureStorage::get_singleton()->owns_decal(p_rid)) {
 		return RSE::INSTANCE_DECAL;
 	}
-	if (RendererRD::GI::get_singleton()->owns_voxel_gi(p_rid)) {
-		return RSE::INSTANCE_VOXEL_GI;
-	}
-	if (RendererRD::LightStorage::get_singleton()->owns_light(p_rid)) {
-		return RSE::INSTANCE_LIGHT;
-	}
-	if (RendererRD::LightStorage::get_singleton()->owns_lightmap(p_rid)) {
-		return RSE::INSTANCE_LIGHTMAP;
-	}
+
 	if (RendererRD::ParticlesStorage::get_singleton()->owns_particles(p_rid)) {
 		return RSE::INSTANCE_PARTICLES;
 	}
 	if (RendererRD::ParticlesStorage::get_singleton()->owns_particles_collision(p_rid)) {
 		return RSE::INSTANCE_PARTICLES_COLLISION;
 	}
-	if (RendererRD::Fog::get_singleton()->owns_fog_volume(p_rid)) {
-		return RSE::INSTANCE_FOG_VOLUME;
-	}
+
 	if (owns_visibility_notifier(p_rid)) {
 		return RSE::INSTANCE_VISIBLITY_NOTIFIER;
 	}
@@ -90,9 +75,7 @@ RSE::InstanceType Utilities::get_base_type(RID p_rid) const {
 }
 
 bool Utilities::free(RID p_rid) {
-	if (RendererRD::LightStorage::get_singleton()->free(p_rid)) {
-		return true;
-	} else if (RendererRD::MaterialStorage::get_singleton()->free(p_rid)) {
+	if (RendererRD::MaterialStorage::get_singleton()->free(p_rid)) {
 		return true;
 	} else if (RendererRD::MeshStorage::get_singleton()->free(p_rid)) {
 		return true;
@@ -100,13 +83,7 @@ bool Utilities::free(RID p_rid) {
 		return true;
 	} else if (RendererRD::TextureStorage::get_singleton()->free(p_rid)) {
 		return true;
-	} else if (RendererRD::GI::get_singleton()->owns_voxel_gi(p_rid)) {
-		RendererRD::GI::get_singleton()->voxel_gi_free(p_rid);
-		return true;
-	} else if (RendererRD::Fog::get_singleton()->owns_fog_volume(p_rid)) {
-		RendererRD::Fog::get_singleton()->fog_volume_free(p_rid);
-		return true;
-	} else if (owns_visibility_notifier(p_rid)) {
+	}   else if (owns_visibility_notifier(p_rid)) {
 		visibility_notifier_free(p_rid);
 		return true;
 	} else {
@@ -128,29 +105,14 @@ void Utilities::base_update_dependency(RID p_base, DependencyTracker *p_instance
 		if (mesh.is_valid()) {
 			base_update_dependency(mesh, p_instance);
 		}
-	} else if (LightStorage::get_singleton()->owns_reflection_probe(p_base)) {
-		Dependency *dependency = LightStorage::get_singleton()->reflection_probe_get_dependency(p_base);
-		p_instance->update_dependency(dependency);
 	} else if (TextureStorage::get_singleton()->owns_decal(p_base)) {
 		Dependency *dependency = TextureStorage::get_singleton()->decal_get_dependency(p_base);
 		p_instance->update_dependency(dependency);
-	} else if (GI::get_singleton()->owns_voxel_gi(p_base)) {
-		Dependency *dependency = GI::get_singleton()->voxel_gi_get_dependency(p_base);
-		p_instance->update_dependency(dependency);
-	} else if (LightStorage::get_singleton()->owns_lightmap(p_base)) {
-		Dependency *dependency = LightStorage::get_singleton()->lightmap_get_dependency(p_base);
-		p_instance->update_dependency(dependency);
-	} else if (LightStorage::get_singleton()->owns_light(p_base)) {
-		Dependency *dependency = LightStorage::get_singleton()->light_get_dependency(p_base);
-		p_instance->update_dependency(dependency);
-	} else if (ParticlesStorage::get_singleton()->owns_particles(p_base)) {
+	}    else if (ParticlesStorage::get_singleton()->owns_particles(p_base)) {
 		Dependency *dependency = ParticlesStorage::get_singleton()->particles_get_dependency(p_base);
 		p_instance->update_dependency(dependency);
 	} else if (ParticlesStorage::get_singleton()->owns_particles_collision(p_base)) {
 		Dependency *dependency = ParticlesStorage::get_singleton()->particles_collision_get_dependency(p_base);
-		p_instance->update_dependency(dependency);
-	} else if (Fog::get_singleton()->owns_fog_volume(p_base)) {
-		Dependency *dependency = Fog::get_singleton()->fog_volume_get_dependency(p_base);
 		p_instance->update_dependency(dependency);
 	} else if (owns_visibility_notifier(p_base)) {
 		VisibilityNotifier *vn = get_visibility_notifier(p_base);

@@ -43,8 +43,6 @@ void ParticlesEditorPlugin::_notification(int p_what) {
 		case NOTIFICATION_ENTER_TREE: {
 			if (handled_type.ends_with("2D")) {
 				add_control_to_container(CONTAINER_CANVAS_EDITOR_MENU, toolbar);
-			} else if (handled_type.ends_with("3D")) {
-				add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, toolbar);
 			} else {
 				DEV_ASSERT(false);
 			}

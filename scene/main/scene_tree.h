@@ -36,23 +36,18 @@
 #include "core/os/thread_safe.h"
 #include "core/templates/paged_allocator.h"
 #include "core/templates/self_list.h"
-#include "scene/main/scene_tree_fti.h"
 
 #include <cstdlib>
 
 class ArrayMesh;
 class InputEvent;
 class Material;
-class MultiplayerAPI;
 class Node;
 class PackedScene;
 class Tween;
 class Viewport;
 class Window;
 
-#ifndef _3D_DISABLED
-class Node3D;
-#endif
 
 class SceneTreeTimer : public RefCounted {
 	GDCLASS(SceneTreeTimer, RefCounted);
@@ -123,12 +118,6 @@ private:
 
 	bool node_threading_disabled = false;
 
-#ifndef _3D_DISABLED
-	struct ClientPhysicsInterpolation {
-		SelfList<Node3D>::List _node_3d_list;
-		void physics_process();
-	} _client_physics_interpolation;
-#endif
 
 	Window *root = nullptr;
 
@@ -156,7 +145,6 @@ private:
 	// to only take effect when the project is using physics interpolation.
 	static bool _physics_interpolation_enabled_in_project;
 
-	SceneTreeFTI scene_tree_fti;
 
 	StringName tree_changed_name = "tree_changed";
 	StringName node_added_name = "node_added";
@@ -208,9 +196,6 @@ private:
 	Color debug_collision_contact_color;
 	Color debug_paths_color;
 	float debug_paths_width = 1.0f;
-	Ref<ArrayMesh> debug_contact_mesh;
-	Ref<Material> debug_paths_material;
-	Ref<Material> collision_material;
 	int collision_debug_contacts;
 
 	void _flush_scene_change();
@@ -220,9 +205,6 @@ private:
 
 	///network///
 
-	Ref<MultiplayerAPI> multiplayer;
-	HashMap<NodePath, Ref<MultiplayerAPI>> custom_multiplayers;
-	bool multiplayer_poll = true;
 
 	static SceneTree *singleton;
 	friend class Node;
@@ -252,7 +234,6 @@ private:
 	void _flush_delete_queue();
 	// Optimization.
 	friend class CanvasItem;
-	friend class Node3D;
 	friend class Viewport;
 
 	SelfList<Node>::List xform_change_list;
@@ -399,9 +380,6 @@ public:
 	void set_debug_paths_width(float p_width);
 	float get_debug_paths_width() const;
 
-	Ref<Material> get_debug_paths_material();
-	Ref<Material> get_debug_collision_material();
-	Ref<ArrayMesh> get_debug_contact_mesh();
 
 	int get_collision_debug_contact_count() { return collision_debug_contacts; }
 
@@ -446,10 +424,6 @@ public:
 
 	//network API
 
-	RequiredResult<MultiplayerAPI> get_multiplayer(const NodePath &p_for_path = NodePath()) const;
-	void set_multiplayer(Ref<MultiplayerAPI> p_multiplayer, const NodePath &p_root_path = NodePath());
-	void set_multiplayer_poll_enabled(bool p_enabled);
-	bool is_multiplayer_poll_enabled() const;
 
 	static void add_idle_callback(IdleCallback p_callback);
 
@@ -463,12 +437,7 @@ public:
 	static bool is_fti_enabled() { return _physics_interpolation_enabled; }
 	static bool is_fti_enabled_in_project() { return _physics_interpolation_enabled_in_project; }
 
-#ifndef _3D_DISABLED
-	void client_physics_interpolation_add_node_3d(SelfList<Node3D> *p_elem);
-	void client_physics_interpolation_remove_node_3d(SelfList<Node3D> *p_elem);
-#endif
 
-	SceneTreeFTI &get_scene_tree_fti() { return scene_tree_fti; }
 
 	SceneTree();
 	~SceneTree();

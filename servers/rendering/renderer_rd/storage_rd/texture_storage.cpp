@@ -29,11 +29,11 @@
 /**************************************************************************/
 
 #include "texture_storage.h"
+#include "servers/rendering/renderer_compositor.h"
 
 #include "core/config/engine.h"
 #include "servers/rendering/renderer_rd/effects/copy_effects.h"
 #include "servers/rendering/renderer_rd/framebuffer_cache_rd.h"
-#include "servers/rendering/renderer_rd/renderer_scene_render_rd.h"
 #include "servers/rendering/renderer_rd/storage_rd/material_storage.h"
 #include "servers/rendering/renderer_rd/uniform_set_cache_rd.h"
 #include "servers/rendering/rendering_server_globals.h"
@@ -3567,11 +3567,7 @@ void TextureStorage::update_area_light_atlas() {
 						const AreaLightAtlas::MipMap &mm = area_light_atlas.texture_mipmaps[i];
 						Rect2i copy_rect = Rect2i(Vector2i(0, 0), mip_tex_size);
 
-						if (RendererSceneRenderRD::get_singleton()->_render_buffers_can_be_storage()) {
-							copy_effects->gaussian_blur(prev_blur_texture, blur_tex, copy_rect, mip_tex_size, true);
-						} else {
-							copy_effects->gaussian_blur_raster(prev_blur_texture, blur_tex, copy_rect, mip_tex_size);
-						}
+						copy_effects->gaussian_blur(prev_blur_texture, blur_tex, copy_rect, mip_tex_size, true);
 
 						copy_effects->copy_to_fb_rect(blur_tex, mm.fb, uv_recti, false, false, false, false, RID(), false, false, true);
 						prev_blur_texture = blur_tex;
@@ -3617,99 +3613,51 @@ RID TextureStorage::decal_atlas_get_texture_srgb() const {
 }
 
 RID TextureStorage::decal_allocate() {
-	return decal_owner.allocate_rid();
+	return {};
 }
 
 void TextureStorage::decal_initialize(RID p_decal) {
-	decal_owner.initialize_rid(p_decal, Decal());
+
 }
 
 void TextureStorage::decal_free(RID p_rid) {
-	Decal *decal = decal_owner.get_or_null(p_rid);
-	for (int i = 0; i < RSE::DECAL_TEXTURE_MAX; i++) {
-		if (decal->textures[i].is_valid() && owns_texture(decal->textures[i])) {
-			texture_remove_from_decal_atlas(decal->textures[i]);
-		}
-	}
-	decal->dependency.deleted_notify(p_rid);
-	decal_owner.free(p_rid);
+
 }
 
 void TextureStorage::decal_set_size(RID p_decal, const Vector3 &p_size) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->size = p_size;
-	decal->dependency.changed_notify(Dependency::DEPENDENCY_CHANGED_AABB);
+
 }
 
 void TextureStorage::decal_set_texture(RID p_decal, RSE::DecalTexture p_type, RID p_texture) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	ERR_FAIL_INDEX(p_type, RSE::DECAL_TEXTURE_MAX);
 
-	if (decal->textures[p_type] == p_texture) {
-		return;
-	}
-
-	ERR_FAIL_COND(p_texture.is_valid() && !owns_texture(p_texture));
-
-	if (decal->textures[p_type].is_valid() && owns_texture(decal->textures[p_type])) {
-		texture_remove_from_decal_atlas(decal->textures[p_type]);
-	}
-
-	decal->textures[p_type] = p_texture;
-
-	if (decal->textures[p_type].is_valid()) {
-		texture_add_to_decal_atlas(decal->textures[p_type]);
-	}
-
-	decal->dependency.changed_notify(Dependency::DEPENDENCY_CHANGED_DECAL);
 }
 
 void TextureStorage::decal_set_emission_energy(RID p_decal, float p_energy) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->emission_energy = p_energy;
+
 }
 
 void TextureStorage::decal_set_albedo_mix(RID p_decal, float p_mix) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->albedo_mix = p_mix;
+
 }
 
 void TextureStorage::decal_set_modulate(RID p_decal, const Color &p_modulate) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->modulate = p_modulate;
+
 }
 
 void TextureStorage::decal_set_cull_mask(RID p_decal, uint32_t p_layers) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->cull_mask = p_layers;
-	decal->dependency.changed_notify(Dependency::DEPENDENCY_CHANGED_CULL_MASK);
+
 }
 
 void TextureStorage::decal_set_distance_fade(RID p_decal, bool p_enabled, float p_begin, float p_length) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->distance_fade = p_enabled;
-	decal->distance_fade_begin = p_begin;
-	decal->distance_fade_length = p_length;
+
 }
 
 void TextureStorage::decal_set_fade(RID p_decal, float p_above, float p_below) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->upper_fade = p_above;
-	decal->lower_fade = p_below;
+
 }
 
 void TextureStorage::decal_set_normal_fade(RID p_decal, float p_fade) {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL(decal);
-	decal->normal_fade = p_fade;
+
 }
 
 void TextureStorage::decal_atlas_mark_dirty_on_texture(RID p_texture) {
@@ -3728,17 +3676,11 @@ void TextureStorage::decal_atlas_remove_texture(RID p_texture) {
 }
 
 AABB TextureStorage::decal_get_aabb(RID p_decal) const {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL_V(decal, AABB());
-
-	return AABB(-decal->size / 2, decal->size);
+	return {};
 }
 
 uint32_t TextureStorage::decal_get_cull_mask(RID p_decal) const {
-	Decal *decal = decal_owner.get_or_null(p_decal);
-	ERR_FAIL_NULL_V(decal, 0);
-
-	return decal->cull_mask;
+	return {};
 }
 
 Dependency *TextureStorage::decal_get_dependency(RID p_decal) {
@@ -3977,232 +3919,33 @@ void TextureStorage::texture_remove_from_decal_atlas(RID p_texture, bool p_panor
 /* DECAL INSTANCE API */
 
 RID TextureStorage::decal_instance_create(RID p_decal) {
-	DecalInstance di;
-	di.decal = p_decal;
-	di.forward_id = ForwardIDStorage::get_singleton()->allocate_forward_id(FORWARD_ID_TYPE_DECAL);
-	return decal_instance_owner.make_rid(di);
+	return {};
 }
 
 void TextureStorage::decal_instance_free(RID p_decal_instance) {
-	DecalInstance *di = decal_instance_owner.get_or_null(p_decal_instance);
-	ForwardIDStorage::get_singleton()->free_forward_id(FORWARD_ID_TYPE_DECAL, di->forward_id);
-	decal_instance_owner.free(p_decal_instance);
+
 }
 
 void TextureStorage::decal_instance_set_transform(RID p_decal_instance, const Transform3D &p_transform) {
-	DecalInstance *di = decal_instance_owner.get_or_null(p_decal_instance);
-	ERR_FAIL_NULL(di);
-	di->transform = p_transform;
+
 }
 
 void TextureStorage::decal_instance_set_sorting_offset(RID p_decal_instance, float p_sorting_offset) {
-	DecalInstance *di = decal_instance_owner.get_or_null(p_decal_instance);
-	ERR_FAIL_NULL(di);
-	di->sorting_offset = p_sorting_offset;
+
 }
 
 /* DECAL DATA API */
 
 void TextureStorage::free_decal_data() {
-	if (decal_buffer.is_valid()) {
-		RD::get_singleton()->free_rid(decal_buffer);
-		decal_buffer = RID();
-	}
 
-	if (decals != nullptr) {
-		memdelete_arr(decals);
-		decals = nullptr;
-	}
-
-	if (decal_sort != nullptr) {
-		memdelete_arr(decal_sort);
-		decal_sort = nullptr;
-	}
 }
 
 void TextureStorage::set_max_decals(const uint32_t p_max_decals) {
-	max_decals = p_max_decals;
-	uint32_t decal_buffer_size = max_decals * sizeof(DecalData);
-	decals = memnew_arr(DecalData, max_decals);
-	decal_sort = memnew_arr(DecalInstanceSort, max_decals);
-	decal_buffer = RD::get_singleton()->storage_buffer_create(decal_buffer_size);
+
 }
 
 void TextureStorage::update_decal_buffer(const PagedArray<RID> &p_decals, const Transform3D &p_camera_xform) {
-	ForwardIDStorage *forward_id_storage = ForwardIDStorage::get_singleton();
 
-	Transform3D uv_xform;
-	uv_xform.basis.scale(Vector3(2.0, 1.0, 2.0));
-	uv_xform.origin = Vector3(-1.0, 0.0, -1.0);
-
-	uint32_t decals_size = p_decals.size();
-
-	decal_count = 0;
-
-	for (uint32_t i = 0; i < decals_size; i++) {
-		if (decal_count == max_decals) {
-			break;
-		}
-
-		DecalInstance *decal_instance = decal_instance_owner.get_or_null(p_decals[i]);
-		if (!decal_instance) {
-			continue;
-		}
-		Decal *decal = decal_owner.get_or_null(decal_instance->decal);
-
-		Transform3D xform = decal_instance->transform;
-
-		real_t distance = p_camera_xform.origin.distance_to(xform.origin);
-
-		if (decal->distance_fade) {
-			float fade_begin = decal->distance_fade_begin;
-			float fade_length = decal->distance_fade_length;
-
-			if (distance > fade_begin) {
-				if (distance > fade_begin + fade_length) {
-					continue; // do not use this decal, its invisible
-				}
-			}
-		}
-
-		decal_sort[decal_count].decal_instance = decal_instance;
-		decal_sort[decal_count].decal = decal;
-		decal_sort[decal_count].depth = distance - decal_instance->sorting_offset;
-		decal_count++;
-	}
-
-	if (decal_count > 0) {
-		SortArray<DecalInstanceSort> sort_array;
-		sort_array.sort(decal_sort, decal_count);
-	}
-
-	bool using_forward_ids = forward_id_storage->uses_forward_ids();
-	for (uint32_t i = 0; i < decal_count; i++) {
-		DecalInstance *decal_instance = decal_sort[i].decal_instance;
-		Decal *decal = decal_sort[i].decal;
-
-		if (using_forward_ids) {
-			forward_id_storage->map_forward_id(FORWARD_ID_TYPE_DECAL, decal_instance->forward_id, i, RSG::rasterizer->get_frame_number());
-		}
-
-		decal_instance->cull_mask = decal->cull_mask;
-
-		float fade = 1.0;
-
-		if (decal->distance_fade) {
-			const real_t distance = decal_sort[i].depth + decal_instance->sorting_offset;
-			const float fade_begin = decal->distance_fade_begin;
-			const float fade_length = decal->distance_fade_length;
-
-			if (distance > fade_begin) {
-				// Use `smoothstep()` to make opacity changes more gradual and less noticeable to the player.
-				fade = Math::smoothstep(0.0f, 1.0f, 1.0f - float(distance - fade_begin) / fade_length);
-			}
-		}
-
-		DecalData &dd = decals[i];
-
-		Vector3 decal_extents = decal->size / 2;
-
-		Transform3D scale_xform;
-		scale_xform.basis.scale(decal_extents);
-
-		Transform3D xform = decal_instance->transform;
-
-		Transform3D camera_inverse_xform = p_camera_xform.affine_inverse();
-
-		Transform3D to_decal_xform = (camera_inverse_xform * xform * scale_xform * uv_xform).affine_inverse();
-		MaterialStorage::store_transform(to_decal_xform, dd.xform);
-
-		Vector3 normal = xform.basis.get_column(Vector3::AXIS_Y).normalized();
-		normal = camera_inverse_xform.basis.xform(normal); //camera is normalized, so fine
-
-		dd.normal[0] = normal.x;
-		dd.normal[1] = normal.y;
-		dd.normal[2] = normal.z;
-		dd.normal_fade = decal->normal_fade;
-
-		RID albedo_tex = decal->textures[RSE::DECAL_TEXTURE_ALBEDO];
-		RID emission_tex = decal->textures[RSE::DECAL_TEXTURE_EMISSION];
-		if (albedo_tex.is_valid()) {
-			Rect2 rect = decal_atlas_get_texture_rect(albedo_tex);
-			dd.albedo_rect[0] = rect.position.x;
-			dd.albedo_rect[1] = rect.position.y;
-			dd.albedo_rect[2] = rect.size.x;
-			dd.albedo_rect[3] = rect.size.y;
-		} else {
-			if (!emission_tex.is_valid()) {
-				continue; //no albedo, no emission, no decal.
-			}
-			dd.albedo_rect[0] = 0;
-			dd.albedo_rect[1] = 0;
-			dd.albedo_rect[2] = 0;
-			dd.albedo_rect[3] = 0;
-		}
-
-		RID normal_tex = decal->textures[RSE::DECAL_TEXTURE_NORMAL];
-
-		if (normal_tex.is_valid()) {
-			Rect2 rect = decal_atlas_get_texture_rect(normal_tex);
-			dd.normal_rect[0] = rect.position.x;
-			dd.normal_rect[1] = rect.position.y;
-			dd.normal_rect[2] = rect.size.x;
-			dd.normal_rect[3] = rect.size.y;
-
-			Basis normal_xform = camera_inverse_xform.basis * xform.basis.orthonormalized();
-			MaterialStorage::store_basis_3x4(normal_xform, dd.normal_xform);
-		} else {
-			dd.normal_rect[0] = 0;
-			dd.normal_rect[1] = 0;
-			dd.normal_rect[2] = 0;
-			dd.normal_rect[3] = 0;
-		}
-
-		RID orm_tex = decal->textures[RSE::DECAL_TEXTURE_ORM];
-		if (orm_tex.is_valid()) {
-			Rect2 rect = decal_atlas_get_texture_rect(orm_tex);
-			dd.orm_rect[0] = rect.position.x;
-			dd.orm_rect[1] = rect.position.y;
-			dd.orm_rect[2] = rect.size.x;
-			dd.orm_rect[3] = rect.size.y;
-		} else {
-			dd.orm_rect[0] = 0;
-			dd.orm_rect[1] = 0;
-			dd.orm_rect[2] = 0;
-			dd.orm_rect[3] = 0;
-		}
-
-		if (emission_tex.is_valid()) {
-			Rect2 rect = decal_atlas_get_texture_rect(emission_tex);
-			dd.emission_rect[0] = rect.position.x;
-			dd.emission_rect[1] = rect.position.y;
-			dd.emission_rect[2] = rect.size.x;
-			dd.emission_rect[3] = rect.size.y;
-		} else {
-			dd.emission_rect[0] = 0;
-			dd.emission_rect[1] = 0;
-			dd.emission_rect[2] = 0;
-			dd.emission_rect[3] = 0;
-		}
-
-		Color modulate = decal->modulate.srgb_to_linear();
-		dd.modulate[0] = modulate.r;
-		dd.modulate[1] = modulate.g;
-		dd.modulate[2] = modulate.b;
-		dd.modulate[3] = modulate.a * fade;
-		dd.emission_energy = decal->emission_energy * fade;
-		dd.albedo_mix = decal->albedo_mix;
-		dd.mask = decal->cull_mask;
-		dd.upper_fade = decal->upper_fade;
-		dd.lower_fade = decal->lower_fade;
-
-		// hook for subclass to do further processing.
-		RendererSceneRenderRD::get_singleton()->setup_added_decal(xform, decal_extents);
-	}
-
-	if (decal_count > 0) {
-		RD::get_singleton()->buffer_update(decal_buffer, 0, sizeof(DecalData) * decal_count, decals);
-	}
 }
 
 /* RENDER TARGET API */
@@ -5110,14 +4853,7 @@ void TextureStorage::render_target_copy_to_back_buffer(RID p_render_target, cons
 
 	// TODO figure out stereo support here
 
-	if (RendererSceneRenderRD::get_singleton()->_render_buffers_can_be_storage()) {
-		copy_effects->copy_to_rect(rt->color, rt->backbuffer_mipmap0, region, false, false, false, !rt->use_hdr, true);
-	} else {
-		Rect2 src_rect = Rect2(region);
-		src_rect.position /= Size2(rt->size);
-		src_rect.size /= Size2(rt->size);
-		copy_effects->copy_to_fb_rect(rt->color, rt->backbuffer_fb, region, false, false, false, false, RID(), false, true, false, false, src_rect);
-	}
+	copy_effects->copy_to_rect(rt->color, rt->backbuffer_mipmap0, region, false, false, false, !rt->use_hdr, true);
 
 	if (!p_gen_mipmaps) {
 		return;
@@ -5135,11 +4871,8 @@ void TextureStorage::render_target_copy_to_back_buffer(RID p_render_target, cons
 		texture_size = Size2i(texture_size.x >> 1, texture_size.y >> 1).maxi(1);
 
 		RID mipmap = rt->backbuffer_mipmaps[i];
-		if (RendererSceneRenderRD::get_singleton()->_render_buffers_can_be_storage()) {
-			copy_effects->gaussian_blur(prev_texture, mipmap, region, texture_size, !rt->use_hdr);
-		} else {
-			copy_effects->gaussian_blur_raster(prev_texture, mipmap, region, texture_size);
-		}
+		copy_effects->gaussian_blur(prev_texture, mipmap, region, texture_size, !rt->use_hdr);
+
 		prev_texture = mipmap;
 	}
 	RD::get_singleton()->draw_command_end_label();
@@ -5167,11 +4900,8 @@ void TextureStorage::render_target_clear_back_buffer(RID p_render_target, const 
 	}
 
 	// Single texture copy for backbuffer.
-	if (RendererSceneRenderRD::get_singleton()->_render_buffers_can_be_storage()) {
-		copy_effects->set_color(rt->backbuffer_mipmap0, p_color, region, !rt->use_hdr);
-	} else {
-		copy_effects->set_color_raster(rt->backbuffer_mipmap0, p_color, region);
-	}
+	copy_effects->set_color(rt->backbuffer_mipmap0, p_color, region, !rt->use_hdr);
+
 }
 
 void TextureStorage::render_target_gen_back_buffer_mipmaps(RID p_render_target, const Rect2i &p_region) {
@@ -5207,11 +4937,8 @@ void TextureStorage::render_target_gen_back_buffer_mipmaps(RID p_render_target, 
 
 		RID mipmap = rt->backbuffer_mipmaps[i];
 
-		if (RendererSceneRenderRD::get_singleton()->_render_buffers_can_be_storage()) {
-			copy_effects->gaussian_blur(prev_texture, mipmap, region, texture_size, !rt->use_hdr);
-		} else {
-			copy_effects->gaussian_blur_raster(prev_texture, mipmap, region, texture_size);
-		}
+		copy_effects->gaussian_blur(prev_texture, mipmap, region, texture_size, !rt->use_hdr);
+
 		prev_texture = mipmap;
 	}
 	RD::get_singleton()->draw_command_end_label();

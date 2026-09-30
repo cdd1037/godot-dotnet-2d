@@ -32,7 +32,6 @@
 
 #include "core/templates/rid_owner.h"
 #include "servers/display/display_server_enums.h"
-#include "servers/rendering/renderer_scene_render.h"
 #include "servers/rendering/rendering_server_enums.h"
 #include "servers/rendering/rendering_server_types.h"
 #include "servers/rendering/storage/render_scene_buffers.h"
@@ -74,8 +73,6 @@ public:
 		bool use_debanding = false;
 		bool force_motion_vectors = false;
 
-		RendererSceneRender::CameraData prev_camera_data;
-		uint64_t prev_camera_data_frame = 0;
 
 		bool use_occlusion_culling = false;
 		bool occlusion_buffer_dirty = false;
@@ -86,7 +83,7 @@ public:
 
 		bool disable_2d = false;
 		RSE::ViewportEnvironmentMode disable_environment = RSE::VIEWPORT_ENVIRONMENT_INHERIT;
-		bool disable_3d = false;
+		bool disable_3d = true;
 		bool measure_render_time = false;
 
 		bool snap_2d_transforms_to_pixel = false;
@@ -220,10 +217,6 @@ public:
 	RID viewport_allocate();
 	void viewport_initialize(RID p_rid);
 
-#ifndef XR_DISABLED
-	void viewport_set_use_xr(RID p_viewport, bool p_use_xr);
-#endif // XR_DISABLED
-
 	void viewport_set_size(RID p_viewport, int p_width, int p_height, int p_view_count = 1);
 
 	void viewport_attach_to_screen(RID p_viewport, const Rect2 &p_rect = Rect2(), DisplayServerEnums::WindowID p_screen = DisplayServerEnums::MAIN_WINDOW_ID);
@@ -248,8 +241,6 @@ public:
 	RID viewport_get_texture(RID p_viewport) const;
 	RID viewport_get_occluder_debug_texture(RID p_viewport) const;
 
-	void viewport_set_prev_camera_data(RID p_viewport, const RendererSceneRender::CameraData *p_camera_data);
-	const RendererSceneRender::CameraData *viewport_get_prev_camera_data(RID p_viewport);
 
 	void viewport_set_disable_2d(RID p_viewport, bool p_disable);
 	void viewport_set_environment_mode(RID p_viewport, RSE::ViewportEnvironmentMode p_mode);

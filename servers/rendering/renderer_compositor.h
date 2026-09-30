@@ -35,7 +35,6 @@
 #include "servers/rendering/rendering_server_types.h"
 
 class RendererCanvasRender;
-class RendererSceneRender;
 
 class RendererFog;
 class RendererGI;
@@ -63,7 +62,6 @@ public:
 	static RendererCompositor *create();
 
 	virtual RendererCanvasRender *get_canvas() = 0;
-	virtual RendererSceneRender *get_scene() = 0;
 
 	virtual RendererFog *get_fog() = 0;
 	virtual RendererGI *get_gi() = 0;

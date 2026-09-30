@@ -45,9 +45,6 @@
 #include "scene/main/missing_node.h"
 #include "scene/property_utils.h"
 
-#ifndef _3D_DISABLED
-#include "scene/3d/node_3d.h"
-#endif // _3D_DISABLED
 
 #define PACKED_SCENE_VERSION 3
 
@@ -338,10 +335,6 @@ Node *SceneState::instantiate(GenEditState p_edit_state) const {
 							obj = memnew(Control);
 						} else if (Object::cast_to<Node2D>(ret_nodes[n.parent])) {
 							obj = memnew(Node2D);
-#ifndef _3D_DISABLED
-						} else if (Object::cast_to<Node3D>(ret_nodes[n.parent])) {
-							obj = memnew(Node3D);
-#endif // _3D_DISABLED
 						}
 					}
 

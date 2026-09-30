@@ -1,0 +1,6 @@
+.godot/
+.nuget/
+NuGet.Config
+export_presets.cfg
+
+!ForkValidation.sln

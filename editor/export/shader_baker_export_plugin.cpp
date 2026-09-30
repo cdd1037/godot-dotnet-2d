@@ -30,24 +30,19 @@
 
 #include "shader_baker_export_plugin.h"
 
+#include "scene/resources/material.h"
+
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
 #include "core/io/dir_access.h"
 #include "core/string/string_builder.h"
 #include "core/version.h"
 #include "editor/editor_node.h"
-#include "scene/3d/label_3d.h"
-#include "scene/3d/sprite_3d.h"
-#include "servers/rendering/renderer_rd/renderer_scene_render_rd.h"
+#include "servers/rendering/renderer_rd/renderer_compositor_rd.h"
 #include "servers/rendering/renderer_rd/storage_rd/material_storage.h"
 #include "servers/rendering/rendering_shader_container.h"
 
 // Ensure that AlphaCut is the same between the two classes so we can share the code to detect transparency.
-static_assert(ENUM_MEMBERS_EQUAL(SpriteBase3D::ALPHA_CUT_DISABLED, Label3D::ALPHA_CUT_DISABLED));
-static_assert(ENUM_MEMBERS_EQUAL(SpriteBase3D::ALPHA_CUT_DISCARD, Label3D::ALPHA_CUT_DISCARD));
-static_assert(ENUM_MEMBERS_EQUAL(SpriteBase3D::ALPHA_CUT_OPAQUE_PREPASS, Label3D::ALPHA_CUT_OPAQUE_PREPASS));
-static_assert(ENUM_MEMBERS_EQUAL(SpriteBase3D::ALPHA_CUT_HASH, Label3D::ALPHA_CUT_HASH));
-static_assert(ENUM_MEMBERS_EQUAL(SpriteBase3D::ALPHA_CUT_MAX, Label3D::ALPHA_CUT_MAX));
 
 String ShaderBakerExportPlugin::get_name() const {
 	return "ShaderBaker";
@@ -55,7 +50,7 @@ String ShaderBakerExportPlugin::get_name() const {
 
 bool ShaderBakerExportPlugin::_is_active(const Vector<String> &p_features) const {
 	// Shader baker should only work when a RendererRD driver is active, as the embedded shaders won't be found otherwise.
-	return RendererSceneRenderRD::get_singleton() != nullptr && RendererRD::MaterialStorage::get_singleton() != nullptr && p_features.has("shader_baker");
+	return RendererCompositorRD::get_singleton() != nullptr && RendererRD::MaterialStorage::get_singleton() != nullptr && p_features.has("shader_baker");
 }
 
 bool ShaderBakerExportPlugin::_initialize_container_format(const Ref<EditorExportPlatform> &p_platform, const Ref<EditorExportPreset> &p_preset) {
@@ -106,7 +101,7 @@ bool ShaderBakerExportPlugin::_begin_customize_resources(const Ref<EditorExportP
 	}
 
 	shader_cache_platform_name = p_platform->get_os_name();
-	shader_cache_renderer_name = RendererSceneRenderRD::get_singleton()->get_name();
+	shader_cache_renderer_name = "canvas_only";
 	tasks_processed = 0;
 	tasks_total = 0;
 	tasks_cancelled = false;
@@ -119,26 +114,6 @@ bool ShaderBakerExportPlugin::_begin_customize_resources(const Ref<EditorExportP
 	to_hash.append("[Renderer]");
 	to_hash.append(shader_cache_renderer_name);
 	customization_configuration_hash = to_hash.as_string().hash64();
-
-	BitField<RenderingShaderLibrary::FeatureBits> renderer_features = {};
-#ifndef XR_DISABLED
-	bool xr_enabled = GLOBAL_GET("xr/shaders/enabled");
-	renderer_features.set_flag(RenderingShaderLibrary::FEATURE_ADVANCED_BIT);
-	if (xr_enabled) {
-		renderer_features.set_flag(RenderingShaderLibrary::FEATURE_MULTIVIEW_BIT);
-	}
-#endif // XR_DISABLED
-
-	int vrs_mode = GLOBAL_GET("rendering/vrs/mode");
-	if (vrs_mode != 0) {
-		renderer_features.set_flag(RenderingShaderLibrary::FEATURE_VRS_BIT);
-	}
-
-	// Both FP16 and FP32 variants should be included.
-	renderer_features.set_flag(RenderingShaderLibrary::FEATURE_FP16_BIT);
-	renderer_features.set_flag(RenderingShaderLibrary::FEATURE_FP32_BIT);
-
-	RendererSceneRenderRD::get_singleton()->enable_features(renderer_features);
 
 	// Included all shaders created by renderers and effects.
 	ShaderRD::shaders_embedded_set_lock();
@@ -164,19 +139,6 @@ bool ShaderBakerExportPlugin::_begin_customize_resources(const Ref<EditorExportP
 	}
 
 	material_storage->shader_embedded_set_unlock();
-
-	return true;
-}
-
-bool ShaderBakerExportPlugin::_begin_customize_scenes(const Ref<EditorExportPlatform> &p_platform, const Vector<String> &p_features) {
-	if (!_is_active(p_features)) {
-		return false;
-	}
-
-	if (shader_container_format == nullptr) {
-		// Resource customization failed to initialize.
-		return false;
-	}
 
 	return true;
 }
@@ -293,77 +255,6 @@ Ref<Resource> ShaderBakerExportPlugin::_customize_resource(const Ref<Resource> &
 	}
 
 	return Ref<Resource>();
-}
-
-Node *ShaderBakerExportPlugin::_customize_scene(Node *p_root, const String &p_path) {
-	LocalVector<Node *> nodes_to_visit;
-	nodes_to_visit.push_back(p_root);
-	while (!nodes_to_visit.is_empty()) {
-		// Visit all nodes recursively in the scene to find the Label3Ds and Sprite3Ds.
-		Node *node = nodes_to_visit[nodes_to_visit.size() - 1];
-		nodes_to_visit.remove_at(nodes_to_visit.size() - 1);
-
-		Label3D *label_3d = Object::cast_to<Label3D>(node);
-		Sprite3D *sprite_3d = Object::cast_to<Sprite3D>(node);
-		if (label_3d != nullptr || sprite_3d != nullptr) {
-			// Create materials for Label3D and Sprite3D, which are normally generated at runtime on demand.
-			HashMap<StringName, Variant> properties;
-
-			// These must match the defaults set by Sprite3D/Label3D.
-			properties["transparent"] = true; // Label3D doesn't have this property, but it is always true anyway.
-			properties["shaded"] = false;
-			properties["double_sided"] = true;
-			properties["no_depth_test"] = false;
-			properties["fixed_size"] = false;
-			properties["billboard"] = StandardMaterial3D::BILLBOARD_DISABLED;
-			properties["texture_filter"] = StandardMaterial3D::TEXTURE_FILTER_LINEAR_WITH_MIPMAPS;
-			properties["alpha_antialiasing_mode"] = StandardMaterial3D::ALPHA_ANTIALIASING_OFF;
-			properties["alpha_cut"] = SpriteBase3D::ALPHA_CUT_DISABLED;
-
-			List<PropertyInfo> property_list;
-			node->get_property_list(&property_list);
-			for (const PropertyInfo &info : property_list) {
-				bool valid = false;
-				Variant property = node->get(info.name, &valid);
-				if (valid) {
-					properties[info.name] = property;
-				}
-			}
-
-			// This must follow the logic in Sprite3D::draw_texture_rect().
-			BaseMaterial3D::Transparency mat_transparency = BaseMaterial3D::Transparency::TRANSPARENCY_DISABLED;
-			if (properties["transparent"]) {
-				SpriteBase3D::AlphaCutMode acm = SpriteBase3D::AlphaCutMode(int(properties["alpha_cut"]));
-				if (acm == SpriteBase3D::ALPHA_CUT_DISCARD) {
-					mat_transparency = BaseMaterial3D::Transparency::TRANSPARENCY_ALPHA_SCISSOR;
-				} else if (acm == SpriteBase3D::ALPHA_CUT_OPAQUE_PREPASS) {
-					mat_transparency = BaseMaterial3D::Transparency::TRANSPARENCY_ALPHA_DEPTH_PRE_PASS;
-				} else if (acm == SpriteBase3D::ALPHA_CUT_HASH) {
-					mat_transparency = BaseMaterial3D::Transparency::TRANSPARENCY_ALPHA_HASH;
-				} else {
-					mat_transparency = BaseMaterial3D::Transparency::TRANSPARENCY_ALPHA;
-				}
-			}
-
-			StandardMaterial3D::BillboardMode billboard_mode = StandardMaterial3D::BillboardMode(int(properties["billboard"]));
-			Ref<Material> sprite_3d_material = StandardMaterial3D::get_material_for_2d(bool(properties["shaded"]), mat_transparency, bool(properties["double_sided"]), billboard_mode == StandardMaterial3D::BILLBOARD_ENABLED, billboard_mode == StandardMaterial3D::BILLBOARD_FIXED_Y, false, bool(properties["no_depth_test"]), bool(properties["fixed_size"]), BaseMaterial3D::TextureFilter(int(properties["texture_filter"])), BaseMaterial3D::AlphaAntiAliasing(int(properties["alpha_antialiasing_mode"])));
-			_customize_resource(sprite_3d_material, String());
-
-			if (label_3d != nullptr) {
-				// Generate variants with and without MSDF support since we don't have access to the font here.
-				Ref<Material> label_3d_material = StandardMaterial3D::get_material_for_2d(bool(properties["shaded"]), mat_transparency, bool(properties["double_sided"]), billboard_mode == StandardMaterial3D::BILLBOARD_ENABLED, billboard_mode == StandardMaterial3D::BILLBOARD_FIXED_Y, true, bool(properties["no_depth_test"]), bool(properties["fixed_size"]), BaseMaterial3D::TextureFilter(int(properties["texture_filter"])), BaseMaterial3D::AlphaAntiAliasing(int(properties["alpha_antialiasing_mode"])));
-				_customize_resource(label_3d_material, String());
-			}
-		}
-
-		// Visit children.
-		int child_count = node->get_child_count();
-		for (int i = 0; i < child_count; i++) {
-			nodes_to_visit.push_back(node->get_child(i));
-		}
-	}
-
-	return nullptr;
 }
 
 uint64_t ShaderBakerExportPlugin::_get_customization_configuration_hash() const {

@@ -44,7 +44,6 @@
 #include "editor/editor_undo_redo_manager.h"
 #include "editor/gui/editor_file_dialog.h"
 #include "editor/gui/editor_validation_panel.h"
-#include "editor/scene/3d/node_3d_editor_plugin.h" // For onion skinning.
 #include "editor/scene/canvas_item_editor_plugin.h" // For onion skinning.
 #include "editor/settings/editor_command_palette.h"
 #include "editor/settings/editor_settings.h"
@@ -1796,43 +1795,20 @@ void AnimationPlayerEditor::_prepare_onion_layers_2_prolog() {
 	}
 
 	// Hide superfluous elements that would make the overlay unnecessary cluttered.
-	if (Node3DEditor::get_singleton()->is_visible()) {
-		// 3D
-		onion.temp.spatial_edit_state = Node3DEditor::get_singleton()->get_state();
-		Dictionary new_state = onion.temp.spatial_edit_state.duplicate();
-		new_state["show_grid"] = false;
-		new_state["show_origin"] = false;
-		Array orig_vp = onion.temp.spatial_edit_state["viewports"];
-		Array vp;
-		vp.resize(4);
-		for (int i = 0; i < vp.size(); i++) {
-			Dictionary d = ((Dictionary)orig_vp[i]).duplicate();
-			d["use_environment"] = false;
-			d["doppler"] = false;
-			d["listener"] = false;
-			d["gizmos"] = onion.include_gizmos ? d["gizmos"] : Variant(false);
-			d["information"] = false;
-			vp[i] = d;
-		}
-		new_state["viewports"] = vp;
-		// TODO: Save/restore only affected entries.
-		Node3DEditor::get_singleton()->set_state(new_state);
-	} else {
-		// CanvasItemEditor.
-		onion.temp.canvas_edit_state = CanvasItemEditor::get_singleton()->get_state();
-		Dictionary new_state = onion.temp.canvas_edit_state.duplicate();
-		new_state["show_origin"] = false;
-		new_state["show_grid"] = false;
-		new_state["show_rulers"] = false;
-		new_state["show_guides"] = false;
-		new_state["show_helpers"] = false;
-		new_state["show_zoom_control"] = false;
-		new_state["show_edit_locks"] = false;
-		new_state["grid_visibility"] = 2; // TODO: Expose CanvasItemEditor::GRID_VISIBILITY_HIDE somehow and use it.
-		new_state["show_transformation_gizmos"] = onion.include_gizmos ? new_state["gizmos"] : Variant(false);
-		// TODO: Save/restore only affected entries.
-		CanvasItemEditor::get_singleton()->set_state(new_state);
-	}
+	// CanvasItemEditor.
+	onion.temp.canvas_edit_state = CanvasItemEditor::get_singleton()->get_state();
+	Dictionary new_state = onion.temp.canvas_edit_state.duplicate();
+	new_state["show_origin"] = false;
+	new_state["show_grid"] = false;
+	new_state["show_rulers"] = false;
+	new_state["show_guides"] = false;
+	new_state["show_helpers"] = false;
+	new_state["show_zoom_control"] = false;
+	new_state["show_edit_locks"] = false;
+	new_state["grid_visibility"] = 2; // TODO: Expose CanvasItemEditor::GRID_VISIBILITY_HIDE somehow and use it.
+	new_state["show_transformation_gizmos"] = onion.include_gizmos ? new_state["show_transformation_gizmos"] : Variant(false);
+	// TODO: Save/restore only affected entries.
+	CanvasItemEditor::get_singleton()->set_state(new_state);
 
 	// Tweak the root viewport to ensure it's rendered before our target.
 	RID root_vp = get_tree()->get_root()->get_viewport_rid();
@@ -1943,13 +1919,9 @@ void AnimationPlayerEditor::_prepare_onion_layers_2_epilog() {
 	player->restore(onion.temp.anim_values_backup);
 
 	// Restore state of main editors.
-	if (Node3DEditor::get_singleton()->is_visible()) {
-		// 3D
-		Node3DEditor::get_singleton()->set_state(onion.temp.spatial_edit_state);
-	} else { // CanvasItemEditor
-		// 2D
-		CanvasItemEditor::get_singleton()->set_state(onion.temp.canvas_edit_state);
-	}
+	// CanvasItemEditor.
+	// 2D
+	CanvasItemEditor::get_singleton()->set_state(onion.temp.canvas_edit_state);
 
 	// Update viewports with skin layers overlaid for the actual engine loop render.
 	onion.can_overlay = true;
@@ -2011,14 +1983,7 @@ bool AnimationPlayerEditor::_validate_tracks(const Ref<Animation> p_anim) {
 	int len = p_anim->get_track_count();
 	for (int i = 0; i < len; i++) {
 		Animation::TrackType ttype = p_anim->track_get_type(i);
-		if (ttype == Animation::TYPE_ROTATION_3D) {
-			int key_len = p_anim->track_get_key_count(i);
-			for (int j = 0; j < key_len; j++) {
-				Quaternion q;
-				p_anim->rotation_track_get_key(i, j, &q);
-				ERR_BREAK_EDMSG(!q.is_normalized(), "AnimationPlayer: '" + player->get_name() + "', Animation: '" + player->get_current_animation() + "', 3D Rotation Track:  '" + String(p_anim->track_get_path(i)) + "' contains unnormalized Quaternion key.");
-			}
-		} else if (ttype == Animation::TYPE_VALUE) {
+		if (ttype == Animation::TYPE_VALUE) {
 			int key_len = p_anim->track_get_key_count(i);
 			if (key_len == 0) {
 				continue;
@@ -2199,7 +2164,7 @@ AnimationPlayerEditor::AnimationPlayerEditor(AnimationPlayerEditorPlugin *p_plug
 	onion_skinning->get_popup()->add_separator();
 	onion_skinning->get_popup()->add_check_item(TTRC("Differences Only"), ONION_SKINNING_DIFFERENCES_ONLY);
 	onion_skinning->get_popup()->add_check_item(TTRC("Force White Modulate"), ONION_SKINNING_FORCE_WHITE_MODULATE);
-	onion_skinning->get_popup()->add_check_item(TTRC("Include Gizmos (3D)"), ONION_SKINNING_INCLUDE_GIZMOS);
+	onion_skinning->get_popup()->add_check_item(TTRC("Include Gizmos"), ONION_SKINNING_INCLUDE_GIZMOS);
 	onion_skinning->get_popup()->connect(SceneStringName(id_pressed), callable_mp(this, &AnimationPlayerEditor::_onion_skinning_menu));
 	hb->add_child(onion_skinning);
 
@@ -2350,7 +2315,6 @@ AnimationPlayerEditor::~AnimationPlayerEditor() {
 void AnimationPlayerEditorPlugin::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_READY: {
-			Node3DEditor::get_singleton()->connect(SNAME("transform_key_request"), callable_mp(this, &AnimationPlayerEditorPlugin::_transform_key_request));
 			InspectorDock::get_inspector_singleton()->connect(SNAME("property_keyed"), callable_mp(this, &AnimationPlayerEditorPlugin::_property_keyed));
 			anim_editor->get_track_editor()->connect(SNAME("keying_changed"), callable_mp(this, &AnimationPlayerEditorPlugin::_update_keying));
 			InspectorDock::get_inspector_singleton()->connect(SNAME("edited_object_changed"), callable_mp(anim_editor->get_track_editor(), &AnimationTrackEditor::update_keying));
@@ -2366,19 +2330,6 @@ void AnimationPlayerEditorPlugin::_property_keyed(const String &p_keyed, const V
 	}
 	te->_clear_selection();
 	te->insert_value_key(p_keyed, p_advance);
-}
-
-void AnimationPlayerEditorPlugin::_transform_key_request(Object *sp, const String &p_sub, const Transform3D &p_key) {
-	if (!anim_editor->get_track_editor()->has_keying()) {
-		return;
-	}
-	Node3D *s = Object::cast_to<Node3D>(sp);
-	if (!s) {
-		return;
-	}
-	anim_editor->get_track_editor()->insert_transform_key(s, p_sub, Animation::TYPE_POSITION_3D, p_key.origin);
-	anim_editor->get_track_editor()->insert_transform_key(s, p_sub, Animation::TYPE_ROTATION_3D, p_key.basis.get_rotation_quaternion());
-	anim_editor->get_track_editor()->insert_transform_key(s, p_sub, Animation::TYPE_SCALE_3D, p_key.basis.get_scale());
 }
 
 void AnimationPlayerEditorPlugin::_update_keying() {

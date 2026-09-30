@@ -792,7 +792,7 @@ void EditorFeatureProfileManager::_update_selected_profile() {
 	TreeItem *last_feature = nullptr;
 	features->set_text(0, TTR("Main Features:"));
 	for (int i = 0; i < EditorFeatureProfile::FEATURE_MAX; i++) {
-		if (i == EditorFeatureProfile::FEATURE_ASSET_LIB) {
+		if (i == EditorFeatureProfile::FEATURE_ASSET_LIB || i == EditorFeatureProfile::FEATURE_3D) {
 			continue; // Reserved value for old profile files; this fork has no online asset browser.
 		}
 		TreeItem *feature;

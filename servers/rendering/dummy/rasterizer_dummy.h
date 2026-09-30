@@ -34,7 +34,6 @@
 #include "servers/rendering/rendering_server_enums.h"
 
 class RasterizerCanvasDummy;
-class RasterizerSceneDummy;
 
 namespace RendererDummy {
 class Fog;
@@ -55,7 +54,6 @@ private:
 
 protected:
 	RasterizerCanvasDummy *canvas = nullptr;
-	RasterizerSceneDummy *scene = nullptr;
 
 	RendererDummy::Fog *fog = nullptr;
 	RendererDummy::GI *gi = nullptr;
@@ -68,7 +66,6 @@ protected:
 
 public:
 	RendererCanvasRender *get_canvas() override;
-	RendererSceneRender *get_scene() override;
 
 	RendererFog *get_fog() override;
 	RendererGI *get_gi() override;

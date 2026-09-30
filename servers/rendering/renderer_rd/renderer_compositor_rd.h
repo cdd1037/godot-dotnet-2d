@@ -32,12 +32,13 @@
 
 #include "core/io/image.h"
 #include "servers/rendering/renderer_compositor.h"
-#include "servers/rendering/renderer_rd/environment/fog.h"
+#include "servers/rendering/dummy/environment/fog.h"
+#include "servers/rendering/dummy/environment/gi.h"
+#include "servers/rendering/dummy/storage/light_storage.h"
+#include "servers/rendering/renderer_rd/effects/copy_effects.h"
 #include "servers/rendering/renderer_rd/framebuffer_cache_rd.h"
 #include "servers/rendering/renderer_rd/renderer_canvas_render_rd.h"
-#include "servers/rendering/renderer_rd/renderer_scene_render_rd.h"
 #include "servers/rendering/renderer_rd/shaders/blit.glsl.gen.h"
-#include "servers/rendering/renderer_rd/storage_rd/light_storage.h"
 #include "servers/rendering/renderer_rd/storage_rd/material_storage.h"
 #include "servers/rendering/renderer_rd/storage_rd/mesh_storage.h"
 #include "servers/rendering/renderer_rd/storage_rd/particles_storage.h"
@@ -51,10 +52,11 @@ protected:
 	FramebufferCacheRD *framebuffer_cache = nullptr;
 
 	RendererCanvasRenderRD *canvas = nullptr;
-	RendererSceneRenderRD *scene = nullptr;
+	RendererRD::CopyEffects *copy_effects = nullptr;
+	RendererDummy::GI *gi = nullptr;
 
-	RendererRD::Fog *fog = nullptr;
-	RendererRD::LightStorage *light_storage = nullptr;
+	RendererDummy::Fog *fog = nullptr;
+	RendererDummy::LightStorage *light_storage = nullptr;
 	RendererRD::MaterialStorage *material_storage = nullptr;
 	RendererRD::MeshStorage *mesh_storage = nullptr;
 	RendererRD::ParticlesStorage *particles_storage = nullptr;
@@ -124,13 +126,9 @@ public:
 	virtual RendererMeshStorage *get_mesh_storage() override { return mesh_storage; }
 	virtual RendererParticlesStorage *get_particles_storage() override { return particles_storage; }
 	virtual RendererTextureStorage *get_texture_storage() override { return texture_storage; }
-	virtual RendererGI *get_gi() override {
-		ERR_FAIL_NULL_V(scene, nullptr);
-		return scene->get_gi();
-	}
+	virtual RendererGI *get_gi() override { return gi; }
 	virtual RendererFog *get_fog() override { return fog; }
 	virtual RendererCanvasRender *get_canvas() override { return canvas; }
-	virtual RendererSceneRender *get_scene() override { return scene; }
 
 	virtual void set_boot_image_with_stretch(const Ref<Image> &p_image, const Color &p_color, RSE::SplashStretchMode p_stretch_mode, bool p_use_filter) override;
 

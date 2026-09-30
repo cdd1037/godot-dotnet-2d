@@ -37,7 +37,6 @@
 #include "servers/rendering/shader_warnings.h"
 
 class MaterialEditor;
-class Environment;
 class ShaderMaterial;
 class Timer;
 class TextureRect;
@@ -72,7 +71,6 @@ private:
 	MarginContainer *surface_container = nullptr;
 	MaterialEditor *surface = nullptr;
 	Ref<ShaderMaterial> shader_material;
-	Ref<Environment> env;
 	MarginContainer *error_container = nullptr;
 	TextureRect *error_icon = nullptr;
 	Label *error_label = nullptr;

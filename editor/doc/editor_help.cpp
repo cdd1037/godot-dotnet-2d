@@ -3054,6 +3054,11 @@ static void _load_script_doc_cache(bool p_changes) {
 }
 
 void EditorHelp::load_script_doc_cache() {
+	// Deferred file-system signals can arrive while the editor is shutting down.
+	if (!EditorNode::get_singleton()) {
+		return;
+	}
+
 	if (!ProjectSettings::get_singleton()->is_project_loaded()) {
 		print_verbose("Skipping loading script doc cache since no project is open.");
 		return;

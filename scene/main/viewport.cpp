@@ -62,26 +62,12 @@ STATIC_ASSERT_INCOMPLETE_TYPE(class, RenderingServer);
 #include "scene/2d/camera_2d.h"
 #include "scene/resources/world_2d.h"
 
-#ifndef _3D_DISABLED
-#include "scene/3d/audio_listener_3d.h"
-#include "scene/3d/camera_3d.h"
-#include "scene/3d/world_environment.h"
-#include "scene/resources/3d/world_3d.h"
-#endif // _3D_DISABLED
 
 #ifndef PHYSICS_2D_DISABLED
 #include "scene/2d/physics/collision_object_2d.h"
 #endif // PHYSICS_2D_DISABLED
 
-#ifndef PHYSICS_3D_DISABLED
-#include "scene/3d/physics/collision_object_3d.h"
-#endif // PHYSICS_3D_DISABLED
 
-#ifndef XR_DISABLED
-#include "servers/rendering/rendering_server_globals.h"
-#include "servers/xr/xr_interface.h"
-#include "servers/xr/xr_server.h"
-#endif // XR_DISABLED
 
 void ViewportTexture::setup_local_to_scene() {
 	// For the same target viewport, setup is only allowed once to prevent multiple free or multiple creations.
@@ -603,30 +589,15 @@ void Viewport::_notification(int p_what) {
 			RenderingServer::get_singleton()->viewport_set_canvas_transform(viewport, current_canvas, canvas_transform);
 			RenderingServer::get_singleton()->viewport_set_canvas_cull_mask(viewport, canvas_cull_mask);
 			_update_audio_listener_2d();
-#ifndef _3D_DISABLED
-			RenderingServer::get_singleton()->viewport_set_scenario(viewport, find_world_3d()->get_scenario());
-			_update_audio_listener_3d();
-#endif // _3D_DISABLED
 
 			add_to_group("_viewports");
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 			if (get_tree()->is_debugging_collisions_hint()) {
 #ifndef PHYSICS_2D_DISABLED
 				PhysicsServer2D::get_singleton()->space_set_debug_contacts(find_world_2d()->get_space(), get_tree()->get_collision_debug_contact_count());
 				contact_2d_debug = RenderingServer::get_singleton()->canvas_item_create();
 				RenderingServer::get_singleton()->canvas_item_set_parent(contact_2d_debug, current_canvas);
 #endif // PHYSICS_2D_DISABLED
-#ifndef PHYSICS_3D_DISABLED
-				PhysicsServer3D::get_singleton()->space_set_debug_contacts(find_world_3d()->get_space(), get_tree()->get_collision_debug_contact_count());
-				contact_3d_debug_multimesh = RenderingServer::get_singleton()->multimesh_create();
-				RenderingServer::get_singleton()->multimesh_allocate_data(contact_3d_debug_multimesh, get_tree()->get_collision_debug_contact_count(), RSE::MULTIMESH_TRANSFORM_3D, false);
-				RenderingServer::get_singleton()->multimesh_set_visible_instances(contact_3d_debug_multimesh, 0);
-				RenderingServer::get_singleton()->multimesh_set_mesh(contact_3d_debug_multimesh, get_tree()->get_debug_contact_mesh()->get_rid());
-				contact_3d_debug_instance = RenderingServer::get_singleton()->instance_create();
-				RenderingServer::get_singleton()->instance_set_base(contact_3d_debug_instance, contact_3d_debug_multimesh);
-				RenderingServer::get_singleton()->instance_set_scenario(contact_3d_debug_instance, find_world_3d()->get_scenario());
-				RenderingServer::get_singleton()->instance_geometry_set_flag(contact_3d_debug_instance, RSE::INSTANCE_FLAG_DRAW_NEXT_FRAME_IF_VISIBLE, true);
-#endif // PHYSICS_3D_DISABLED
 				set_physics_process_internal(true);
 			}
 #endif // !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
@@ -635,34 +606,6 @@ void Viewport::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_READY: {
-#ifndef _3D_DISABLED
-			if (audio_listener_3d_set.size() && !audio_listener_3d) {
-				AudioListener3D *first = nullptr;
-				for (AudioListener3D *E : audio_listener_3d_set) {
-					if (first == nullptr || first->is_greater_than(E)) {
-						first = E;
-					}
-				}
-
-				if (first) {
-					first->make_current();
-				}
-			}
-
-			if (camera_3d_set.size() && !camera_3d) {
-				// There are cameras but no current camera, pick first in tree and make it current.
-				Camera3D *first = nullptr;
-				for (Camera3D *E : camera_3d_set) {
-					if (first == nullptr || first->is_greater_than(E)) {
-						first = E;
-					}
-				}
-
-				if (first) {
-					first->make_current();
-				}
-			}
-#endif // _3D_DISABLED
 		} break;
 
 		case NOTIFICATION_EXIT_TREE: {
@@ -677,14 +620,6 @@ void Viewport::_notification(int p_what) {
 			}
 #endif // PHYSICS_2D_DISABLED
 
-#ifndef PHYSICS_3D_DISABLED
-			if (contact_3d_debug_multimesh.is_valid()) {
-				RenderingServer::get_singleton()->free_rid(contact_3d_debug_multimesh);
-				RenderingServer::get_singleton()->free_rid(contact_3d_debug_instance);
-				contact_3d_debug_instance = RID();
-				contact_3d_debug_multimesh = RID();
-			}
-#endif // PHYSICS_3D_DISABLED
 
 			remove_from_group("_viewports");
 			set_physics_process_internal(false);
@@ -697,18 +632,8 @@ void Viewport::_notification(int p_what) {
 			_update_viewport_path();
 		} break;
 
-#ifndef XR_DISABLED
-		case NOTIFICATION_INTERNAL_PROCESS: {
-			// Note: internal process should only be enabled if use_xr is true,
-			// but we check anyway to be future proof.
-			// This is currently a polling approach.
-			if (use_xr) {
-				_check_xr_size();
-			}
-		} break;
-#endif // XR_DISABLED
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
 			if (!get_tree()) {
 				return;
@@ -728,20 +653,6 @@ void Viewport::_notification(int p_what) {
 				}
 			}
 #endif // PHYSICS_2D_DISABLED
-#ifndef PHYSICS_3D_DISABLED
-			if (get_tree()->is_debugging_collisions_hint() && contact_3d_debug_multimesh.is_valid()) {
-				Vector<Vector3> points = PhysicsServer3D::get_singleton()->space_get_contacts(find_world_3d()->get_space());
-				int point_count = PhysicsServer3D::get_singleton()->space_get_contact_count(find_world_3d()->get_space());
-
-				RS::get_singleton()->multimesh_set_visible_instances(contact_3d_debug_multimesh, point_count);
-
-				for (int i = 0; i < point_count; i++) {
-					Transform3D point_transform;
-					point_transform.origin = points[i];
-					RS::get_singleton()->multimesh_instance_set_transform(contact_3d_debug_multimesh, i, point_transform);
-				}
-			}
-#endif // PHYSICS_3D_DISABLED
 		} break;
 #endif // !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
 
@@ -776,7 +687,7 @@ void Viewport::_notification(int p_what) {
 	}
 }
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 void Viewport::_process_picking() {
 	if (!is_inside_tree()) {
 		return;
@@ -793,27 +704,9 @@ void Viewport::_process_picking() {
 		physics_picking_events.clear();
 		return;
 	}
-#ifndef XR_DISABLED
-	if (use_xr) {
-		if (XRServer::get_singleton() != nullptr) {
-			Ref<XRInterface> xr_interface = XRServer::get_singleton()->get_primary_interface();
-			if (xr_interface.is_valid() && xr_interface->is_initialized() && xr_interface->get_view_count() > 1) {
-				WARN_PRINT_ONCE("Object picking can't be used when stereo rendering, this will be turned off!");
-				physics_object_picking = false; // don't try again.
-				return;
-			}
-		}
-	}
-#endif // XR_DISABLED
 
 	_drop_physics_mouseover(true);
 
-#ifndef PHYSICS_3D_DISABLED
-	Vector2 last_pos(1e20, 1e20);
-	CollisionObject3D *last_object = nullptr;
-	ObjectID last_id;
-	PhysicsDirectSpaceState3D::RayResult result;
-#endif // PHYSICS_3D_DISABLED
 
 #ifndef PHYSICS_2D_DISABLED
 	PhysicsDirectSpaceState2D *ss2d = PhysicsServer2D::get_singleton()->space_get_direct_state(find_world_2d()->get_space());
@@ -992,89 +885,6 @@ void Viewport::_process_picking() {
 		}
 #endif // PHYSICS_2D_DISABLED
 
-#ifndef PHYSICS_3D_DISABLED
-		if (physics_object_picking_first_only && is_input_handled()) {
-			continue;
-		}
-
-		CollisionObject3D *capture_object = nullptr;
-		if (physics_object_capture.is_valid()) {
-			capture_object = ObjectDB::get_instance<CollisionObject3D>(physics_object_capture);
-			if (!capture_object || !capture_object->is_inside_tree() || !camera_3d || (mb.is_valid() && mb->get_button_index() == MouseButton::LEFT && !mb->is_pressed())) {
-				physics_object_capture = ObjectID();
-			} else {
-				last_id = physics_object_capture;
-				last_object = capture_object;
-			}
-		}
-
-		if (pos == last_pos) {
-			if (last_id.is_valid()) {
-				CollisionObject3D *current_last_object = ObjectDB::get_instance<CollisionObject3D>(last_id);
-				if (current_last_object && current_last_object == last_object && current_last_object->is_inside_tree()) {
-					_collision_object_3d_input_event(current_last_object, camera_3d, ev, result.position, result.normal, result.shape);
-					if (current_last_object->get_capture_input_on_drag() && mb.is_valid() && mb->get_button_index() == MouseButton::LEFT && mb->is_pressed()) {
-						physics_object_capture = last_id;
-					}
-				} else {
-					last_id = ObjectID();
-					last_object = nullptr;
-				}
-			}
-		} else {
-			if (camera_3d) {
-				Vector3 from = camera_3d->project_ray_origin(pos);
-				Vector3 dir = camera_3d->project_ray_normal(pos);
-				real_t depth_far = camera_3d->get_far();
-
-				PhysicsDirectSpaceState3D *space = PhysicsServer3D::get_singleton()->space_get_direct_state(find_world_3d()->get_space());
-				if (space) {
-					PhysicsDirectSpaceState3D::RayParameters ray_params;
-					ray_params.from = from;
-					ray_params.to = from + dir * depth_far;
-					ray_params.collide_with_areas = true;
-					ray_params.pick_ray = true;
-
-					bool col = space->intersect_ray(ray_params, result);
-					ObjectID new_collider;
-					CollisionObject3D *co = col ? Object::cast_to<CollisionObject3D>(result.collider) : nullptr;
-					if (co && co->can_process()) {
-						new_collider = result.collider_id;
-						if (!capture_object) {
-							last_object = co;
-							last_id = result.collider_id;
-							if (co->get_capture_input_on_drag() && mb.is_valid() && mb->get_button_index() == MouseButton::LEFT && mb->is_pressed()) {
-								physics_object_capture = last_id;
-							}
-						}
-					}
-
-					if (is_mouse && new_collider != physics_object_over) {
-						if (physics_object_over.is_valid()) {
-							CollisionObject3D *previous_co = ObjectDB::get_instance<CollisionObject3D>(physics_object_over);
-							if (previous_co && previous_co->is_inside_tree()) {
-								previous_co->_mouse_exit();
-							}
-						}
-
-						if (new_collider.is_valid()) {
-							DEV_ASSERT(co);
-							co->_mouse_enter();
-						}
-
-						physics_object_over = new_collider;
-					}
-					if (capture_object) {
-						_collision_object_3d_input_event(capture_object, camera_3d, ev, result.position, result.normal, result.shape);
-					} else if (new_collider.is_valid()) {
-						_collision_object_3d_input_event(co, camera_3d, ev, result.position, result.normal, result.shape);
-					}
-				}
-
-				last_pos = pos;
-			}
-		}
-#endif // PHYSICS_3D_DISABLED
 	}
 }
 #endif // !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
@@ -1201,22 +1011,6 @@ bool Viewport::_set_size(const Size2i &p_size, const int p_view_count, const Siz
 }
 
 void Viewport::_check_xr_size() {
-#ifndef XR_DISABLED
-	// If our viewport has the use_xr flag set, our size and layout is managed by the XRServer.
-	if (use_xr && XRServer::get_singleton() != nullptr) {
-		Ref<XRInterface> xr_interface = XRServer::get_singleton()->get_primary_interface();
-		if (xr_interface.is_valid() && xr_interface->is_initialized()) {
-			Size2 xr_size = xr_interface->get_render_target_size();
-			int xr_view_count = xr_interface->get_view_count();
-
-			_set_size((Size2i)xr_size, xr_view_count, Size2i(0, 0), true);
-		} else {
-			// Set to default and prevent rendering for now (unless in editor, so we get a preview).
-			bool is_editor = Engine::get_singleton()->is_editor_hint();
-			_set_size(is_editor ? Size2i(512, 512) : Size2i(0, 0), is_editor ? 1 : 0, Size2i(0, 0), false);
-		}
-	}
-#endif // XR_DISABLED
 }
 
 Size2i Viewport::_get_size() const {
@@ -2778,21 +2572,6 @@ void Viewport::_drop_physics_mouseover(bool p_paused_only) {
 	_cleanup_mouseover_colliders(true, p_paused_only);
 #endif // PHYSICS_2D_DISABLED
 
-#ifndef PHYSICS_3D_DISABLED
-	if (physics_object_over.is_valid()) {
-		CollisionObject3D *co = ObjectDB::get_instance<CollisionObject3D>(physics_object_over);
-		if (co) {
-			if (!co->is_inside_tree()) {
-				physics_object_over = ObjectID();
-				physics_object_capture = ObjectID();
-			} else if (!(p_paused_only && co->can_process())) {
-				co->_mouse_exit();
-				physics_object_over = ObjectID();
-				physics_object_capture = ObjectID();
-			}
-		}
-	}
-#endif // PHYSICS_3D_DISABLED
 }
 
 void Viewport::_gui_grab_click_focus(Control *p_control) {
@@ -3633,7 +3412,7 @@ void Viewport::_push_unhandled_input_internal(const Ref<InputEvent> &p_event) {
 		get_tree()->_call_input_pause(unhandled_input_group, SceneTree::CALL_INPUT_TYPE_UNHANDLED_INPUT, p_event, this);
 	}
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	if (physics_object_picking && !is_input_handled()) {
 		if (Input::get_singleton()->get_mouse_mode() != Input::MouseMode::MOUSE_MODE_CAPTURED &&
 				(Object::cast_to<InputEventMouse>(*p_event) ||
@@ -3664,7 +3443,7 @@ void Viewport::notify_mouse_exited() {
 	_mouse_leave_viewport();
 }
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 void Viewport::set_physics_object_picking(bool p_enable) {
 	ERR_MAIN_THREAD_GUARD;
 	physics_object_picking = p_enable;
@@ -4635,498 +4414,6 @@ Camera2D *Viewport::get_override_camera_2d() const {
 }
 #endif // DEBUG_ENABLED
 
-#ifndef _3D_DISABLED
-AudioListener3D *Viewport::get_audio_listener_3d() const {
-	ERR_READ_THREAD_GUARD_V(nullptr);
-	return audio_listener_3d;
-}
-
-void Viewport::set_as_audio_listener_3d(bool p_enable) {
-	ERR_MAIN_THREAD_GUARD;
-	if (p_enable == is_audio_listener_3d_enabled) {
-		return;
-	}
-
-	is_audio_listener_3d_enabled = p_enable;
-	_update_audio_listener_3d();
-}
-
-bool Viewport::is_audio_listener_3d() const {
-	ERR_READ_THREAD_GUARD_V(false);
-	return is_audio_listener_3d_enabled;
-}
-
-void Viewport::_update_audio_listener_3d() {
-	if (AudioServer::get_singleton()) {
-		AudioServer::get_singleton()->notify_listener_changed();
-	}
-}
-
-void Viewport::_listener_transform_3d_changed_notify() {
-}
-
-void Viewport::_audio_listener_3d_set(AudioListener3D *p_listener) {
-	if (audio_listener_3d == p_listener) {
-		return;
-	}
-
-	audio_listener_3d = p_listener;
-
-	_update_audio_listener_3d();
-	_listener_transform_3d_changed_notify();
-}
-
-bool Viewport::_audio_listener_3d_add(AudioListener3D *p_listener) {
-	audio_listener_3d_set.insert(p_listener);
-	return audio_listener_3d_set.size() == 1;
-}
-
-void Viewport::_audio_listener_3d_remove(AudioListener3D *p_listener) {
-	audio_listener_3d_set.erase(p_listener);
-	if (audio_listener_3d == p_listener) {
-		audio_listener_3d = nullptr;
-	}
-}
-
-void Viewport::_audio_listener_3d_make_next_current(AudioListener3D *p_exclude) {
-	if (audio_listener_3d_set.size() > 0) {
-		for (AudioListener3D *E : audio_listener_3d_set) {
-			if (p_exclude == E) {
-				continue;
-			}
-			if (!E->is_inside_tree()) {
-				continue;
-			}
-			if (audio_listener_3d != nullptr) {
-				return;
-			}
-
-			E->make_current();
-		}
-	} else {
-		// Attempt to reset listener to the camera position.
-		if (camera_3d != nullptr) {
-			_update_audio_listener_3d();
-			_camera_3d_transform_changed_notify();
-		}
-	}
-}
-
-#ifndef PHYSICS_3D_DISABLED
-void Viewport::_collision_object_3d_input_event(CollisionObject3D *p_object, Camera3D *p_camera, const Ref<InputEvent> &p_input_event, const Vector3 &p_pos, const Vector3 &p_normal, int p_shape) {
-	ERR_FAIL_NULL(p_object);
-	ERR_FAIL_NULL(p_camera);
-	if (!p_object->is_inside_tree() || !p_camera->is_inside_tree()) {
-		physics_last_id = ObjectID();
-		return;
-	}
-
-	Transform3D object_transform = p_object->get_global_transform();
-	Transform3D camera_transform = p_camera->get_global_transform();
-	ObjectID id = p_object->get_instance_id();
-
-	// Avoid sending the fake event unnecessarily if nothing really changed in the context.
-	if (object_transform == physics_last_object_transform && camera_transform == physics_last_camera_transform && physics_last_id == id) {
-		Ref<InputEventMouseMotion> mm = p_input_event;
-		if (mm.is_valid() && mm->get_device() == InputEvent::DEVICE_ID_INTERNAL) {
-			return; // Discarded.
-		}
-	}
-	p_object->_input_event_call(camera_3d, p_input_event, p_pos, p_normal, p_shape);
-	physics_last_object_transform = object_transform;
-	physics_last_camera_transform = camera_transform;
-	physics_last_id = id;
-}
-#endif // PHYSICS_3D_DISABLED
-
-Camera3D *Viewport::get_camera_3d() const {
-	ERR_READ_THREAD_GUARD_V(nullptr);
-	return camera_3d;
-}
-
-void Viewport::_camera_3d_transform_changed_notify() {
-}
-
-void Viewport::_camera_3d_set(Camera3D *p_camera) {
-	if (camera_3d == p_camera) {
-		return;
-	}
-
-#if DEBUG_ENABLED
-	if (is_camera_3d_override_enabled()) {
-		camera_3d_override.set_overridden_camera(p_camera);
-		return;
-	}
-#endif // DEBUG_ENABLED
-
-	if (camera_3d) {
-		camera_3d->notification(Camera3D::NOTIFICATION_LOST_CURRENT);
-	}
-
-	camera_3d = p_camera;
-
-	if (camera_3d) {
-		RenderingServer::get_singleton()->viewport_attach_camera(viewport, camera_3d->get_camera());
-	} else {
-		RenderingServer::get_singleton()->viewport_attach_camera(viewport, RID());
-	}
-
-	if (camera_3d) {
-		camera_3d->notification(Camera3D::NOTIFICATION_BECAME_CURRENT);
-	}
-
-	_update_audio_listener_3d();
-	_camera_3d_transform_changed_notify();
-}
-
-bool Viewport::_camera_3d_add(Camera3D *p_camera) {
-	camera_3d_set.insert(p_camera);
-	return camera_3d_set.size() == 1;
-}
-
-void Viewport::_camera_3d_remove(Camera3D *p_camera) {
-	camera_3d_set.erase(p_camera);
-	if (camera_3d == p_camera) {
-		_camera_3d_set(nullptr);
-	}
-}
-
-void Viewport::_camera_3d_make_next_current(Camera3D *p_exclude) {
-	for (Camera3D *E : camera_3d_set) {
-		if (p_exclude == E) {
-			continue;
-		}
-		if (!E->is_inside_tree()) {
-			continue;
-		}
-		if (camera_3d != nullptr) {
-			return;
-		}
-
-		E->make_current();
-	}
-}
-
-#if DEBUG_ENABLED
-void Viewport::enable_camera_3d_override(bool p_enable) {
-	ERR_MAIN_THREAD_GUARD;
-
-	if (p_enable) {
-		camera_3d_override.enable(this, camera_3d);
-	} else {
-		camera_3d_override.disable(camera_3d);
-	}
-}
-
-bool Viewport::is_camera_3d_override_enabled() const {
-	ERR_READ_THREAD_GUARD_V(false);
-	return camera_3d_override.is_enabled();
-}
-
-Camera3D *Viewport::get_overridden_camera_3d() const {
-	ERR_READ_THREAD_GUARD_V(nullptr);
-	ERR_FAIL_COND_V(!camera_3d_override.is_enabled(), nullptr);
-	return camera_3d_override.get_overridden_camera();
-}
-
-Camera3D *Viewport::get_override_camera_3d() const {
-	ERR_READ_THREAD_GUARD_V(nullptr);
-	ERR_FAIL_COND_V(!camera_3d_override.is_enabled(), nullptr);
-	return get_camera_3d();
-}
-#endif //DEBUG_ENABLED
-
-void Viewport::set_disable_3d(bool p_disable) {
-	ERR_MAIN_THREAD_GUARD;
-	disable_3d = p_disable;
-	RenderingServer::get_singleton()->viewport_set_disable_3d(viewport, disable_3d);
-}
-
-bool Viewport::is_3d_disabled() const {
-	ERR_READ_THREAD_GUARD_V(false);
-	return disable_3d;
-}
-
-Ref<World3D> Viewport::get_world_3d() const {
-	ERR_READ_THREAD_GUARD_V(Ref<World3D>());
-	return world_3d;
-}
-
-Ref<World3D> Viewport::find_world_3d() const {
-	ERR_READ_THREAD_GUARD_V(Ref<World3D>());
-	if (own_world_3d.is_valid()) {
-		return own_world_3d;
-	} else if (world_3d.is_valid()) {
-		return world_3d;
-	} else if (parent) {
-		return parent->find_world_3d();
-	} else {
-		return Ref<World3D>();
-	}
-}
-
-void Viewport::set_world_3d(const Ref<World3D> &p_world_3d) {
-	ERR_MAIN_THREAD_GUARD;
-	if (world_3d == p_world_3d) {
-		return;
-	}
-
-	if (is_inside_tree()) {
-		_propagate_exit_world_3d(this);
-	}
-
-	if (own_world_3d.is_valid() && world_3d.is_valid()) {
-		world_3d->disconnect_changed(callable_mp(this, &Viewport::_own_world_3d_changed));
-	}
-
-	world_3d = p_world_3d;
-
-	if (own_world_3d.is_valid()) {
-		if (world_3d.is_valid()) {
-			own_world_3d = world_3d->duplicate();
-			world_3d->connect_changed(callable_mp(this, &Viewport::_own_world_3d_changed));
-		} else {
-			own_world_3d.instantiate();
-		}
-	}
-
-	if (is_inside_tree()) {
-		_propagate_enter_world_3d(this);
-	}
-
-	if (is_inside_tree()) {
-		RenderingServer::get_singleton()->viewport_set_scenario(viewport, find_world_3d()->get_scenario());
-	}
-
-	_update_audio_listener_3d();
-}
-
-void Viewport::_own_world_3d_changed() {
-	ERR_FAIL_COND(world_3d.is_null());
-	ERR_FAIL_COND(own_world_3d.is_null());
-
-	if (is_inside_tree()) {
-		_propagate_exit_world_3d(this);
-	}
-
-	own_world_3d = world_3d->duplicate();
-
-	if (is_inside_tree()) {
-		_propagate_enter_world_3d(this);
-	}
-
-	if (is_inside_tree()) {
-		RenderingServer::get_singleton()->viewport_set_scenario(viewport, find_world_3d()->get_scenario());
-	}
-
-	_update_audio_listener_3d();
-}
-
-void Viewport::set_use_own_world_3d(bool p_use_own_world_3d) {
-	ERR_MAIN_THREAD_GUARD;
-	if (p_use_own_world_3d == own_world_3d.is_valid()) {
-		return;
-	}
-
-	if (is_inside_tree()) {
-		_propagate_exit_world_3d(this);
-	}
-
-	if (p_use_own_world_3d) {
-		if (world_3d.is_valid()) {
-			own_world_3d = world_3d->duplicate();
-			world_3d->connect_changed(callable_mp(this, &Viewport::_own_world_3d_changed));
-		} else {
-			own_world_3d.instantiate();
-		}
-	} else {
-		own_world_3d = Ref<World3D>();
-		if (world_3d.is_valid()) {
-			world_3d->disconnect_changed(callable_mp(this, &Viewport::_own_world_3d_changed));
-		}
-	}
-
-	if (is_inside_tree()) {
-		_propagate_enter_world_3d(this);
-	}
-
-	if (is_inside_tree()) {
-		RenderingServer::get_singleton()->viewport_set_scenario(viewport, find_world_3d()->get_scenario());
-	}
-
-	_update_audio_listener_3d();
-}
-
-bool Viewport::is_using_own_world_3d() const {
-	ERR_READ_THREAD_GUARD_V(false);
-	return own_world_3d.is_valid();
-}
-
-void Viewport::_propagate_enter_world_3d(Node *p_node) {
-	if (p_node != this) {
-		if (!p_node->is_inside_tree()) { //may not have entered scene yet
-			return;
-		}
-
-		if (Object::cast_to<Node3D>(p_node) || Object::cast_to<WorldEnvironment>(p_node)) {
-			p_node->notification(Node3D::NOTIFICATION_ENTER_WORLD);
-		} else {
-			Viewport *v = Object::cast_to<Viewport>(p_node);
-			if (v) {
-				if (v->world_3d.is_valid() || v->own_world_3d.is_valid()) {
-					return;
-				}
-			}
-		}
-	}
-
-	for (int i = 0; i < p_node->get_child_count(); i++) {
-		_propagate_enter_world_3d(p_node->get_child(i));
-	}
-}
-
-void Viewport::_propagate_exit_world_3d(Node *p_node) {
-	if (p_node != this) {
-		if (!p_node->is_inside_tree()) { //may have exited scene already
-			return;
-		}
-
-		if (Object::cast_to<Node3D>(p_node) || Object::cast_to<WorldEnvironment>(p_node)) {
-			p_node->notification(Node3D::NOTIFICATION_EXIT_WORLD);
-		} else {
-			Viewport *v = Object::cast_to<Viewport>(p_node);
-			if (v) {
-				if (v->world_3d.is_valid() || v->own_world_3d.is_valid()) {
-					return;
-				}
-			}
-		}
-	}
-
-	for (int i = 0; i < p_node->get_child_count(); i++) {
-		_propagate_exit_world_3d(p_node->get_child(i));
-	}
-}
-
-#ifndef XR_DISABLED
-void Viewport::set_use_xr(bool p_use_xr) {
-	ERR_MAIN_THREAD_GUARD;
-
-	if (use_xr != p_use_xr) {
-		use_xr = p_use_xr;
-		RS::get_singleton()->viewport_set_use_xr(viewport, use_xr);
-
-#ifndef XR_DISABLED
-		if (use_xr) {
-			// Note: use_xr is ONLY used for the primary XR viewport.
-			// Any additional (sub)viewports for composition layers and
-			// other purposes should not have use_xr set.
-			_check_xr_size();
-
-			// Enable internal process as we need to check for recommended size changes each frame
-			// (though size changes should only happen sporadically).
-			set_process_internal(true);
-		} else
-#endif // XR_DISABLED
-		{
-			// No longer check for recommended size changes in internal process.
-			set_process_internal(false);
-
-			// Reset render target override textures.
-			RID rt = RS::get_singleton()->viewport_get_render_target(viewport);
-			RSG::texture_storage->render_target_set_override(rt, RID(), RID(), RID(), RID());
-		}
-
-		notify_property_list_changed();
-	}
-}
-
-bool Viewport::is_using_xr() const {
-	ERR_READ_THREAD_GUARD_V(false);
-	return use_xr;
-}
-#endif // XR_DISABLED
-
-void Viewport::set_scaling_3d_mode(Scaling3DMode p_scaling_3d_mode) {
-	ERR_MAIN_THREAD_GUARD;
-	if (scaling_3d_mode == p_scaling_3d_mode) {
-		return;
-	}
-
-	scaling_3d_mode = p_scaling_3d_mode;
-	RS::get_singleton()->viewport_set_scaling_3d_mode(viewport, (RSE::ViewportScaling3DMode)(int)p_scaling_3d_mode);
-}
-
-Viewport::Scaling3DMode Viewport::get_scaling_3d_mode() const {
-	ERR_READ_THREAD_GUARD_V(SCALING_3D_MODE_BILINEAR);
-	return scaling_3d_mode;
-}
-
-void Viewport::set_scaling_3d_scale(float p_scaling_3d_scale) {
-	ERR_MAIN_THREAD_GUARD;
-	// Clamp to reasonable values that are actually useful.
-	// Values above 2.0 don't serve a practical purpose since the viewport
-	// isn't displayed with mipmaps.
-	scaling_3d_scale = CLAMP(p_scaling_3d_scale, 0.1, 2.0);
-
-	RS::get_singleton()->viewport_set_scaling_3d_scale(viewport, scaling_3d_scale);
-}
-
-float Viewport::get_scaling_3d_scale() const {
-	ERR_READ_THREAD_GUARD_V(0);
-	return scaling_3d_scale;
-}
-
-void Viewport::set_fsr_sharpness(float p_fsr_sharpness) {
-	ERR_MAIN_THREAD_GUARD;
-	if (fsr_sharpness == p_fsr_sharpness) {
-		return;
-	}
-
-	if (p_fsr_sharpness < 0.0f) {
-		p_fsr_sharpness = 0.0f;
-	}
-
-	fsr_sharpness = p_fsr_sharpness;
-	RS::get_singleton()->viewport_set_fsr_sharpness(viewport, p_fsr_sharpness);
-}
-
-float Viewport::get_fsr_sharpness() const {
-	ERR_READ_THREAD_GUARD_V(0);
-	return fsr_sharpness;
-}
-
-void Viewport::set_texture_mipmap_bias(float p_texture_mipmap_bias) {
-	ERR_MAIN_THREAD_GUARD;
-	if (texture_mipmap_bias == p_texture_mipmap_bias) {
-		return;
-	}
-
-	texture_mipmap_bias = p_texture_mipmap_bias;
-	RS::get_singleton()->viewport_set_texture_mipmap_bias(viewport, p_texture_mipmap_bias);
-}
-
-float Viewport::get_texture_mipmap_bias() const {
-	ERR_READ_THREAD_GUARD_V(0);
-	return texture_mipmap_bias;
-}
-
-void Viewport::set_anisotropic_filtering_level(AnisotropicFiltering p_anisotropic_filtering_level) {
-	ERR_MAIN_THREAD_GUARD;
-	if (anisotropic_filtering_level == p_anisotropic_filtering_level) {
-		return;
-	}
-
-	anisotropic_filtering_level = p_anisotropic_filtering_level;
-	RS::get_singleton()->viewport_set_anisotropic_filtering_level(viewport, (RSE::ViewportAnisotropicFiltering)(int)p_anisotropic_filtering_level);
-}
-
-Viewport::AnisotropicFiltering Viewport::get_anisotropic_filtering_level() const {
-	ERR_READ_THREAD_GUARD_V(ANISOTROPY_DISABLED);
-	return anisotropic_filtering_level;
-}
-
-#endif // _3D_DISABLED
 
 void Viewport::_propagate_world_2d_changed(Node *p_node) {
 	if (p_node != this) {
@@ -5200,7 +4487,7 @@ void Viewport::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_texture"), &Viewport::get_texture);
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	ClassDB::bind_method(D_METHOD("set_physics_object_picking", "enable"), &Viewport::set_physics_object_picking);
 	ClassDB::bind_method(D_METHOD("get_physics_object_picking"), &Viewport::get_physics_object_picking);
 	ClassDB::bind_method(D_METHOD("set_physics_object_picking_sort", "enable"), &Viewport::set_physics_object_picking_sort);
@@ -5290,7 +4577,7 @@ void Viewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_mesh_lod_threshold", "pixels"), &Viewport::set_mesh_lod_threshold);
 	ClassDB::bind_method(D_METHOD("get_mesh_lod_threshold"), &Viewport::get_mesh_lod_threshold);
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	ClassDB::bind_method(D_METHOD("_process_picking"), &Viewport::_process_picking);
 #endif // !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
 
@@ -5299,58 +4586,6 @@ void Viewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_audio_listener_2d"), &Viewport::get_audio_listener_2d);
 	ClassDB::bind_method(D_METHOD("get_camera_2d"), &Viewport::get_camera_2d);
 
-#ifndef _3D_DISABLED
-	ClassDB::bind_method(D_METHOD("set_world_3d", "world_3d"), &Viewport::set_world_3d);
-	ClassDB::bind_method(D_METHOD("get_world_3d"), &Viewport::get_world_3d);
-	ClassDB::bind_method(D_METHOD("find_world_3d"), &Viewport::find_world_3d);
-
-	ClassDB::bind_method(D_METHOD("set_use_own_world_3d", "enable"), &Viewport::set_use_own_world_3d);
-	ClassDB::bind_method(D_METHOD("is_using_own_world_3d"), &Viewport::is_using_own_world_3d);
-
-	ClassDB::bind_method(D_METHOD("get_audio_listener_3d"), &Viewport::get_audio_listener_3d);
-	ClassDB::bind_method(D_METHOD("get_camera_3d"), &Viewport::get_camera_3d);
-	ClassDB::bind_method(D_METHOD("set_as_audio_listener_3d", "enable"), &Viewport::set_as_audio_listener_3d);
-	ClassDB::bind_method(D_METHOD("is_audio_listener_3d"), &Viewport::is_audio_listener_3d);
-
-	ClassDB::bind_method(D_METHOD("set_disable_3d", "disable"), &Viewport::set_disable_3d);
-	ClassDB::bind_method(D_METHOD("is_3d_disabled"), &Viewport::is_3d_disabled);
-
-#ifndef XR_DISABLED
-	ClassDB::bind_method(D_METHOD("set_use_xr", "use"), &Viewport::set_use_xr);
-	ClassDB::bind_method(D_METHOD("is_using_xr"), &Viewport::is_using_xr);
-#endif // XR_DISABLED
-
-	ClassDB::bind_method(D_METHOD("set_scaling_3d_mode", "scaling_3d_mode"), &Viewport::set_scaling_3d_mode);
-	ClassDB::bind_method(D_METHOD("get_scaling_3d_mode"), &Viewport::get_scaling_3d_mode);
-
-	ClassDB::bind_method(D_METHOD("set_scaling_3d_scale", "scale"), &Viewport::set_scaling_3d_scale);
-	ClassDB::bind_method(D_METHOD("get_scaling_3d_scale"), &Viewport::get_scaling_3d_scale);
-
-	ClassDB::bind_method(D_METHOD("set_fsr_sharpness", "fsr_sharpness"), &Viewport::set_fsr_sharpness);
-	ClassDB::bind_method(D_METHOD("get_fsr_sharpness"), &Viewport::get_fsr_sharpness);
-
-	ClassDB::bind_method(D_METHOD("set_texture_mipmap_bias", "texture_mipmap_bias"), &Viewport::set_texture_mipmap_bias);
-	ClassDB::bind_method(D_METHOD("get_texture_mipmap_bias"), &Viewport::get_texture_mipmap_bias);
-
-	ClassDB::bind_method(D_METHOD("set_anisotropic_filtering_level", "anisotropic_filtering_level"), &Viewport::set_anisotropic_filtering_level);
-	ClassDB::bind_method(D_METHOD("get_anisotropic_filtering_level"), &Viewport::get_anisotropic_filtering_level);
-
-	ClassDB::bind_method(D_METHOD("set_vrs_mode", "mode"), &Viewport::set_vrs_mode);
-	ClassDB::bind_method(D_METHOD("get_vrs_mode"), &Viewport::get_vrs_mode);
-
-	ClassDB::bind_method(D_METHOD("set_vrs_update_mode", "mode"), &Viewport::set_vrs_update_mode);
-	ClassDB::bind_method(D_METHOD("get_vrs_update_mode"), &Viewport::get_vrs_update_mode);
-
-	ClassDB::bind_method(D_METHOD("set_vrs_texture", "texture"), &Viewport::set_vrs_texture);
-	ClassDB::bind_method(D_METHOD("get_vrs_texture"), &Viewport::get_vrs_texture);
-
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "disable_3d"), "set_disable_3d", "is_3d_disabled");
-#ifndef XR_DISABLED
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_xr"), "set_use_xr", "is_using_xr");
-#endif // XR_DISABLED
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "own_world_3d"), "set_use_own_world_3d", "is_using_own_world_3d");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "world_3d", PROPERTY_HINT_RESOURCE_TYPE, World3D::get_class_static()), "set_world_3d", "get_world_3d");
-#endif // _3D_DISABLED
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "world_2d", PROPERTY_HINT_RESOURCE_TYPE, World2D::get_class_static(), PROPERTY_USAGE_NONE), "set_world_2d", "get_world_2d");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "transparent_bg"), "set_transparent_background", "has_transparent_background");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "handle_input_locally"), "set_handle_input_locally", "is_handling_input_locally");
@@ -5367,27 +4602,12 @@ void Viewport::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "debug_draw", PROPERTY_HINT_ENUM, "Disabled,Unshaded,Lighting,Overdraw,Wireframe,Normal Buffer,VoxelGI Albedo,VoxelGI Lighting,VoxelGI Emission,Shadow Atlas,Directional Shadow Map,Scene Luminance,SSAO,SSIL,Directional Shadow Splits,Decal Atlas,SDFGI Cascades,SDFGI Probes,VoxelGI/SDFGI Buffer,Disable Mesh LOD,OmniLight3D Cluster,SpotLight3D Cluster,Decal Cluster,ReflectionProbe Cluster,Occlusion Culling Buffer,Motion Vectors,Internal Buffer,AreaLight3D Cluster,AreaLight3D Atlas"), "set_debug_draw", "get_debug_draw");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_hdr_2d"), "set_use_hdr_2d", "is_using_hdr_2d");
 
-#ifndef _3D_DISABLED
-	ADD_GROUP("Scaling 3D", "");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "scaling_3d_mode", PROPERTY_HINT_ENUM, "Nearest (Fastest):5,Bilinear (Fastest):0,FSR 1.0 (Fast):1,FSR 2.2 (Slow):2,MetalFX (Spatial - Fast):3,MetalFX (Temporal - Slow):4"), "set_scaling_3d_mode", "get_scaling_3d_mode");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scaling_3d_scale", PROPERTY_HINT_RANGE, "0.1,2.0,0.0001"), "set_scaling_3d_scale", "get_scaling_3d_scale");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "texture_mipmap_bias", PROPERTY_HINT_RANGE, "-2,2,0.001"), "set_texture_mipmap_bias", "get_texture_mipmap_bias");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "anisotropic_filtering_level", PROPERTY_HINT_ENUM, String::utf8("Disabled (Fastest),2× (Faster),4× (Fast),8× (Average),16x (Slow)")), "set_anisotropic_filtering_level", "get_anisotropic_filtering_level");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "fsr_sharpness", PROPERTY_HINT_RANGE, "0,2,0.01"), "set_fsr_sharpness", "get_fsr_sharpness");
-	ADD_GROUP("Variable Rate Shading", "vrs_");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "vrs_mode", PROPERTY_HINT_ENUM, "Disabled,Texture,XR"), "set_vrs_mode", "get_vrs_mode");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "vrs_update_mode", PROPERTY_HINT_ENUM, "Disabled,Once,Always"), "set_vrs_update_mode", "get_vrs_update_mode");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "vrs_texture", PROPERTY_HINT_RESOURCE_TYPE, Texture2D::get_class_static()), "set_vrs_texture", "get_vrs_texture");
-#endif
 	ADD_GROUP("Canvas Items", "canvas_item_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "canvas_item_default_texture_filter", PROPERTY_HINT_ENUM, "Nearest,Linear,Linear Mipmap,Nearest Mipmap,Inherit"), "set_default_canvas_item_texture_filter", "get_default_canvas_item_texture_filter");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "canvas_item_default_texture_repeat", PROPERTY_HINT_ENUM, "Disabled,Enabled,Mirror,Inherit"), "set_default_canvas_item_texture_repeat", "get_default_canvas_item_texture_repeat");
 	ADD_GROUP("Audio Listener", "audio_listener_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "audio_listener_enable_2d"), "set_as_audio_listener_2d", "is_audio_listener_2d");
-#ifndef _3D_DISABLED
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "audio_listener_enable_3d"), "set_as_audio_listener_3d", "is_audio_listener_3d");
-#endif // _3D_DISABLED
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	ADD_GROUP("Physics", "physics_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "physics_object_picking"), "set_physics_object_picking", "get_physics_object_picking");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "physics_object_picking_sort"), "set_physics_object_picking_sort", "get_physics_object_picking_sort");
@@ -5574,13 +4794,6 @@ Viewport::Viewport() {
 	// Window tooltip.
 	gui.tooltip_delay = GLOBAL_GET("gui/timers/tooltip_delay_sec");
 
-#ifndef _3D_DISABLED
-	set_scaling_3d_mode((Viewport::Scaling3DMode)(int)GLOBAL_GET("rendering/scaling_3d/mode"));
-	set_scaling_3d_scale(GLOBAL_GET("rendering/scaling_3d/scale"));
-	set_fsr_sharpness((float)GLOBAL_GET("rendering/scaling_3d/fsr_sharpness"));
-	set_texture_mipmap_bias((float)GLOBAL_GET("rendering/textures/default_filters/texture_mipmap_bias"));
-	set_anisotropic_filtering_level((Viewport::AnisotropicFiltering)(int)GLOBAL_GET("rendering/textures/default_filters/anisotropic_filtering_level"));
-#endif // _3D_DISABLED
 
 	set_sdf_oversize(sdf_oversize); // Set to server.
 
@@ -5813,13 +5026,7 @@ void SubViewport::_validate_property(PropertyInfo &p_property) const {
 	if (!Engine::get_singleton()->is_editor_hint()) {
 		return;
 	}
-#ifndef XR_DISABLED
-	if (is_using_xr() && (p_property.name == "size" || p_property.name == "size_2d_override" || p_property.name == "size_2d_override_stretch" || p_property.name == "view_count")) {
-		p_property.usage = PROPERTY_USAGE_NONE; // Managed by XR
-	} else if (p_property.name == "size") {
-#else
 	if (p_property.name == "size") {
-#endif
 		SubViewportContainer *parent_svc = Object::cast_to<SubViewportContainer>(get_parent());
 		if (parent_svc && parent_svc->is_stretch_enabled()) {
 			p_property.usage = PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY;
@@ -5891,7 +5098,4 @@ T *Viewport::CameraOverride<T>::get_overridden_camera() const {
 // Explicit template instantiation to allow template definitions inside cpp file
 // and prevent instantiation using other than the desired camera types.
 template class Viewport::CameraOverride<Camera2D>;
-#ifndef _3D_DISABLED
-template class Viewport::CameraOverride<Camera3D>;
-#endif // _3D_DISABLED
 #endif // DEBUG_ENABLED

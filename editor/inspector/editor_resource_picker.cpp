@@ -859,9 +859,7 @@ void EditorResourcePicker::_ensure_allowed_types() const {
 
 	for (int i = 0; i < size; i++) {
 		const String base = allowed_types[i].strip_edges();
-		if (base == "BaseMaterial3D") {
-			allowed_types_with_convert.insert("Texture2D");
-		} else if (ClassDB::is_parent_class("ShaderMaterial", base)) {
+		if (ClassDB::is_parent_class("ShaderMaterial", base)) {
 			allowed_types_with_convert.insert("Shader");
 		} else if (ClassDB::is_parent_class("ImageTexture", base)) {
 			allowed_types_with_convert.insert("Image");
@@ -991,16 +989,7 @@ void EditorResourcePicker::drop_data_fw(const Point2 &p_point, const Variant &p_
 			for (const StringName &E : allowed_types) {
 				String at = E;
 
-				if (at == "BaseMaterial3D" && Ref<Texture2D>(dropped_resource).is_valid()) {
-					// Use existing resource if possible and only replace its data.
-					Ref<StandardMaterial3D> mat = edited_resource;
-					if (mat.is_null()) {
-						mat.instantiate();
-					}
-					mat->set_texture(StandardMaterial3D::TextureParam::TEXTURE_ALBEDO, dropped_resource);
-					dropped_resource = mat;
-					break;
-				}
+
 
 				if (at == "ShaderMaterial" && Ref<Shader>(dropped_resource).is_valid()) {
 					Ref<ShaderMaterial> mat = edited_resource;

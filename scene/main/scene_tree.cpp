@@ -45,11 +45,9 @@ STATIC_ASSERT_INCOMPLETE_TYPE(class, RenderingServer);
 #include "scene/animation/tween.h"
 #include "scene/debugger/scene_debugger.h"
 #include "scene/gui/control.h"
-#include "scene/main/multiplayer_api.h"
 #include "scene/main/node.h"
 #include "scene/main/viewport.h"
 #include "scene/main/window.h"
-#include "scene/resources/environment.h"
 #include "scene/resources/image_texture.h"
 #include "scene/resources/material.h"
 #include "scene/resources/mesh.h"
@@ -59,18 +57,9 @@ STATIC_ASSERT_INCOMPLETE_TYPE(class, RenderingServer);
 #include "servers/display/display_server.h"
 #include "servers/rendering/rendering_server.h"
 
-#ifndef _3D_DISABLED
-#include "scene/3d/node_3d.h"
-#include "scene/resources/3d/world_3d.h"
-#endif // _3D_DISABLED
-
 #ifndef PHYSICS_2D_DISABLED
 #include "servers/physics_2d/physics_server_2d.h"
 #endif // PHYSICS_2D_DISABLED
-
-#ifndef PHYSICS_3D_DISABLED
-#include "servers/physics_3d/physics_server_3d.h"
-#endif // PHYSICS_3D_DISABLED
 
 void SceneTreeTimer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_time_left", "time"), &SceneTreeTimer::set_time_left);
@@ -121,29 +110,6 @@ void SceneTreeTimer::release_connections() {
 		disconnect(connection.signal.get_name(), connection.callable);
 	}
 }
-
-#ifndef _3D_DISABLED
-// This should be called once per physics tick, to make sure the transform previous and current
-// is kept up to date on the few Node3Ds that are using client side physics interpolation.
-void SceneTree::ClientPhysicsInterpolation::physics_process() {
-	for (SelfList<Node3D> *E = _node_3d_list.first(); E;) {
-		Node3D *node_3d = E->self();
-
-		SelfList<Node3D> *current = E;
-
-		// Get the next element here BEFORE we potentially delete one.
-		E = E->next();
-
-		// This will return false if the Node3D has timed out ..
-		// i.e. if get_global_transform_interpolated() has not been called
-		// for a few seconds, we can delete from the list to keep processing
-		// to a minimum.
-		if (!node_3d->update_client_physics_interpolation_data()) {
-			_node_3d_list.remove(current);
-		}
-	}
-}
-#endif // _3D_DISABLED
 
 bool SceneTree::_physics_interpolation_enabled = false;
 bool SceneTree::_physics_interpolation_enabled_in_project = false;
@@ -606,32 +572,17 @@ void SceneTree::set_physics_interpolation_enabled(bool p_enabled) {
 	_physics_interpolation_enabled = p_enabled;
 	RenderingServer::get_singleton()->set_physics_interpolation_enabled(p_enabled);
 
-	get_scene_tree_fti().set_enabled(get_root(), p_enabled);
-
 	// Perform an auto reset on the root node for convenience for the user.
 	if (root) {
 		root->reset_physics_interpolation();
 	}
 }
 
-#ifndef _3D_DISABLED
-void SceneTree::client_physics_interpolation_add_node_3d(SelfList<Node3D> *p_elem) {
-	// This ensures that _update_physics_interpolation_data() will be called at least once every
-	// physics tick, to ensure the previous and current transforms are kept up to date.
-	_client_physics_interpolation._node_3d_list.add(p_elem);
-}
-
-void SceneTree::client_physics_interpolation_remove_node_3d(SelfList<Node3D> *p_elem) {
-	_client_physics_interpolation._node_3d_list.remove(p_elem);
-}
-#endif
-
 void SceneTree::iteration_prepare() {
 	if (_physics_interpolation_enabled) {
 		// Make sure any pending transforms from the last tick / frame
 		// are flushed before pumping the interpolation prev and currents.
 		flush_transform_notifications();
-		get_scene_tree_fti().tick_update();
 		RenderingServer::get_singleton()->tick();
 	}
 }
@@ -648,7 +599,7 @@ bool SceneTree::physics_process(double p_time) {
 
 	emit_signal(SNAME("physics_frame"));
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	call_group(SNAME("_picking_viewports"), SNAME("_process_picking"));
 #endif // !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
 
@@ -676,39 +627,17 @@ void SceneTree::iteration_end() {
 	if (_physics_interpolation_enabled) {
 		flush_transform_notifications();
 
-#ifndef _3D_DISABLED
-		// Any objects performing client physics interpolation
-		// should be given an opportunity to keep their previous transforms
-		// up to date.
-		_client_physics_interpolation.physics_process();
-#endif
 	}
 }
 
 bool SceneTree::process(double p_time) {
 	// First pass of scene tree fixed timestep interpolation.
-	if (get_scene_tree_fti().is_enabled()) {
-		// Special, we need to ensure RenderingServer is up to date
-		// with *all* the pending xforms *before* updating it during
-		// the FTI update.
-		// If this is not done, we can end up with a deferred `set_transform()`
-		// overwriting the interpolated xform in the server.
-		flush_transform_notifications();
-		get_scene_tree_fti().frame_update(get_root(), true);
-	}
 
 	if (MainLoop::process(p_time)) {
 		_quit = true;
 	}
 
 	process_time = p_time;
-
-	if (multiplayer_poll) {
-		multiplayer->poll();
-		for (KeyValue<NodePath, Ref<MultiplayerAPI>> &E : custom_multiplayers) {
-			E.value->poll();
-		}
-	}
 
 	emit_signal(SNAME("process_frame"));
 
@@ -739,49 +668,11 @@ bool SceneTree::process(double p_time) {
 	_call_idle_callbacks();
 
 #ifdef TOOLS_ENABLED
-#ifndef _3D_DISABLED
-	if (Engine::get_singleton()->is_editor_hint()) {
-		String env_path = GLOBAL_GET("rendering/environment/defaults/default_environment");
-		env_path = env_path.strip_edges(); // User may have added a space or two.
-
-		bool can_load = true;
-		if (env_path.begins_with("uid://")) {
-			// If an uid path, ensure it is mapped to a resource which could not be
-			// the case if the editor is still scanning the filesystem.
-			ResourceUID::ID id = ResourceUID::get_singleton()->text_to_id(env_path);
-			can_load = ResourceUID::get_singleton()->has_id(id);
-			if (can_load) {
-				env_path = ResourceUID::get_singleton()->get_id_path(id);
-			}
-		}
-
-		if (can_load) {
-			String cpath;
-			Ref<Environment> fallback = get_root()->get_world_3d()->get_fallback_environment();
-			if (fallback.is_valid()) {
-				cpath = fallback->get_path();
-			}
-			if (cpath != env_path) {
-				if (!env_path.is_empty()) {
-					fallback = ResourceLoader::load(env_path);
-					if (fallback.is_null()) {
-						//could not load fallback, set as empty
-						ProjectSettings::get_singleton()->set("rendering/environment/defaults/default_environment", "");
-					}
-				} else {
-					fallback.unref();
-				}
-				get_root()->get_world_3d()->set_fallback_environment(fallback);
-			}
-		}
-	}
-#endif // _3D_DISABLED
 #endif // TOOLS_ENABLED
 
 	// Second pass of scene tree fixed timestep interpolation.
 	// ToDo: Possibly needs another flush_transform_notifications here
 	// depending on whether there are side effects to _call_idle_callbacks().
-	get_scene_tree_fti().frame_update(get_root(), false);
 
 	if (_physics_interpolation_enabled) {
 		RenderingServer::get_singleton()->pre_draw(true);
@@ -1022,107 +913,6 @@ float SceneTree::get_debug_paths_width() const {
 	return debug_paths_width;
 }
 
-Ref<Material> SceneTree::get_debug_paths_material() {
-	_THREAD_SAFE_METHOD_
-
-	if (debug_paths_material.is_valid()) {
-		return debug_paths_material;
-	}
-
-	Ref<StandardMaterial3D> _debug_material = Ref<StandardMaterial3D>(memnew(StandardMaterial3D));
-	_debug_material->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
-	_debug_material->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
-	_debug_material->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
-	_debug_material->set_flag(StandardMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
-	_debug_material->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
-	_debug_material->set_albedo(get_debug_paths_color());
-
-	debug_paths_material = _debug_material;
-
-	return debug_paths_material;
-}
-
-Ref<Material> SceneTree::get_debug_collision_material() {
-	_THREAD_SAFE_METHOD_
-
-	if (collision_material.is_valid()) {
-		return collision_material;
-	}
-
-	Ref<StandardMaterial3D> material = Ref<StandardMaterial3D>(memnew(StandardMaterial3D));
-	material->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
-	material->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
-	material->set_render_priority(StandardMaterial3D::RENDER_PRIORITY_MIN + 1);
-	material->set_cull_mode(StandardMaterial3D::CULL_BACK);
-	material->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
-	material->set_flag(StandardMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
-	material->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
-
-	collision_material = material;
-
-	return collision_material;
-}
-
-Ref<ArrayMesh> SceneTree::get_debug_contact_mesh() {
-	_THREAD_SAFE_METHOD_
-
-	if (debug_contact_mesh.is_valid()) {
-		return debug_contact_mesh;
-	}
-
-	debug_contact_mesh.instantiate();
-
-	Ref<StandardMaterial3D> mat = Ref<StandardMaterial3D>(memnew(StandardMaterial3D));
-	mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
-	mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
-	mat->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
-	mat->set_flag(StandardMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
-	mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
-	mat->set_albedo(get_debug_collision_contact_color());
-
-	Vector3 diamond[6] = {
-		Vector3(-1, 0, 0),
-		Vector3(1, 0, 0),
-		Vector3(0, -1, 0),
-		Vector3(0, 1, 0),
-		Vector3(0, 0, -1),
-		Vector3(0, 0, 1)
-	};
-
-	/* clang-format off */
-	int diamond_faces[8 * 3] = {
-		0, 2, 4,
-		0, 3, 4,
-		1, 2, 4,
-		1, 3, 4,
-		0, 2, 5,
-		0, 3, 5,
-		1, 2, 5,
-		1, 3, 5,
-	};
-	/* clang-format on */
-
-	Vector<int> indices;
-	for (int i = 0; i < 8 * 3; i++) {
-		indices.push_back(diamond_faces[i]);
-	}
-
-	Vector<Vector3> vertices;
-	for (int i = 0; i < 6; i++) {
-		vertices.push_back(diamond[i] * 0.1);
-	}
-
-	Array arr;
-	arr.resize(Mesh::ARRAY_MAX);
-	arr[Mesh::ARRAY_VERTEX] = vertices;
-	arr[Mesh::ARRAY_INDEX] = indices;
-
-	debug_contact_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arr);
-	debug_contact_mesh->surface_set_material(0, mat);
-
-	return debug_contact_mesh;
-}
-
 void SceneTree::set_pause(bool p_enabled) {
 	ERR_FAIL_COND_MSG(!Thread::is_main_thread(), "Pause can only be set from the main thread.");
 	ERR_FAIL_COND_MSG(suspended, "Pause state cannot be modified while suspended.");
@@ -1133,9 +923,6 @@ void SceneTree::set_pause(bool p_enabled) {
 
 	paused = p_enabled;
 
-#ifndef PHYSICS_3D_DISABLED
-	PhysicsServer3D::get_singleton()->set_active(!p_enabled);
-#endif // PHYSICS_3D_DISABLED
 #ifndef PHYSICS_2D_DISABLED
 	PhysicsServer2D::get_singleton()->set_active(!p_enabled);
 #endif // PHYSICS_2D_DISABLED
@@ -1159,9 +946,6 @@ void SceneTree::set_suspend(bool p_enabled) {
 
 	Engine::get_singleton()->set_freeze_time_scale(p_enabled);
 
-#ifndef PHYSICS_3D_DISABLED
-	PhysicsServer3D::get_singleton()->set_active(!p_enabled && !paused);
-#endif // PHYSICS_3D_DISABLED
 #ifndef PHYSICS_2D_DISABLED
 	PhysicsServer2D::get_singleton()->set_active(!p_enabled && !paused);
 #endif // PHYSICS_2D_DISABLED
@@ -1809,84 +1593,6 @@ TypedArray<Tween> SceneTree::get_processed_tweens() {
 	return ret;
 }
 
-RequiredResult<MultiplayerAPI> SceneTree::get_multiplayer(const NodePath &p_for_path) const {
-	ERR_FAIL_COND_V_MSG(!Thread::is_main_thread(), Ref<MultiplayerAPI>(), "Multiplayer can only be manipulated from the main thread.");
-	if (p_for_path.is_empty()) {
-		return multiplayer;
-	}
-
-	const Vector<StringName> tnames = p_for_path.get_names();
-	const StringName *nptr = tnames.ptr();
-	for (const KeyValue<NodePath, Ref<MultiplayerAPI>> &E : custom_multiplayers) {
-		const Vector<StringName> snames = E.key.get_names();
-		if (tnames.size() < snames.size()) {
-			continue;
-		}
-		const StringName *sptr = snames.ptr();
-		bool valid = true;
-		for (int i = 0; i < snames.size(); i++) {
-			if (sptr[i] != nptr[i]) {
-				valid = false;
-				break;
-			}
-		}
-		if (valid) {
-			return E.value;
-		}
-	}
-
-	return multiplayer;
-}
-
-void SceneTree::set_multiplayer(Ref<MultiplayerAPI> p_multiplayer, const NodePath &p_root_path) {
-	ERR_FAIL_COND_MSG(!Thread::is_main_thread(), "Multiplayer can only be manipulated from the main thread.");
-	if (p_root_path.is_empty()) {
-		ERR_FAIL_COND(p_multiplayer.is_null());
-		if (multiplayer.is_valid()) {
-			multiplayer->object_configuration_remove(nullptr, NodePath("/" + root->get_name()));
-		}
-		multiplayer = p_multiplayer;
-		multiplayer->object_configuration_add(nullptr, NodePath("/" + root->get_name()));
-	} else {
-		if (custom_multiplayers.has(p_root_path)) {
-			custom_multiplayers[p_root_path]->object_configuration_remove(nullptr, p_root_path);
-		} else if (p_multiplayer.is_valid()) {
-			const Vector<StringName> tnames = p_root_path.get_names();
-			const StringName *nptr = tnames.ptr();
-			for (const KeyValue<NodePath, Ref<MultiplayerAPI>> &E : custom_multiplayers) {
-				const Vector<StringName> snames = E.key.get_names();
-				if (tnames.size() < snames.size()) {
-					continue;
-				}
-				const StringName *sptr = snames.ptr();
-				bool valid = true;
-				for (int i = 0; i < snames.size(); i++) {
-					if (sptr[i] != nptr[i]) {
-						valid = false;
-						break;
-					}
-				}
-				ERR_FAIL_COND_MSG(valid, "Multiplayer is already configured for a parent of this path: '" + String(p_root_path) + "' in '" + String(E.key) + "'.");
-			}
-		}
-		if (p_multiplayer.is_valid()) {
-			custom_multiplayers[p_root_path] = p_multiplayer;
-			p_multiplayer->object_configuration_add(nullptr, p_root_path);
-		} else {
-			custom_multiplayers.erase(p_root_path);
-		}
-	}
-}
-
-void SceneTree::set_multiplayer_poll_enabled(bool p_enabled) {
-	ERR_FAIL_COND_MSG(!Thread::is_main_thread(), "Multiplayer can only be manipulated from the main thread.");
-	multiplayer_poll = p_enabled;
-}
-
-bool SceneTree::is_multiplayer_poll_enabled() const {
-	return multiplayer_poll;
-}
-
 void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_root"), &SceneTree::get_root);
 	ClassDB::bind_method(D_METHOD("has_group", "name"), &SceneTree::has_group);
@@ -1960,11 +1666,6 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("reload_current_scene"), &SceneTree::reload_current_scene);
 	ClassDB::bind_method(D_METHOD("unload_current_scene"), &SceneTree::unload_current_scene);
 
-	ClassDB::bind_method(D_METHOD("set_multiplayer", "multiplayer", "root_path"), &SceneTree::set_multiplayer, DEFVAL(NodePath()));
-	ClassDB::bind_method(D_METHOD("get_multiplayer", "for_path"), &SceneTree::get_multiplayer, DEFVAL(NodePath()));
-	ClassDB::bind_method(D_METHOD("set_multiplayer_poll_enabled", "enabled"), &SceneTree::set_multiplayer_poll_enabled);
-	ClassDB::bind_method(D_METHOD("is_multiplayer_poll_enabled"), &SceneTree::is_multiplayer_poll_enabled);
-
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_accept_quit"), "set_auto_accept_quit", "is_auto_accept_quit");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "quit_on_go_back"), "set_quit_on_go_back", "is_quit_on_go_back");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_collisions_hint"), "set_debug_collisions_hint", "is_debugging_collisions_hint");
@@ -1974,7 +1675,6 @@ void SceneTree::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "edited_scene_root", PROPERTY_HINT_RESOURCE_TYPE, Node::get_class_static(), PROPERTY_USAGE_NONE), "set_edited_scene_root", "get_edited_scene_root");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "current_scene", PROPERTY_HINT_RESOURCE_TYPE, Node::get_class_static(), PROPERTY_USAGE_NONE), "set_current_scene", "get_current_scene");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "root", PROPERTY_HINT_RESOURCE_TYPE, Node::get_class_static(), PROPERTY_USAGE_NONE), "", "get_root");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "multiplayer_poll"), "set_multiplayer_poll_enabled", "is_multiplayer_poll_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "physics_interpolation"), "set_physics_interpolation_enabled", "is_physics_interpolation_enabled");
 
 	ADD_SIGNAL(MethodInfo("tree_changed"));
@@ -2080,13 +1780,6 @@ SceneTree::SceneTree() {
 	// Set after auto translate mode to avoid changing the displayed title back and forth.
 	root->set_title(GLOBAL_GET("application/config/name"));
 
-#ifndef _3D_DISABLED
-	if (root->get_world_3d().is_null()) {
-		root->set_world_3d(Ref<World3D>(memnew(World3D)));
-	}
-	root->set_as_audio_listener_3d(true);
-#endif // _3D_DISABLED
-
 	set_physics_interpolation_enabled(GLOBAL_DEF("physics/common/physics_interpolation", false));
 
 	// Always disable jitter fix if physics interpolation is enabled -
@@ -2097,16 +1790,12 @@ SceneTree::SceneTree() {
 	}
 
 	// Initialize network state.
-	set_multiplayer(MultiplayerAPI::create_default_interface());
 
 	root->set_as_audio_listener_2d(true);
 	current_scene = nullptr;
 
 	const int msaa_mode_2d = GLOBAL_GET("rendering/anti_aliasing/quality/msaa_2d");
 	root->set_msaa_2d(Viewport::MSAA(msaa_mode_2d));
-
-	const int msaa_mode_3d = GLOBAL_GET("rendering/anti_aliasing/quality/msaa_3d");
-	root->set_msaa_3d(Viewport::MSAA(msaa_mode_3d));
 
 	const bool transparent_background = GLOBAL_DEF("rendering/viewport/transparent_background", false);
 	root->set_transparent_background(transparent_background);
@@ -2178,40 +1867,7 @@ SceneTree::SceneTree() {
 	Viewport::SDFScale sdf_scale = Viewport::SDFScale(int(GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/2d/sdf/scale", PROPERTY_HINT_ENUM, "100%,50%,25%"), 1)));
 	root->set_sdf_scale(sdf_scale);
 
-#ifndef _3D_DISABLED
-	{ // Load default fallback environment.
-		// Get possible extensions.
-		List<String> exts;
-		ResourceLoader::get_recognized_extensions_for_type("Environment", &exts);
-		String ext_hint;
-		for (const String &E : exts) {
-			if (!ext_hint.is_empty()) {
-				ext_hint += ",";
-			}
-			ext_hint += "*." + E;
-		}
-		// Get path.
-		String env_path = GLOBAL_DEF(PropertyInfo(Variant::STRING, "rendering/environment/defaults/default_environment", PROPERTY_HINT_FILE, ext_hint), "");
-		// Setup property.
-		env_path = env_path.strip_edges();
-		if (!env_path.is_empty()) {
-			Ref<Environment> env = ResourceLoader::load(env_path);
-			if (env.is_valid()) {
-				root->get_world_3d()->set_fallback_environment(env);
-			} else {
-				if (Engine::get_singleton()->is_editor_hint()) {
-					// File was erased, clear the field.
-					ProjectSettings::get_singleton()->set("rendering/environment/defaults/default_environment", "");
-				} else {
-					// File was erased, notify user.
-					ERR_PRINT("Default Environment as specified in the project setting \"rendering/environment/defaults/default_environment\" could not be loaded.");
-				}
-			}
-		}
-	}
-#endif // _3D_DISABLED
-
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 	root->set_physics_object_picking(GLOBAL_DEF("physics/common/enable_object_picking", true));
 #endif // !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
 

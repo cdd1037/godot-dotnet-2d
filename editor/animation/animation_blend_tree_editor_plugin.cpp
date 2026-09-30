@@ -42,7 +42,6 @@
 #include "editor/inspector/editor_properties.h"
 #include "editor/settings/editor_settings.h"
 #include "editor/themes/editor_scale.h"
-#include "scene/3d/skeleton_3d.h"
 #include "scene/gui/check_box.h"
 #include "scene/gui/grid_container.h"
 #include "scene/gui/line_edit.h"
@@ -927,54 +926,15 @@ bool AnimationNodeBlendTreeEditor::_update_filters(const Ref<AnimationNode> &ano
 		if (path.get_subname_count()) {
 			String concat = path.get_concatenated_subnames();
 
-			Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(node);
-			if (skeleton && skeleton->find_bone(concat) != -1) {
-				//path in skeleton
-				const String &bone = concat;
-				int idx = skeleton->find_bone(bone);
-				List<String> bone_path;
-				while (idx != -1) {
-					bone_path.push_front(skeleton->get_bone_name(idx));
-					idx = skeleton->get_bone_parent(idx);
-				}
+			//just a property
+			ti = filters->create_item(ti);
+			ti->set_cell_mode(0, TreeItem::CELL_MODE_CHECK);
+			ti->set_text(0, concat);
+			ti->set_editable(0, !read_only);
+			ti->set_selectable(0, true);
+			ti->set_checked(0, anode->is_path_filtered(path));
+			ti->set_metadata(0, path);
 
-				accum += ":";
-				for (List<String>::Element *F = bone_path.front(); F; F = F->next()) {
-					if (F != bone_path.front()) {
-						accum += "/";
-					}
-
-					accum += F->get();
-					if (!parenthood.has(accum)) {
-						ti = filters->create_item(ti);
-						parenthood[accum] = ti;
-						ti->set_text(0, F->get());
-						ti->set_selectable(0, false);
-						ti->set_editable(0, false);
-						ti->set_icon(0, get_editor_theme_icon(SNAME("Bone")));
-					} else {
-						ti = parenthood[accum];
-					}
-				}
-
-				ti->set_editable(0, !read_only);
-				ti->set_selectable(0, true);
-				ti->set_cell_mode(0, TreeItem::CELL_MODE_CHECK);
-				ti->set_text(0, concat);
-				ti->set_checked(0, anode->is_path_filtered(path));
-				ti->set_icon(0, get_editor_theme_icon(SNAME("Bone")));
-				ti->set_metadata(0, path);
-
-			} else {
-				//just a property
-				ti = filters->create_item(ti);
-				ti->set_cell_mode(0, TreeItem::CELL_MODE_CHECK);
-				ti->set_text(0, concat);
-				ti->set_editable(0, !read_only);
-				ti->set_selectable(0, true);
-				ti->set_checked(0, anode->is_path_filtered(path));
-				ti->set_metadata(0, path);
-			}
 		} else {
 			if (ti) {
 				//just a node, not a property track

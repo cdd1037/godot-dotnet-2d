@@ -133,10 +133,6 @@ protected:
 
 	void _set_debugger_break_language();
 
-	Variant _get_rpc_config_bind() const {
-		return get_rpc_config().duplicate(true);
-	}
-
 public:
 	static constexpr AncestralClass static_ancestral_class = AncestralClass::SCRIPT;
 
@@ -193,8 +189,6 @@ public:
 	virtual void get_members(HashSet<StringName> *p_members) {}
 
 	virtual bool is_placeholder_fallback_enabled() const { return false; }
-
-	virtual const Variant get_rpc_config() const = 0;
 
 	Script() {
 		_define_ancestry(AncestralClass::SCRIPT);
@@ -518,8 +512,6 @@ public:
 
 	virtual void property_set_fallback(const StringName &p_name, const Variant &p_value, bool *r_valid = nullptr) override;
 	virtual Variant property_get_fallback(const StringName &p_name, bool *r_valid = nullptr) override;
-
-	virtual const Variant get_rpc_config() const override { return Variant(); }
 
 	PlaceHolderScriptInstance(ScriptLanguage *p_language, Ref<Script> p_script, Object *p_owner);
 	~PlaceHolderScriptInstance();

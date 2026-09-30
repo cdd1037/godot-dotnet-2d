@@ -56,9 +56,6 @@
 #include "servers/rendering/rendering_device.h"
 #include "servers/rendering/rendering_server.h"
 
-#ifndef _3D_DISABLED
-#include "scene/3d/camera_3d.h"
-#endif
 
 #ifdef DEBUG_ENABLED
 #include "scene/debugger/runtime_node_select.h"
@@ -277,9 +274,6 @@ Error SceneDebugger::_msg_override_cameras(const Array &p_args) {
 	bool enable = p_args[0];
 	bool from_editor = p_args[1];
 	SceneTree::get_singleton()->get_root()->enable_camera_2d_override(enable);
-#ifndef _3D_DISABLED
-	SceneTree::get_singleton()->get_root()->enable_camera_3d_override(enable);
-#endif // _3D_DISABLED
 	RuntimeNodeSelect::get_singleton()->_set_camera_override_enabled(enable && !from_editor);
 	return OK;
 }
@@ -495,32 +489,6 @@ Error SceneDebugger::_msg_transform_camera_2d(const Array &p_args) {
 	return OK;
 }
 
-#ifndef _3D_DISABLED
-Error SceneDebugger::_msg_runtime_node_select_reset_camera_3d(const Array &p_args) {
-	RuntimeNodeSelect::get_singleton()->_reset_camera_3d();
-	return OK;
-}
-
-Error SceneDebugger::_msg_transform_camera_3d(const Array &p_args) {
-	ERR_FAIL_COND_V(p_args.size() < 5, ERR_INVALID_DATA);
-	ERR_FAIL_COND_V(!SceneTree::get_singleton()->get_root()->is_camera_3d_override_enabled(), ERR_BUG);
-	Transform3D transform = p_args[0];
-	bool is_perspective = p_args[1];
-	float size_or_fov = p_args[2];
-	float depth_near = p_args[3];
-	float depth_far = p_args[4];
-
-	Camera3D *override_camera = SceneTree::get_singleton()->get_root()->get_override_camera_3d();
-	if (is_perspective) {
-		override_camera->set_perspective(size_or_fov, depth_near, depth_far);
-	} else {
-		override_camera->set_orthogonal(size_or_fov, depth_near, depth_far);
-	}
-	override_camera->set_transform(transform);
-	RuntimeNodeSelect::get_singleton()->_queue_selection_update();
-	return OK;
-}
-#endif // _3D_DISABLED
 
 // endregion
 
@@ -625,9 +593,6 @@ void SceneDebugger::_init_message_handlers() {
 	message_handlers["hdr_output_toggle_requested"] = _msg_hdr_output_toggle_requested;
 	message_handlers["override_cameras"] = _msg_override_cameras;
 	message_handlers["transform_camera_2d"] = _msg_transform_camera_2d;
-#ifndef _3D_DISABLED
-	message_handlers["transform_camera_3d"] = _msg_transform_camera_3d;
-#endif // _3D_DISABLED
 	message_handlers["set_object_property"] = _msg_set_object_property;
 	message_handlers["set_object_property_field"] = _msg_set_object_property_field;
 	message_handlers["reload_cached_files"] = _msg_reload_cached_files;
@@ -654,9 +619,6 @@ void SceneDebugger::_init_message_handlers() {
 	message_handlers["runtime_node_select_set_avoid_locked"] = _msg_runtime_node_select_set_avoid_locked;
 	message_handlers["runtime_node_select_set_prefer_group"] = _msg_runtime_node_select_set_prefer_group;
 	message_handlers["runtime_node_select_reset_camera_2d"] = _msg_runtime_node_select_reset_camera_2d;
-#ifndef _3D_DISABLED
-	message_handlers["runtime_node_select_reset_camera_3d"] = _msg_runtime_node_select_reset_camera_3d;
-#endif
 	message_handlers["rq_screenshot"] = _msg_rq_screenshot;
 	message_handlers["report_window_focused"] = _msg_report_window_focused;
 }
@@ -894,9 +856,7 @@ void LiveEditor::_node_set_func(int p_id, const StringName &p_prop, const Varian
 		Variant orig_tf;
 
 		if (keep_transform) {
-			if (n2->is_class("Node3D")) {
-				orig_tf = n2->call("get_transform");
-			} else if (n2->is_class("CanvasItem")) {
+			if (n2->is_class("CanvasItem")) {
 				orig_tf = n2->call("_edit_get_state");
 			}
 		}
@@ -904,12 +864,7 @@ void LiveEditor::_node_set_func(int p_id, const StringName &p_prop, const Varian
 		n2->set(p_prop, p_value);
 
 		if (keep_transform) {
-			if (n2->is_class("Node3D")) {
-				Variant new_tf = n2->call("get_transform");
-				if (new_tf != orig_tf) {
-					n2->call("set_transform", orig_tf);
-				}
-			} else if (n2->is_class("CanvasItem")) {
+			if (n2->is_class("CanvasItem")) {
 				Variant new_tf = n2->call("_edit_get_state");
 				if (new_tf != orig_tf) {
 					n2->call("_edit_set_state", orig_tf);
@@ -965,9 +920,7 @@ void LiveEditor::_node_call_func(int p_id, const StringName &p_method, const Var
 		Variant orig_tf;
 
 		if (keep_transform) {
-			if (n2->is_class("Node3D")) {
-				orig_tf = n2->call("get_transform");
-			} else if (n2->is_class("CanvasItem")) {
+			if (n2->is_class("CanvasItem")) {
 				orig_tf = n2->call("_edit_get_state");
 			}
 		}
@@ -976,12 +929,7 @@ void LiveEditor::_node_call_func(int p_id, const StringName &p_method, const Var
 		n2->callp(p_method, p_args, p_argcount, ce);
 
 		if (keep_transform) {
-			if (n2->is_class("Node3D")) {
-				Variant new_tf = n2->call("get_transform");
-				if (new_tf != orig_tf) {
-					n2->call("set_transform", orig_tf);
-				}
-			} else if (n2->is_class("CanvasItem")) {
+			if (n2->is_class("CanvasItem")) {
 				Variant new_tf = n2->call("_edit_get_state");
 				if (new_tf != orig_tf) {
 					n2->call("_edit_set_state", orig_tf);

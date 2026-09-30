@@ -212,7 +212,6 @@ class VisualShaderEditor : public ShaderEditor {
 	MaterialEditor *material_editor = nullptr;
 	Ref<VisualShader> visual_shader;
 	Ref<ShaderMaterial> preview_material;
-	Ref<Environment> env;
 	String param_filter_name;
 	EditorProperty *current_prop = nullptr;
 	VBoxContainer *shader_preview_vbox = nullptr;

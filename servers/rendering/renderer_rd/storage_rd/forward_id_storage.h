@@ -32,7 +32,6 @@
 
 #include <cstdint>
 
-class RendererSceneRenderRD;
 
 namespace RendererRD {
 

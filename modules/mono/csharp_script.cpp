@@ -1913,10 +1913,6 @@ bool CSharpInstance::refcount_decremented() {
 	return ref_dying;
 }
 
-const Variant CSharpInstance::get_rpc_config() const {
-	return script->get_rpc_config();
-}
-
 void CSharpInstance::notification(int p_notification, bool p_reversed) {
 	if (p_notification == Object::NOTIFICATION_PREDELETE) {
 		if (base_ref_counted) {
@@ -2257,20 +2253,15 @@ void CSharpScript::update_script_class_info(Ref<CSharpScript> p_script) {
 	// TODO: Use GDExtension godot_dictionary
 	Array methods_array;
 	methods_array.~Array();
-	Dictionary rpc_functions_dict;
-	rpc_functions_dict.~Dictionary();
 	Dictionary signals_dict;
 	signals_dict.~Dictionary();
 
 	Ref<CSharpScript> base_script;
 	GDMonoCache::managed_callbacks.ScriptManagerBridge_UpdateScriptClassInfo(
 			p_script.ptr(), &type_info,
-			&methods_array, &rpc_functions_dict, &signals_dict, &base_script);
+			&methods_array, &signals_dict, &base_script);
 
 	p_script->type_info = type_info;
-
-	p_script->rpc_config.clear();
-	p_script->rpc_config = rpc_functions_dict;
 
 	// Methods
 
@@ -2753,10 +2744,6 @@ void CSharpScript::get_script_property_list(List<PropertyInfo> *r_list) const {
 int CSharpScript::get_member_line(const StringName &p_member) const {
 	// TODO omnisharp
 	return -1;
-}
-
-const Variant CSharpScript::get_rpc_config() const {
-	return rpc_config;
 }
 
 Error CSharpScript::load_source_code(const String &p_path) {

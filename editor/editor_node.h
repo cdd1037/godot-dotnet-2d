@@ -94,14 +94,12 @@ class EditorSettingsDialog;
 class EditorTitleBar;
 class ExportTemplateManager;
 class EditorQuickOpenDialog;
-class FBXImporterManager;
 class FileSystemDock;
 class HistoryDock;
 class OrphanResourcesDialog;
 class ProgressDialog;
 class ProjectExportDialog;
 class ProjectSettingsEditor;
-class SceneImportSettingsDialog;
 class ProjectUpgradeTool;
 
 #ifdef ANDROID_ENABLED
@@ -162,7 +160,6 @@ public:
 		SCENE_CLOSE_ALL,
 		SCENE_QUIT,
 
-		FILE_EXPORT_MESH_LIBRARY,
 
 		// Project menu.
 		PROJECT_OPEN_SETTINGS,
@@ -192,7 +189,6 @@ public:
 		EDITOR_OPEN_CONFIG_FOLDER,
 		EDITOR_MANAGE_FEATURE_PROFILES,
 		EDITOR_MANAGE_EXPORT_TEMPLATES,
-		EDITOR_CONFIGURE_FBX_IMPORTER,
 
 		LAYOUT_SAVE,
 		LAYOUT_DELETE,
@@ -278,7 +274,6 @@ private:
 	ProjectExportDialog *project_export = nullptr;
 	ProjectSettingsEditor *project_settings_editor = nullptr;
 
-	FBXImporterManager *fbx_importer_manager = nullptr;
 
 	Vector<EditorPlugin *> editor_plugins;
 	bool _initializing_plugins = false;
@@ -405,7 +400,6 @@ private:
 	EditorFeatureProfileManager *feature_profile_manager = nullptr;
 	EditorBuildProfileManager *build_profile_manager = nullptr;
 	EditorFileDialog *file_templates = nullptr;
-	EditorFileDialog *file_export_lib = nullptr;
 	EditorFileDialog *file_android_build_source = nullptr;
 	EditorFileDialog *file_pack_zip = nullptr;
 	MenuButton *update_spinner = nullptr;
@@ -471,7 +465,6 @@ private:
 	EditorProgress *save_scene_progress = nullptr;
 
 	DynamicFontImportSettingsDialog *fontdata_import_settings = nullptr;
-	SceneImportSettingsDialog *scene_import_settings = nullptr;
 	AudioStreamImportSettingsDialog *audio_stream_import_settings = nullptr;
 
 	HashSet<String> force_textfile_extensions;
@@ -641,7 +634,7 @@ private:
 	void _save_edited_subresources(Node *scene, HashMap<Ref<Resource>, bool> &processed, int32_t flags);
 	void _mark_unsaved_scenes();
 
-	void _find_node_types(Node *p_node, int &count_2d, int &count_3d);
+	void _find_node_types(Node *p_node, int &count_2d);
 	void _save_scene_with_preview(String p_file, int p_idx = -1);
 	void _close_save_scene_progress();
 
@@ -883,7 +876,6 @@ public:
 		int index = 0;
 		// Used if the original parent node is lost
 		Transform2D transform_2d;
-		Transform3D transform_3d;
 	};
 
 	struct ConnectionWithNodePath {
@@ -991,7 +983,6 @@ public:
 	bool is_scene_in_use(const String &p_path);
 
 	void save_editor_layout_delayed();
-	void save_default_environment();
 
 	void open_export_template_manager();
 

@@ -53,9 +53,6 @@
 #include "scene/gui/panel_container.h"
 #include "scene/main/scene_tree.h"
 
-#ifndef XR_DISABLED
-#include "servers/xr/xr_server.h"
-#endif // XR_DISABLED
 
 EditorRunBar *EditorRunBar::singleton = nullptr;
 
@@ -436,7 +433,6 @@ void EditorRunBar::play_current_scene(bool p_reload, const Vector<String> &p_pla
 
 	String last_current_scene = run_current_filename; // This is necessary to have a copy of the string.
 
-	EditorNode::get_singleton()->save_default_environment();
 	stop_playing();
 
 	current_mode = RunMode::RUN_CURRENT;
@@ -653,15 +649,6 @@ EditorRunBar::EditorRunBar() {
 	run_native->connect("native_run", callable_mp(this, &EditorRunBar::_run_native));
 
 	bool add_play_xr_mode_options = false;
-#ifndef XR_DISABLED
-	if (XRServer::get_xr_mode() == XRServer::XRMODE_ON ||
-			(XRServer::get_xr_mode() == XRServer::XRMODE_DEFAULT && GLOBAL_GET("xr/openxr/enabled"))) {
-		// If OpenXR is enabled, we turn the `play_scene_button` and
-		// `play_custom_scene_button` into MenuButtons to provide the option to start a scene in
-		// either regular mode or XR mode.
-		add_play_xr_mode_options = true;
-	}
-#endif // XR_DISABLED
 
 	ED_SHORTCUT_AND_COMMAND("editor/run_current_scene", TTRC("Run Current Scene"), Key::F6);
 	ED_SHORTCUT_OVERRIDE("editor/run_current_scene", "macos", KeyModifierMask::META | Key::R);

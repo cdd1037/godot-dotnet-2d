@@ -527,7 +527,6 @@ public:
 	virtual void camera_set_transform(RID p_camera, const Transform3D &p_transform) = 0;
 	virtual void camera_set_cull_mask(RID p_camera, uint32_t p_layers) = 0;
 	virtual void camera_set_environment(RID p_camera, RID p_env) = 0;
-	virtual void camera_set_camera_attributes(RID p_camera, RID p_camera_attributes) = 0;
 	virtual void camera_set_compositor(RID p_camera, RID p_compositor) = 0;
 	virtual void camera_set_use_vertical_aspect(RID p_camera, bool p_enable) = 0;
 
@@ -535,9 +534,6 @@ public:
 
 	virtual RID viewport_create() = 0;
 
-#ifndef XR_DISABLED
-	virtual void viewport_set_use_xr(RID p_viewport, bool p_use_xr) = 0;
-#endif // !XR_DISABLED
 
 	virtual void viewport_set_size(RID p_viewport, int p_width, int p_height, int p_view_count = 1) = 0;
 	virtual void viewport_set_active(RID p_viewport, bool p_active) = 0;
@@ -698,25 +694,12 @@ public:
 	virtual void sub_surface_scattering_set_quality(RSE::SubSurfaceScatteringQuality p_quality) = 0;
 	virtual void sub_surface_scattering_set_scale(float p_scale, float p_depth_scale) = 0;
 
-	/* CAMERA ATTRIBUTES API */
-
-	virtual RID camera_attributes_create() = 0;
-
-	virtual void camera_attributes_set_dof_blur_quality(RSE::DOFBlurQuality p_quality, bool p_use_jitter) = 0;
-
-	virtual void camera_attributes_set_dof_blur_bokeh_shape(RSE::DOFBokehShape p_shape) = 0;
-
-	virtual void camera_attributes_set_dof_blur(RID p_camera_attributes, bool p_far_enable, float p_far_distance, float p_far_transition, bool p_near_enable, float p_near_distance, float p_near_transition, float p_amount) = 0;
-	virtual void camera_attributes_set_exposure(RID p_camera_attributes, float p_multiplier, float p_exposure_normalization) = 0;
-	virtual void camera_attributes_set_auto_exposure(RID p_camera_attributes, bool p_enable, float p_min_sensitivity, float p_max_sensitivity, float p_speed, float p_scale) = 0;
-
 	/* SCENARIO API */
 
 	virtual RID scenario_create() = 0;
 
 	virtual void scenario_set_environment(RID p_scenario, RID p_environment) = 0;
 	virtual void scenario_set_fallback_environment(RID p_scenario, RID p_environment) = 0;
-	virtual void scenario_set_camera_attributes(RID p_scenario, RID p_camera_attributes) = 0;
 	virtual void scenario_set_compositor(RID p_scenario, RID p_compositor) = 0;
 
 	/* INSTANCING API */

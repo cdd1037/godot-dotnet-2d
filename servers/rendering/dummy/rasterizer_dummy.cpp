@@ -34,7 +34,6 @@
 #include "servers/rendering/dummy/environment/fog.h"
 #include "servers/rendering/dummy/environment/gi.h"
 #include "servers/rendering/dummy/rasterizer_canvas_dummy.h"
-#include "servers/rendering/dummy/rasterizer_scene_dummy.h"
 #include "servers/rendering/dummy/storage/light_storage.h"
 #include "servers/rendering/dummy/storage/material_storage.h"
 #include "servers/rendering/dummy/storage/mesh_storage.h"
@@ -51,10 +50,6 @@ void RasterizerDummy::end_frame(bool p_present) {
 RendererCanvasRender *RasterizerDummy::get_canvas() {
 	return canvas;
 }
-RendererSceneRender *RasterizerDummy::get_scene() {
-	return scene;
-}
-
 RendererFog *RasterizerDummy::get_fog() {
 	return fog;
 }
@@ -82,7 +77,6 @@ RendererUtilities *RasterizerDummy::get_utilities() {
 
 RasterizerDummy::RasterizerDummy() {
 	canvas = memnew(RasterizerCanvasDummy);
-	scene = memnew(RasterizerSceneDummy);
 
 	fog = memnew(RendererDummy::Fog);
 	gi = memnew(RendererDummy::GI);
@@ -96,7 +90,6 @@ RasterizerDummy::RasterizerDummy() {
 
 RasterizerDummy::~RasterizerDummy() {
 	memdelete(canvas);
-	memdelete(scene);
 
 	memdelete(fog);
 	memdelete(gi);

@@ -39,16 +39,10 @@
 #include "servers/display/display_server.h"
 #include "servers/rendering/renderer_canvas_cull.h"
 #include "servers/rendering/renderer_compositor.h"
-#include "servers/rendering/renderer_scene_occlusion_cull.h"
 #include "servers/rendering/rendering_device.h"
 #include "servers/rendering/rendering_method.h"
 #include "servers/rendering/rendering_server_globals.h"
 #include "servers/rendering/storage/texture_storage.h"
-
-#ifndef XR_DISABLED
-#include "servers/xr/xr_interface.h"
-#include "servers/xr/xr_server.h"
-#endif // XR_DISABLED
 
 static Transform2D _canvas_get_transform(RendererViewport::Viewport *p_viewport, RendererCanvasCull::Canvas *p_canvas, RendererViewport::Viewport::CanvasData *p_canvas_data, const Vector2 &p_vp_size) {
 	Transform2D xf = p_viewport->global_transform;
@@ -134,205 +128,10 @@ Vector<RendererViewport::Viewport *> RendererViewport::_sort_active_viewports() 
 }
 
 void RendererViewport::_configure_3d_render_buffers(Viewport *p_viewport) {
-	if (p_viewport->render_buffers.is_valid()) {
-		if (p_viewport->size.width == 0 || p_viewport->size.height == 0) {
-			p_viewport->render_buffers.unref();
-		} else {
-			const float EPSILON = 0.0001;
-			float scaling_3d_scale = p_viewport->scaling_3d_scale;
-			RSE::ViewportScaling3DMode scaling_3d_mode = p_viewport->scaling_3d_mode;
-			bool upscaler_available = p_viewport->fsr_enabled;
-			RSE::ViewportScaling3DType scaling_type = RSE::scaling_3d_mode_type(scaling_3d_mode);
-
-			if ((!upscaler_available || (scaling_type == RSE::VIEWPORT_SCALING_3D_TYPE_SPATIAL)) && scaling_3d_scale >= (1.0 - EPSILON) && scaling_3d_scale <= (1.0 + EPSILON)) {
-				// No 3D scaling for spatial modes? Ignore scaling mode, this just introduces overhead.
-				// - Mobile can't perform optimal path
-				// - FSR does an extra pass (or 2 extra passes if 2D-MSAA is enabled)
-				// Scaling = 1.0 on FSR2 and MetalFX temporal has benefits
-				scaling_3d_scale = 1.0;
-				scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_OFF;
-			}
-
-			if (scaling_3d_mode != RSE::VIEWPORT_SCALING_3D_MODE_OFF && scaling_3d_mode != RSE::VIEWPORT_SCALING_3D_MODE_BILINEAR && scaling_3d_mode != RSE::VIEWPORT_SCALING_3D_MODE_NEAREST && OS::get_singleton()->get_current_rendering_method() == "gl_compatibility") {
-				scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-				scaling_type = RSE::scaling_3d_mode_type(scaling_3d_mode);
-				WARN_PRINT_ONCE("MetalFX and FSR upscaling are not supported in the Compatibility renderer. Falling back to bilinear scaling.");
-			}
-
-			if ((scaling_3d_mode == RSE::VIEWPORT_SCALING_3D_MODE_FSR || scaling_3d_mode == RSE::VIEWPORT_SCALING_3D_MODE_FSR2 || scaling_3d_mode == RSE::VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL) && OS::get_singleton()->get_current_rendering_method() == "mobile") {
-				scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-				scaling_type = RSE::scaling_3d_mode_type(scaling_3d_mode);
-				WARN_PRINT_ONCE("MetalFX temporal and FSR upscaling are not supported in the Mobile renderer. Falling back to bilinear scaling.");
-			}
-
-			if (scaling_3d_mode == RSE::VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL && !RD::get_singleton()->has_feature(RD::SUPPORTS_METALFX_TEMPORAL)) {
-				if (RD::get_singleton()->has_feature(RD::SUPPORTS_METALFX_SPATIAL)) {
-					// Prefer MetalFX spatial if it is supported, which will be much more efficient than FSR2,
-					// as the hardware already will struggle with FSR2.
-					scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_METALFX_SPATIAL;
-					WARN_PRINT_ONCE("MetalFX temporal upscaling is not supported by the current renderer or hardware. Falling back to MetalFX Spatial scaling.");
-				} else {
-					scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_FSR2;
-					WARN_PRINT_ONCE("MetalFX upscaling is not supported by the current renderer or hardware. Falling back to FSR 2 scaling.");
-				}
-				scaling_type = RSE::scaling_3d_mode_type(scaling_3d_mode);
-			}
-
-			if (scaling_3d_mode == RSE::VIEWPORT_SCALING_3D_MODE_METALFX_SPATIAL && !RD::get_singleton()->has_feature(RD::SUPPORTS_METALFX_SPATIAL)) {
-				scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_FSR;
-				WARN_PRINT_ONCE("MetalFX spatial upscaling is not supported by the current renderer or hardware. Falling back to FSR scaling.");
-			}
-
-			RSE::ViewportMSAA msaa_3d = p_viewport->msaa_3d;
-
-			// If MetalFX Temporal upscaling is supported, verify limits.
-			if (scaling_3d_mode == RSE::VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL) {
-				double min_scale = (double)RD::get_singleton()->limit_get(RD::LIMIT_METALFX_TEMPORAL_SCALER_MIN_SCALE) / 1000'000.0;
-				double max_scale = (double)RD::get_singleton()->limit_get(RD::LIMIT_METALFX_TEMPORAL_SCALER_MAX_SCALE) / 1000'000.0;
-				if ((double)scaling_3d_scale < min_scale || (double)scaling_3d_scale > max_scale) {
-					scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_FSR2;
-					WARN_PRINT_ONCE(vformat("MetalFX temporal upscaling scale is outside limits; scale must be between %f and %f. Falling back to FSR 2 3D resolution scaling.", min_scale, max_scale));
-				} else if (msaa_3d != RSE::VIEWPORT_MSAA_DISABLED) {
-					WARN_PRINT_ONCE("MetalFX temporal upscaling does not support 3D MSAA. Disabling 3D MSAA internally.");
-					msaa_3d = RSE::VIEWPORT_MSAA_DISABLED;
-				}
-			}
-
-			bool scaling_3d_is_not_bilinear = scaling_3d_mode != RSE::VIEWPORT_SCALING_3D_MODE_OFF && scaling_3d_mode != RSE::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-			bool use_taa = p_viewport->use_taa;
-
-			if (scaling_3d_is_not_bilinear && scaling_3d_scale >= (1.0 + EPSILON)) {
-				// FSR, MetalFX, and nearest-neighbor scaling are not designed for downsampling.
-				// Fall back to bilinear scaling.
-				WARN_PRINT_ONCE("FSR, MetalFX, and nearest-neighbor 3D resolution scaling are not designed for downsampling. Falling back to bilinear 3D resolution scaling.");
-				scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-				scaling_type = RSE::scaling_3d_mode_type(scaling_3d_mode);
-			}
-
-			if (scaling_3d_is_not_bilinear && scaling_3d_mode != RSE::VIEWPORT_SCALING_3D_MODE_NEAREST && !upscaler_available) {
-				// FSR is not actually available.
-				// Fall back to bilinear scaling.
-				WARN_PRINT_ONCE("FSR 3D resolution scaling is not available. Falling back to bilinear 3D resolution scaling.");
-				scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-				scaling_type = RSE::scaling_3d_mode_type(scaling_3d_mode);
-			}
-
-			if (use_taa && scaling_type == RSE::VIEWPORT_SCALING_3D_TYPE_TEMPORAL) {
-				// Temporal upscalers can't be used with TAA.
-				// Turn it off and prefer using the temporal upscaler.
-				WARN_PRINT_ONCE("FSR 2 or MetalFX Temporal is not compatible with TAA. Disabling TAA internally.");
-				use_taa = false;
-			}
-
-			int target_width;
-			int target_height;
-			int render_width;
-			int render_height;
-
-			switch (scaling_3d_mode) {
-				case RSE::VIEWPORT_SCALING_3D_MODE_BILINEAR:
-				case RSE::VIEWPORT_SCALING_3D_MODE_NEAREST:
-					// Clamp 3D rendering resolution to reasonable values supported on most hardware.
-					// This prevents freezing the engine or outright crashing on lower-end GPUs.
-					target_width = p_viewport->size.width;
-					target_height = p_viewport->size.height;
-					render_width = CLAMP(target_width * scaling_3d_scale, 1, 16384);
-					render_height = CLAMP(target_height * scaling_3d_scale, 1, 16384);
-					break;
-				case RSE::VIEWPORT_SCALING_3D_MODE_METALFX_SPATIAL:
-				case RSE::VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL:
-				case RSE::VIEWPORT_SCALING_3D_MODE_FSR:
-				case RSE::VIEWPORT_SCALING_3D_MODE_FSR2:
-					target_width = p_viewport->size.width;
-					target_height = p_viewport->size.height;
-					render_width = MAX(target_width * scaling_3d_scale, 1.0); // target_width / (target_width * scaling)
-					render_height = MAX(target_height * scaling_3d_scale, 1.0);
-					break;
-				case RSE::VIEWPORT_SCALING_3D_MODE_OFF:
-					target_width = p_viewport->size.width;
-					target_height = p_viewport->size.height;
-					render_width = target_width;
-					render_height = target_height;
-					break;
-				default:
-					// This is an unknown mode.
-					WARN_PRINT_ONCE(vformat("Unknown scaling mode: %d. Disabling 3D resolution scaling.", scaling_3d_mode));
-					scaling_3d_mode = RSE::VIEWPORT_SCALING_3D_MODE_OFF;
-					scaling_3d_scale = 1.0;
-					target_width = p_viewport->size.width;
-					target_height = p_viewport->size.height;
-					render_width = target_width;
-					render_height = target_height;
-					break;
-			}
-
-			uint32_t jitter_phase_count = 0;
-			if (scaling_type == RSE::VIEWPORT_SCALING_3D_TYPE_TEMPORAL) {
-				// Implementation has been copied from ffxFsr2GetJitterPhaseCount.
-				// Also used for MetalFX Temporal scaling.
-				jitter_phase_count = uint32_t(8.0f * std::pow(float(target_width) / render_width, 2.0f));
-			} else if (use_taa) {
-				// Default jitter count for TAA.
-				jitter_phase_count = 16;
-			}
-
-			p_viewport->internal_size = Size2(render_width, render_height);
-			p_viewport->jitter_phase_count = jitter_phase_count;
-
-			// At resolution scales lower than 1.0, use negative texture mipmap bias
-			// to compensate for the loss of sharpness.
-			const float texture_mipmap_bias = std::log2(MIN(scaling_3d_scale, 1.0)) + p_viewport->texture_mipmap_bias;
-
-			RenderSceneBuffersConfiguration rb_config;
-			rb_config.set_render_target(p_viewport->render_target);
-			rb_config.set_internal_size(Size2i(render_width, render_height));
-			rb_config.set_target_size(Size2(target_width, target_height));
-			rb_config.set_view_count(p_viewport->view_count);
-			rb_config.set_scaling_3d_mode(scaling_3d_mode);
-			rb_config.set_msaa_3d(msaa_3d);
-			rb_config.set_screen_space_aa(p_viewport->screen_space_aa);
-			rb_config.set_fsr_sharpness(p_viewport->fsr_sharpness);
-			rb_config.set_texture_mipmap_bias(texture_mipmap_bias);
-			rb_config.set_anisotropic_filtering_level(p_viewport->anisotropic_filtering_level);
-			rb_config.set_use_taa(use_taa);
-			rb_config.set_use_debanding(p_viewport->use_debanding);
-
-			p_viewport->render_buffers->configure(&rb_config);
-		}
-	}
+	// No 3D render buffers are allocated in the canvas-only renderer.
 }
 
 void RendererViewport::_draw_3d(Viewport *p_viewport) {
-#ifndef _3D_DISABLED
-	RENDER_TIMESTAMP("> Render 3D Scene");
-
-	Ref<XRInterface> xr_interface;
-#ifndef XR_DISABLED
-	if (p_viewport->use_xr && XRServer::get_singleton() != nullptr) {
-		xr_interface = XRServer::get_singleton()->get_primary_interface();
-	}
-#endif // XR_DISABLED
-
-	if (p_viewport->use_occlusion_culling) {
-		if (p_viewport->occlusion_buffer_dirty) {
-			float aspect = p_viewport->size.aspect();
-			int max_size = occlusion_rays_per_thread * WorkerThreadPool::get_singleton()->get_thread_count();
-
-			int viewport_size = p_viewport->size.width * p_viewport->size.height;
-			max_size = CLAMP(max_size, viewport_size / (32 * 32), viewport_size / (2 * 2)); // At least one depth pixel for every 16x16 region. At most one depth pixel for every 2x2 region.
-
-			float height = Math::sqrt(max_size / aspect);
-			Size2i new_size = Size2i(height * aspect, height);
-			RendererSceneOcclusionCull::get_singleton()->buffer_set_size(p_viewport->self, new_size);
-			p_viewport->occlusion_buffer_dirty = false;
-		}
-	}
-
-	float screen_mesh_lod_threshold = p_viewport->mesh_lod_threshold / float(p_viewport->size.width);
-	RSG::scene->render_camera(p_viewport->render_buffers, p_viewport->camera, p_viewport->scenario, p_viewport->self, p_viewport->internal_size, p_viewport->jitter_phase_count, screen_mesh_lod_threshold, p_viewport->shadow_atlas, xr_interface, p_viewport->window_output_max_value, &p_viewport->render_info);
-
-	RENDER_TIMESTAMP("< Render 3D Scene");
-#endif // _3D_DISABLED
 }
 
 void RendererViewport::_draw_viewport(Viewport *p_viewport) {
@@ -347,12 +146,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport) {
 		DisplayServer::get_singleton()->gl_window_make_current(p_viewport->viewport_to_screen);
 	}
 
-	/* Camera should always be BEFORE any other 3D */
-
 	bool can_draw_2d = !p_viewport->disable_2d && p_viewport->view_count == 1; // Stereo rendering does not support 2D, no depth data
-	bool scenario_draw_canvas_bg = false; //draw canvas, or some layer of it, as BG for 3D instead of in front
-	int scenario_canvas_max_layer = 0;
-	bool force_clear_render_target = false;
 
 	for (int i = 0; i < RSE::VIEWPORT_RENDER_INFO_TYPE_MAX; i++) {
 		for (int j = 0; j < RSE::VIEWPORT_RENDER_INFO_MAX; j++) {
@@ -360,35 +154,13 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport) {
 		}
 	}
 
-	if (RSG::scene->is_scenario(p_viewport->scenario)) {
-		RID environment = RSG::scene->scenario_get_environment(p_viewport->scenario);
-		if (RSG::scene->is_environment(environment)) {
-			if (can_draw_2d && !viewport_is_environment_disabled(p_viewport)) {
-				scenario_draw_canvas_bg = RSG::scene->environment_get_background(environment) == RSE::ENV_BG_CANVAS;
-				scenario_canvas_max_layer = RSG::scene->environment_get_canvas_max_layer(environment);
-			} else if (RSG::scene->environment_get_background(environment) == RSE::ENV_BG_CANVAS) {
-				// The scene renderer will still copy over the last frame, so we need to clear the render target.
-				force_clear_render_target = true;
-			}
+	p_viewport->window_output_max_value = 1.0;
+	DisplayServerEnums::WindowID parent_window = _get_containing_window(p_viewport);
+	if (RD::get_singleton() && parent_window != DisplayServerEnums::INVALID_WINDOW_ID) {
+		RenderingContextDriver *context_driver = RD::get_singleton()->get_context_driver();
+		if (context_driver->window_get_hdr_output_enabled(parent_window)) {
+			p_viewport->window_output_max_value = context_driver->window_get_output_max_linear_value(parent_window);
 		}
-
-		p_viewport->window_output_max_value = 1.0;
-		DisplayServerEnums::WindowID parent_window = _get_containing_window(p_viewport);
-		if (RD::get_singleton() && parent_window != DisplayServerEnums::INVALID_WINDOW_ID) {
-			RenderingContextDriver *context_driver = RD::get_singleton()->get_context_driver();
-			if (context_driver->window_get_hdr_output_enabled(parent_window)) {
-				p_viewport->window_output_max_value = context_driver->window_get_output_max_linear_value(parent_window);
-			}
-		}
-	}
-
-	bool can_draw_3d = RSG::scene->is_camera(p_viewport->camera) && !p_viewport->disable_3d;
-
-	if ((scenario_draw_canvas_bg || can_draw_3d) && !p_viewport->render_buffers.is_valid()) {
-		//wants to draw 3D but there is no render buffer, create
-		p_viewport->render_buffers = RSG::scene->render_buffers_create();
-
-		_configure_3d_render_buffers(p_viewport);
 	}
 
 	Color bgcolor = p_viewport->transparent_bg ? Color(0, 0, 0, 0) : RSG::texture_storage->get_default_clear_color();
@@ -398,13 +170,6 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport) {
 		if (p_viewport->clear_mode == RSE::VIEWPORT_CLEAR_ONLY_NEXT_FRAME) {
 			p_viewport->clear_mode = RSE::VIEWPORT_CLEAR_NEVER;
 		}
-	}
-
-	if (!scenario_draw_canvas_bg && can_draw_3d) {
-		if (force_clear_render_target) {
-			RSG::texture_storage->render_target_do_clear_request(p_viewport->render_target);
-		}
-		_draw_3d(p_viewport);
 	}
 
 	if (can_draw_2d) {
@@ -670,18 +435,6 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport) {
 			RENDER_TIMESTAMP("< Render DirectionalLight2D Shadows");
 		}
 
-		if (scenario_draw_canvas_bg && canvas_map.begin() && canvas_map.begin()->key.get_layer() > scenario_canvas_max_layer) {
-			// There may be an outstanding clear request if a clear was requested, but no 2D elements were drawn.
-			// Clear now otherwise we copy over garbage from the render target.
-			RSG::texture_storage->render_target_do_clear_request(p_viewport->render_target);
-			if (!can_draw_3d) {
-				RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas, p_viewport->window_output_max_value);
-			} else {
-				_draw_3d(p_viewport);
-			}
-			scenario_draw_canvas_bg = false;
-		}
-
 		int canvas_idx = 0;
 		for (const KeyValue<Viewport::CanvasKey, Viewport::CanvasData *> &E : canvas_map) {
 			RendererCanvasCull::Canvas *canvas = static_cast<RendererCanvasCull::Canvas *>(E.value->canvas);
@@ -719,32 +472,9 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport) {
 				p_viewport->sdf_active = true;
 			}
 
-			if (scenario_draw_canvas_bg && E.key.get_layer() >= scenario_canvas_max_layer) {
-				// There may be an outstanding clear request if a clear was requested, but no 2D elements were drawn.
-				// Clear now otherwise we copy over garbage from the render target.
-				RSG::texture_storage->render_target_do_clear_request(p_viewport->render_target);
-				if (!can_draw_3d) {
-					RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas, p_viewport->window_output_max_value);
-				} else {
-					_draw_3d(p_viewport);
-				}
-
-				scenario_draw_canvas_bg = false;
-			}
-
 			canvas_idx++;
 		}
 
-		if (scenario_draw_canvas_bg) {
-			// There may be an outstanding clear request if a clear was requested, but no 2D elements were drawn.
-			// Clear now otherwise we copy over garbage from the render target.
-			RSG::texture_storage->render_target_do_clear_request(p_viewport->render_target);
-			if (!can_draw_3d) {
-				RSG::scene->render_empty_scene(p_viewport->render_buffers, p_viewport->scenario, p_viewport->shadow_atlas, p_viewport->window_output_max_value);
-			} else {
-				_draw_3d(p_viewport);
-			}
-		}
 	}
 
 	if (RSG::texture_storage->render_target_is_clear_requested(p_viewport->render_target)) {
@@ -783,16 +513,6 @@ void RendererViewport::draw_viewports(bool p_swap_buffers) {
 	GodotProfileZoneGroupedFirst(_profile_zone, "prepare viewports");
 	timestamp_vp_map.clear();
 
-#ifndef XR_DISABLED
-	// get our xr interface in case we need it
-	Ref<XRInterface> xr_interface;
-	XRServer *xr_server = XRServer::get_singleton();
-	if (xr_server != nullptr) {
-		// retrieve the interface responsible for rendering
-		xr_interface = xr_server->get_primary_interface();
-	}
-#endif // XR_DISABLED
-
 	if (Engine::get_singleton()->is_editor_hint()) {
 		RSG::texture_storage->set_default_clear_color(GLOBAL_GET_CACHED(Color, "rendering/environment/defaults/default_clear_color"));
 	}
@@ -826,11 +546,6 @@ void RendererViewport::draw_viewports(bool p_swap_buffers) {
 
 		bool visible = vp->viewport_to_screen_rect != Rect2();
 
-#ifndef XR_DISABLED
-		if (vp->use_xr) {
-			visible = xr_interface.is_valid();
-		} else
-#endif // XR_DISABLED
 		{
 			if (vp->update_mode == RSE::VIEWPORT_UPDATE_ALWAYS || vp->update_mode == RSE::VIEWPORT_UPDATE_ONCE) {
 				visible = true;
@@ -872,56 +587,6 @@ void RendererViewport::draw_viewports(bool p_swap_buffers) {
 		RENDER_TIMESTAMP("> Render Viewport " + itos(i));
 
 		RSG::texture_storage->render_target_set_as_unused(vp->render_target);
-#ifndef XR_DISABLED
-		if (vp->use_xr && xr_interface.is_valid()) {
-			// Inform XR interface we're about to render its viewport,
-			// if this returns false we don't render.
-			// This usually is a result of the player taking off their headset and OpenXR telling us to skip
-			// rendering frames.
-			if (xr_interface->pre_draw_viewport(vp->render_target)) {
-				RSG::texture_storage->render_target_set_override(vp->render_target,
-						xr_interface->get_color_texture(),
-						xr_interface->get_depth_texture(),
-						xr_interface->get_velocity_texture(),
-						xr_interface->get_velocity_depth_texture());
-
-				RSG::texture_storage->render_target_set_velocity_target_size(vp->render_target, xr_interface->get_velocity_target_size());
-
-				if (xr_interface->get_velocity_texture().is_valid()) {
-					_viewport_set_force_motion_vectors(vp, true);
-				} else {
-					_viewport_set_force_motion_vectors(vp, false);
-				}
-
-				RSG::texture_storage->render_target_set_render_region(vp->render_target, xr_interface->get_render_region());
-
-				// render...
-				RSG::scene->set_debug_draw_mode(vp->debug_draw);
-
-				// and draw viewport
-				_draw_viewport(vp);
-
-				// commit our eyes
-				Vector<RenderingServerTypes::BlitToScreen> blits = xr_interface->post_draw_viewport(vp->render_target, vp->viewport_to_screen_rect);
-				if (vp->viewport_to_screen != DisplayServerEnums::INVALID_WINDOW_ID) {
-					if (RSG::rasterizer->is_opengl()) {
-						if (blits.size() > 0) {
-							RSG::rasterizer->blit_render_targets_to_screen(vp->viewport_to_screen, blits.ptr(), blits.size());
-							RSG::rasterizer->gl_end_frame(p_swap_buffers);
-						}
-					} else if (blits.size() > 0) {
-						if (!blit_to_screen_list.has(vp->viewport_to_screen)) {
-							blit_to_screen_list[vp->viewport_to_screen] = Vector<RenderingServerTypes::BlitToScreen>();
-						}
-
-						for (int b = 0; b < blits.size(); b++) {
-							blit_to_screen_list[vp->viewport_to_screen].push_back(blits[b]);
-						}
-					}
-				}
-			}
-		} else
-#endif // XR_DISABLED
 		{
 			RSG::scene->set_debug_draw_mode(vp->debug_draw);
 
@@ -996,28 +661,8 @@ void RendererViewport::viewport_initialize(RID p_rid) {
 	viewport->shadow_atlas = RSG::light_storage->shadow_atlas_create();
 	viewport->viewport_render_direct_to_screen = false;
 
-	viewport->fsr_enabled = !RSG::rasterizer->is_low_end() && !viewport->disable_3d;
+	viewport->fsr_enabled = false;
 }
-
-#ifndef XR_DISABLED
-void RendererViewport::viewport_set_use_xr(RID p_viewport, bool p_use_xr) {
-	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
-	ERR_FAIL_NULL(viewport);
-
-	if (viewport->use_xr == p_use_xr) {
-		return;
-	}
-
-	viewport->use_xr = p_use_xr;
-
-	// Re-configure the 3D render buffers when disabling XR. They'll get
-	// re-configured when enabling XR in draw_viewports().
-	if (!p_use_xr) {
-		viewport->view_count = 1;
-		_configure_3d_render_buffers(viewport);
-	}
-}
-#endif // !XR_DISABLED
 
 void RendererViewport::viewport_set_scaling_3d_mode(RID p_viewport, RSE::ViewportScaling3DMode p_mode) {
 	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
@@ -1232,29 +877,7 @@ RID RendererViewport::viewport_get_texture(RID p_viewport) const {
 }
 
 RID RendererViewport::viewport_get_occluder_debug_texture(RID p_viewport) const {
-	const Viewport *viewport = viewport_owner.get_or_null(p_viewport);
-	ERR_FAIL_NULL_V(viewport, RID());
-
-	if (viewport->use_occlusion_culling && viewport->debug_draw == RSE::VIEWPORT_DEBUG_DRAW_OCCLUDERS) {
-		return RendererSceneOcclusionCull::get_singleton()->buffer_get_debug_texture(p_viewport);
-	}
 	return RID();
-}
-
-void RendererViewport::viewport_set_prev_camera_data(RID p_viewport, const RendererSceneRender::CameraData *p_camera_data) {
-	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
-	ERR_FAIL_NULL(viewport);
-	uint64_t frame = RSG::rasterizer->get_frame_number();
-	if (viewport->prev_camera_data_frame != frame) {
-		viewport->prev_camera_data = *p_camera_data;
-		viewport->prev_camera_data_frame = frame;
-	}
-}
-
-const RendererSceneRender::CameraData *RendererViewport::viewport_get_prev_camera_data(RID p_viewport) {
-	const Viewport *viewport = viewport_owner.get_or_null(p_viewport);
-	ERR_FAIL_NULL_V(viewport, nullptr);
-	return &viewport->prev_camera_data;
 }
 
 void RendererViewport::viewport_set_disable_2d(RID p_viewport, bool p_disable) {
@@ -1305,7 +928,6 @@ void RendererViewport::viewport_set_scenario(RID p_viewport, RID p_scenario) {
 
 	viewport->scenario = p_scenario;
 	if (viewport->use_occlusion_culling) {
-		RendererSceneOcclusionCull::get_singleton()->buffer_set_scenario(p_viewport, p_scenario);
 	}
 }
 
@@ -1502,38 +1124,15 @@ void RendererViewport::_viewport_set_force_motion_vectors(RendererViewport::View
 }
 
 void RendererViewport::viewport_set_use_occlusion_culling(RID p_viewport, bool p_use_occlusion_culling) {
-	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
-	ERR_FAIL_NULL(viewport);
-
-	if (viewport->use_occlusion_culling == p_use_occlusion_culling) {
-		return;
-	}
-	viewport->use_occlusion_culling = p_use_occlusion_culling;
-
-	if (viewport->use_occlusion_culling) {
-		RendererSceneOcclusionCull::get_singleton()->add_buffer(p_viewport);
-		RendererSceneOcclusionCull::get_singleton()->buffer_set_scenario(p_viewport, viewport->scenario);
-	} else {
-		RendererSceneOcclusionCull::get_singleton()->remove_buffer(p_viewport);
-	}
-
-	viewport->occlusion_buffer_dirty = true;
+	// 3D occlusion culling is unavailable.
 }
 
 void RendererViewport::viewport_set_occlusion_rays_per_thread(int p_rays_per_thread) {
-	if (occlusion_rays_per_thread == p_rays_per_thread) {
-		return;
-	}
-
-	occlusion_rays_per_thread = p_rays_per_thread;
-
-	for (int i = 0; i < active_viewports.size(); i++) {
-		active_viewports[i]->occlusion_buffer_dirty = true;
-	}
+	// 3D occlusion culling is unavailable.
 }
 
 void RendererViewport::viewport_set_occlusion_culling_build_quality(RSE::ViewportOcclusionCullingBuildQuality p_quality) {
-	RendererSceneOcclusionCull::get_singleton()->set_build_quality(p_quality);
+	// 3D occlusion culling is unavailable.
 }
 
 void RendererViewport::viewport_set_mesh_lod_threshold(RID p_viewport, float p_pixels) {
@@ -1679,7 +1278,6 @@ bool RendererViewport::free(RID p_rid) {
 		sorted_active_viewports_dirty = true;
 
 		if (viewport->use_occlusion_culling) {
-			RendererSceneOcclusionCull::get_singleton()->remove_buffer(p_rid);
 		}
 
 		if (_viewport_requires_motion_vectors(viewport)) {

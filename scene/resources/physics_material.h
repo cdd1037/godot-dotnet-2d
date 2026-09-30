@@ -30,7 +30,7 @@
 
 #pragma once
 
-#if !defined(PHYSICS_2D_DISABLED) || !defined(PHYSICS_3D_DISABLED)
+#if !(defined(PHYSICS_2D_DISABLED))
 #include "core/io/resource.h"
 
 class PhysicsMaterial : public Resource {

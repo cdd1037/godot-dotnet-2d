@@ -69,15 +69,11 @@
 #include "scene/main/window.h"
 #include "scene/theme/theme_db.h"
 #include "servers/display/display_server.h"
-#include "servers/navigation_3d/navigation_server_3d.h"
 
 #ifndef PHYSICS_2D_DISABLED
 #include "servers/physics_2d/physics_server_2d.h"
 #endif // PHYSICS_2D_DISABLED
 
-#ifndef PHYSICS_3D_DISABLED
-#include "servers/physics_3d/physics_server_3d.h"
-#endif // PHYSICS_3D_DISABLED
 
 #include "modules/modules_enabled.gen.h" // For mono. (For editor help highlighter).
 
@@ -1257,8 +1253,6 @@ ProjectManager::ProjectManager() {
 	singleton = this;
 
 	// Turn off some servers we aren't going to be using in the Project Manager.
-	NavigationServer3D::get_singleton()->set_active(false);
-	PhysicsServer3D::get_singleton()->set_active(false);
 	PhysicsServer2D::get_singleton()->set_active(false);
 
 	// Initialize settings.

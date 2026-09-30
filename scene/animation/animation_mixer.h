@@ -142,7 +142,6 @@ protected:
 	uint64_t setup_pass = 1;
 
 	struct TrackCache {
-		bool root_motion = false;
 		uint64_t setup_pass = 0;
 		Animation::TrackType type = Animation::TrackType::TYPE_ANIMATION;
 		NodePath path;
@@ -153,7 +152,6 @@ protected:
 
 		TrackCache() = default;
 		TrackCache(const TrackCache &p_other) :
-				root_motion(p_other.root_motion),
 				setup_pass(p_other.setup_pass),
 				type(p_other.type),
 				object_id(p_other.object_id),
@@ -161,63 +159,6 @@ protected:
 				animation_instance_weight_applied_at(p_other.animation_instance_weight_applied_at) {}
 
 		virtual ~TrackCache() {}
-	};
-
-	struct TrackCacheTransform : public TrackCache {
-#ifndef _3D_DISABLED
-		ObjectID skeleton_id;
-#endif // _3D_DISABLED
-		int bone_idx = -1;
-		bool loc_used = false;
-		bool rot_used = false;
-		bool scale_used = false;
-		Vector3 init_loc = Vector3(0, 0, 0);
-		Quaternion init_rot = Quaternion(0, 0, 0, 1);
-		Vector3 init_scale = Vector3(1, 1, 1);
-		Vector3 loc;
-		Quaternion rot;
-		Vector3 scale;
-
-		TrackCacheTransform(const TrackCacheTransform &p_other) :
-				TrackCache(p_other),
-#ifndef _3D_DISABLED
-				skeleton_id(p_other.skeleton_id),
-#endif
-				bone_idx(p_other.bone_idx),
-				loc_used(p_other.loc_used),
-				rot_used(p_other.rot_used),
-				scale_used(p_other.scale_used),
-				init_loc(p_other.init_loc),
-				init_rot(p_other.init_rot),
-				init_scale(p_other.init_scale),
-				loc(p_other.loc),
-				rot(p_other.rot),
-				scale(p_other.scale) {
-		}
-
-		TrackCacheTransform() {
-			type = Animation::TYPE_POSITION_3D;
-		}
-	};
-
-	struct RootMotionCache {
-		Vector3 loc = Vector3(0, 0, 0);
-		Quaternion rot = Quaternion(0, 0, 0, 1);
-		Vector3 scale = Vector3(1, 1, 1);
-	};
-
-	struct TrackCacheBlendShape : public TrackCache {
-		float init_value = 0;
-		float value = 0;
-		int shape_index = -1;
-
-		TrackCacheBlendShape(const TrackCacheBlendShape &p_other) :
-				TrackCache(p_other),
-				init_value(p_other.init_value),
-				value(p_other.value),
-				shape_index(p_other.shape_index) {}
-
-		TrackCacheBlendShape() { type = Animation::TYPE_BLEND_SHAPE; }
 	};
 
 	struct TrackCacheValue : public TrackCache {
@@ -303,7 +244,6 @@ protected:
 		}
 	};
 
-	RootMotionCache root_motion_cache;
 	AHashMap<Animation::TrackCacheID, TrackCache *, HashHasher> track_cache;
 	AHashMap<Ref<Animation>, LocalVector<TrackCache *>> animation_track_num_to_track_cache;
 	HashSet<TrackCache *> playing_caches;
@@ -313,7 +253,6 @@ protected:
 	void _clear_caches();
 	void _clear_audio_streams();
 	void _clear_playing_caches();
-	void _init_root_motion_cache();
 	bool _update_caches();
 	void _create_track_num_to_track_cache_for_animation(const Ref<Animation> &p_animation);
 
@@ -327,16 +266,6 @@ protected:
 	uint64_t track_map_version = 1;
 	int track_count = 0;
 	bool deterministic = false;
-
-	/* ---- Root motion accumulator for Skeleton3D ---- */
-	NodePath root_motion_track;
-	bool root_motion_local = false;
-	Vector3 root_motion_position = Vector3(0, 0, 0);
-	Quaternion root_motion_rotation = Quaternion(0, 0, 0, 1);
-	Vector3 root_motion_scale = Vector3(0, 0, 0);
-	Vector3 root_motion_position_accumulator = Vector3(0, 0, 0);
-	Quaternion root_motion_rotation_accumulator = Quaternion(0, 0, 0, 1);
-	Vector3 root_motion_scale_accumulator = Vector3(1, 1, 1);
 
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;
@@ -438,21 +367,6 @@ public:
 	/* ---- Audio ---- */
 	void set_audio_max_polyphony(int p_audio_max_polyphony);
 	int get_audio_max_polyphony() const;
-
-	/* ---- Root motion accumulator for Skeleton3D ---- */
-	void set_root_motion_track(const NodePath &p_track);
-	NodePath get_root_motion_track() const;
-
-	void set_root_motion_local(bool p_enabled);
-	bool is_root_motion_local() const;
-
-	Vector3 get_root_motion_position() const;
-	Quaternion get_root_motion_rotation() const;
-	Vector3 get_root_motion_scale() const;
-
-	Vector3 get_root_motion_position_accumulator() const;
-	Quaternion get_root_motion_rotation_accumulator() const;
-	Vector3 get_root_motion_scale_accumulator() const;
 
 	/* ---- Blending processor ---- */
 	void make_animation_instance(const StringName &p_name, const PlaybackInfo &p_playback_info);

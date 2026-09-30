@@ -90,8 +90,6 @@ public:
 	virtual void property_set_fallback(const StringName &p_name, const Variant &p_value, bool *r_valid);
 	virtual Variant property_get_fallback(const StringName &p_name, bool *r_valid);
 
-	virtual const Variant get_rpc_config() const;
-
 	virtual ScriptLanguage *get_language() = 0;
 	virtual ~ScriptInstance() {}
 };

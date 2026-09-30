@@ -73,31 +73,7 @@ public:
 	virtual Ref<Texture2D> generate_from_path(const String &p_path, const Size2 &p_size, Dictionary &p_metadata) const override;
 };
 
-class EditorMaterialPreviewPlugin : public EditorResourcePreviewGenerator {
-	GDCLASS(EditorMaterialPreviewPlugin, EditorResourcePreviewGenerator);
 
-	RID scenario;
-	RID sphere;
-	RID sphere_instance;
-	RID viewport;
-	RID viewport_texture;
-	RID light;
-	RID light_instance;
-	RID light2;
-	RID light_instance2;
-	RID camera;
-	RID camera_attributes;
-	mutable DrawRequester draw_requester;
-
-public:
-	virtual bool handles(const String &p_type) const override;
-	virtual bool generate_small_preview_automatically() const override;
-	virtual Ref<Texture2D> generate(const Ref<Resource> &p_from, const Size2 &p_size, Dictionary &p_metadata) const override;
-	virtual void abort() override;
-
-	EditorMaterialPreviewPlugin();
-	~EditorMaterialPreviewPlugin();
-};
 
 class EditorScriptPreviewPlugin : public EditorResourcePreviewGenerator {
 	GDCLASS(EditorScriptPreviewPlugin, EditorResourcePreviewGenerator);
@@ -118,29 +94,7 @@ public:
 	virtual Ref<Texture2D> generate(const Ref<Resource> &p_from, const Size2 &p_size, Dictionary &p_metadata) const override;
 };
 
-class EditorMeshPreviewPlugin : public EditorResourcePreviewGenerator {
-	GDCLASS(EditorMeshPreviewPlugin, EditorResourcePreviewGenerator);
 
-	RID scenario;
-	RID mesh_instance;
-	RID viewport;
-	RID viewport_texture;
-	RID light;
-	RID light_instance;
-	RID light2;
-	RID light_instance2;
-	RID camera;
-	RID camera_attributes;
-	mutable DrawRequester draw_requester;
-
-public:
-	virtual bool handles(const String &p_type) const override;
-	virtual Ref<Texture2D> generate(const Ref<Resource> &p_from, const Size2 &p_size, Dictionary &p_metadata) const override;
-	virtual void abort() override;
-
-	EditorMeshPreviewPlugin();
-	~EditorMeshPreviewPlugin();
-};
 
 class EditorFontPreviewPlugin : public EditorResourcePreviewGenerator {
 	GDCLASS(EditorFontPreviewPlugin, EditorResourcePreviewGenerator);

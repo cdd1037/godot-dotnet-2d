@@ -48,7 +48,6 @@
 #include "editor/settings/editor_settings.h"
 #include "editor/themes/editor_scale.h"
 #include "scene/2d/animated_sprite_2d.h"
-#include "scene/3d/sprite_3d.h"
 #include "scene/gui/center_container.h"
 #include "scene/gui/flow_container.h"
 #include "scene/gui/margin_container.h"
@@ -1152,12 +1151,7 @@ static void _find_anim_sprites(Node *p_node, List<Node *> *r_nodes, Ref<SpriteFr
 		}
 	}
 
-	{
-		AnimatedSprite3D *as = Object::cast_to<AnimatedSprite3D>(p_node);
-		if (as && as->get_sprite_frames() == p_sfames) {
-			r_nodes->push_back(p_node);
-		}
-	}
+
 
 	for (int i = 0; i < p_node->get_child_count(); i++) {
 		_find_anim_sprites(p_node->get_child(i), r_nodes, p_sfames);
@@ -2044,8 +2038,7 @@ void SpriteFramesEditor::_fetch_sprite_node() {
 
 	bool show_node_edit = false;
 	AnimatedSprite2D *as2d = Object::cast_to<AnimatedSprite2D>(selected);
-	AnimatedSprite3D *as3d = Object::cast_to<AnimatedSprite3D>(selected);
-	if (as2d || as3d) {
+	if (as2d) {
 		if (frames != selected->call("get_sprite_frames")) {
 			_remove_sprite_node();
 		} else {
@@ -2793,12 +2786,7 @@ void SpriteFramesEditorPlugin::edit(Object *p_object) {
 	if (animated_sprite) {
 		s = animated_sprite->get_sprite_frames();
 	} else {
-		AnimatedSprite3D *animated_sprite_3d = Object::cast_to<AnimatedSprite3D>(p_object);
-		if (animated_sprite_3d) {
-			s = animated_sprite_3d->get_sprite_frames();
-		} else {
-			s = p_object;
-		}
+		s = p_object;
 	}
 
 	frames_editor->edit(s);
@@ -2807,10 +2795,6 @@ void SpriteFramesEditorPlugin::edit(Object *p_object) {
 bool SpriteFramesEditorPlugin::handles(Object *p_object) const {
 	AnimatedSprite2D *animated_sprite_2d = Object::cast_to<AnimatedSprite2D>(p_object);
 	if (animated_sprite_2d && *animated_sprite_2d->get_sprite_frames()) {
-		return true;
-	}
-	AnimatedSprite3D *animated_sprite_3d = Object::cast_to<AnimatedSprite3D>(p_object);
-	if (animated_sprite_3d && *animated_sprite_3d->get_sprite_frames()) {
 		return true;
 	}
 	SpriteFrames *frames = Object::cast_to<SpriteFrames>(p_object);

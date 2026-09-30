@@ -53,7 +53,6 @@
 #include "editor/gui/create_dialog.h"
 #include "editor/gui/directory_create_dialog.h"
 #include "editor/gui/editor_dir_dialog.h"
-#include "editor/import/3d/scene_import_settings.h"
 #include "editor/inspector/editor_context_menu_plugin.h"
 #include "editor/inspector/editor_resource_preview.h"
 #include "editor/inspector/editor_resource_tooltip_plugins.h"
@@ -1339,24 +1338,7 @@ void FileSystemDock::_select_file(const String &p_path, bool p_select_in_favorit
 
 		String resource_type = ResourceLoader::get_resource_type(fpath);
 		if (resource_type == "PackedScene" || resource_type == "AnimationLibrary") {
-			bool is_imported = false;
-			{
-				List<String> importer_exts;
-				ResourceImporterScene::get_scene_importer_extensions(&importer_exts);
-				String extension = fpath.get_extension();
-				for (const String &E : importer_exts) {
-					if (extension.nocasecmp_to(E) == 0) {
-						is_imported = true;
-						break;
-					}
-				}
-			}
-
-			if (is_imported) {
-				SceneImportSettingsDialog::get_singleton()->open_settings(p_path, resource_type);
-			} else {
-				EditorNode::get_singleton()->load_scene_or_resource(fpath);
-			}
+			EditorNode::get_singleton()->load_scene_or_resource(fpath);
 		} else if (ResourceLoader::is_imported(fpath)) {
 			// If the importer has advanced settings, show them.
 			int order;

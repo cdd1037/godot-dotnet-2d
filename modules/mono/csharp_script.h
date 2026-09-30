@@ -172,8 +172,6 @@ private:
 
 	SelfList<CSharpScript> script_list = this;
 
-	Dictionary rpc_config;
-
 	struct EventSignalInfo {
 		StringName name; // MethodInfo stores a string...
 		MethodInfo method_info;
@@ -287,8 +285,6 @@ public:
 
 	int get_member_line(const StringName &p_member) const override;
 
-	const Variant get_rpc_config() const override;
-
 #ifdef TOOLS_ENABLED
 	bool is_placeholder_fallback_enabled() const override {
 		return placeholder_fallback_enabled;
@@ -366,8 +362,6 @@ public:
 
 	void refcount_incremented() override;
 	bool refcount_decremented() override;
-
-	const Variant get_rpc_config() const override;
 
 	void notification(int p_notification, bool p_reversed = false) override;
 	void _call_notification(int p_notification, bool p_reversed = false);

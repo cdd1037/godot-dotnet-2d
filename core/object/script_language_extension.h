@@ -206,14 +206,6 @@ public:
 
 	EXBIND0RC(bool, is_placeholder_fallback_enabled)
 
-	GDVIRTUAL0RC_REQUIRED(Variant, _get_rpc_config)
-
-	virtual const Variant get_rpc_config() const override {
-		Variant ret;
-		GDVIRTUAL_CALL(_get_rpc_config, ret);
-		return ret;
-	}
-
 #ifndef DISABLE_DEPRECATED
 	GDVIRTUAL1RC(bool, _instance_has, const Object *)
 #endif // !DISABLE_DEPRECATED
