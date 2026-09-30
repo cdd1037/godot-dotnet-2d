@@ -32,10 +32,55 @@
 
 TEST_FORCE_LINK(test_variant)
 
+#include "core/io/resource.h"
 #include "core/variant/variant.h"
+#include "core/variant/variant_internal.h"
 #include "core/variant/variant_parser.h"
 
 namespace TestVariant {
+
+TEST_CASE("[Variant][SecondFixBatch] Internal Ref accessor preserves type and ownership") {
+	ObjectID id;
+	Ref<Resource> extracted;
+	{
+		Ref<Resource> resource;
+		resource.instantiate();
+		resource->set_name("Ref accessor sentinel");
+		id = resource->get_instance_id();
+		CHECK(resource->get_reference_count() == 1);
+		Variant value = resource;
+		CHECK(resource->get_reference_count() == 2);
+		for (int i = 0; i < 64; i++) {
+			Ref<Resource> typed = VariantInternalAccessor<Ref<Resource>>::get(&value);
+			CHECK(typed.ptr() == resource.ptr());
+			CHECK(typed->get_name() == "Ref accessor sentinel");
+			CHECK(resource->get_reference_count() == 3);
+		}
+		CHECK(resource->get_reference_count() == 2);
+		{
+			Ref<RefCounted> base = VariantInternalAccessor<Ref<RefCounted>>::get(&value);
+			CHECK(base.ptr() == resource.ptr());
+			CHECK(resource->get_reference_count() == 3);
+		}
+		extracted = VariantInternalAccessor<Ref<Resource>>::get(&value);
+	}
+	REQUIRE(extracted.is_valid());
+	CHECK(extracted->get_reference_count() == 1);
+	CHECK(ObjectDB::get_instance(id) == extracted.ptr());
+	extracted.unref();
+	CHECK(ObjectDB::get_instance(id) == nullptr);
+
+	// Internal accessors require a validated OBJECT and a compatible native type.
+	// Null OBJECT is valid; mismatched types go through the checked public API.
+	Variant null_object = static_cast<Object *>(nullptr);
+	CHECK(VariantInternalAccessor<Ref<Resource>>::get(&null_object).is_null());
+	Ref<RefCounted> unrelated;
+	unrelated.instantiate();
+	Variant wrong_type = unrelated;
+	Ref<Resource> checked = wrong_type;
+	CHECK(checked.is_null());
+	CHECK(unrelated->get_reference_count() == 2);
+}
 
 TEST_CASE("[Variant] Writer and parser integer") {
 	int64_t a32 = 2147483648; // 2^31, so out of bounds for 32-bit signed int [-2^31, +2^31-1].

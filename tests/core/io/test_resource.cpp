@@ -529,6 +529,48 @@ TEST_CASE("[Resource] Duplication") {
 	}
 }
 
+TEST_CASE("[Resource][SecondFixBatch] Binary roundtrip retains header and nested variant data") {
+	const uint32_t flags[] = {
+		ResourceSaver::FLAG_NONE,
+		ResourceSaver::FLAG_SAVE_BIG_ENDIAN,
+		ResourceSaver::FLAG_COMPRESS,
+		ResourceSaver::FLAG_COMPRESS | ResourceSaver::FLAG_SAVE_BIG_ENDIAN,
+	};
+	for (uint32_t flag : flags) {
+		Ref<Resource> resource;
+		resource.instantiate();
+		resource->set_name("Binary header sentinel");
+		Ref<Resource> child;
+		child.instantiate();
+		child->set_name("Nested resource");
+		Dictionary dictionary;
+		dictionary["integer"] = int64_t(0x123456789abcdef);
+		dictionary["vector"] = Vector2(1.25, -4096.5);
+		dictionary["text"] = String::utf8("Unicode: \xe4\xbd\xa0\xe5\xa5\xbd");
+		Array values;
+		values.push_back(dictionary);
+		values.push_back(child);
+		values.push_back(Variant());
+		resource->set_meta("payload", values);
+		const String path = TestUtils::get_temp_path(vformat("second_batch_%d.res", flag));
+		REQUIRE(ResourceSaver::save(resource, path, flag) == OK);
+		Error error = FAILED;
+		Ref<Resource> loaded = ResourceLoader::load(path, "", ResourceFormatLoader::CACHE_MODE_IGNORE, &error);
+		REQUIRE(error == OK);
+		REQUIRE(loaded.is_valid());
+		CHECK(loaded.ptr() != resource.ptr());
+		CHECK(loaded->get_name() == resource->get_name());
+		Array loaded_values = loaded->get_meta("payload");
+		REQUIRE(loaded_values.size() == 3);
+		Dictionary loaded_dictionary = loaded_values[0];
+		CHECK(loaded_dictionary == dictionary);
+		Ref<Resource> loaded_child = loaded_values[1];
+		REQUIRE(loaded_child.is_valid());
+		CHECK(loaded_child->get_name() == child->get_name());
+		CHECK(loaded_values[2].get_type() == Variant::NIL);
+	}
+}
+
 TEST_CASE("[Resource] Saving and loading") {
 	Ref<Resource> resource = memnew(Resource);
 	resource->set_name("Hello world");
