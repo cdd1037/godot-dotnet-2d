@@ -107,6 +107,10 @@ class SceneState : public RefCounted {
 
 	Node *_recover_node_path_index(Node *p_base, int p_idx) const;
 
+	using ContainerRemapCache = HashMap<Node *, HashMap<const void *, Variant>>;
+	static Variant _duplicate_recursive(const Variant &p_variant, HashMap<Node *, HashMap<Ref<Resource>, Ref<Resource>>> &p_remap_cache, const Variant &p_fallback, Node *p_for_scene, ContainerRemapCache &p_container_cache);
+	static Ref<Resource> _get_remap_resource(const Ref<Resource> &p_resource, HashMap<Node *, HashMap<Ref<Resource>, Ref<Resource>>> &p_remap_cache, const Ref<Resource> &p_fallback, Node *p_for_scene, ContainerRemapCache &p_container_cache);
+
 #ifdef TOOLS_ENABLED
 public:
 	typedef void (*InstantiationWarningNotify)(const String &p_warning);

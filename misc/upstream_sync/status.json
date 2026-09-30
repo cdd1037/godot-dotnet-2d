@@ -4,9 +4,10 @@
   "publication": "Local stage-1 work; parent coordinates one stage-boundary push after validation. No intermediate GitHub writes. Frozen artifacts unchanged.",
   "scope": "Integration ledger; the original 1362-PR applicability audit remains an immutable snapshot. Ported means source integrated with risk-based verification documented in CUSTOMIZATION.md, not full platform runtime coverage.",
   "original_high_totals": {
-    "ported": 35,
+    "ported": 37,
     "partially_ported": 1,
-    "needs_deeper_review": 7
+    "deferred": 2,
+    "needs_deeper_review": 3
   },
   "entries": [
     {
@@ -15,8 +16,9 @@
       "url": "https://github.com/godotengine/godot/pull/115557",
       "upstream_merge_sha": "bb5b71fd1da8bd779a5d06863ba488a00e70e384",
       "audit_priority": "high",
-      "status": "needs_deeper_review",
-      "reason": "Needs container cycle/identity and typed fallback tests before adapting recursive local-to-scene remapping."
+      "status": "ported",
+      "batch": "tenth",
+      "checkpoint": "see git history for this status file"
     },
     {
       "number": 98396,
@@ -54,8 +56,8 @@
       "url": "https://github.com/godotengine/godot/pull/119123",
       "upstream_merge_sha": "9700abd3ba77ac3b9119c1bf4cd6e2a8570d4916",
       "audit_priority": "high",
-      "status": "needs_deeper_review",
-      "reason": "Parallel shader-cache loading changes concurrency and failure paths; review together with Metal cache locking #120545."
+      "status": "deferred",
+      "reason": "Paired shader-cache concurrency change: upstream asynchronous cache loading lacks the current synchronous source-recompile fallback on failed shader creation and overwrites failed placeholder RIDs with null. Requires recovery/ownership adaptation and concurrent GPU cache validation. Current shader_create_from_bytecode_with_samplers retains its driver-call mutex, so the Metal race is not introduced here."
     },
     {
       "number": 120128,
@@ -73,8 +75,8 @@
       "url": "https://github.com/godotengine/godot/pull/120545",
       "upstream_merge_sha": "6d9fc126044df61343ffa19ad53d899225599b0b",
       "audit_priority": "high",
-      "status": "needs_deeper_review",
-      "reason": "Keep paired with #119123; baseline currently serializes the relevant cache loading path and this environment cannot test Metal."
+      "status": "deferred",
+      "reason": "Paired shader-cache concurrency change: upstream asynchronous cache loading lacks the current synchronous source-recompile fallback on failed shader creation and overwrites failed placeholder RIDs with null. Requires recovery/ownership adaptation and concurrent GPU cache validation. Current shader_create_from_bytecode_with_samplers retains its driver-call mutex, so the Metal race is not introduced here."
     },
     {
       "number": 112813,
@@ -392,8 +394,9 @@
       "url": "https://github.com/godotengine/godot/pull/120354",
       "upstream_merge_sha": "f587776c6df53748f0accf4798a4ab8d3a015151",
       "audit_priority": "high",
-      "status": "needs_deeper_review",
-      "reason": "Upstream recursive lookup uses root-relative paths from child copies; needs corrected per-level lookup and reordered deep hierarchy tests."
+      "status": "ported",
+      "batch": "tenth",
+      "checkpoint": "see git history for this status file"
     },
     {
       "number": 110402,
@@ -502,7 +505,7 @@
       "audit_priority": "medium",
       "status": "ported",
       "batch": "ninth",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "72427fff"
     },
     {
       "number": 123984,
@@ -512,7 +515,7 @@
       "audit_priority": "medium",
       "status": "ported",
       "batch": "ninth",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "72427fff"
     },
     {
       "number": 124025,
@@ -522,7 +525,7 @@
       "audit_priority": "medium",
       "status": "ported",
       "batch": "ninth",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "72427fff"
     }
   ]
 }

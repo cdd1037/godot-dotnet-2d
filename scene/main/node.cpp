@@ -2819,7 +2819,7 @@ Node *Node::duplicate(int p_flags) const {
 	ERR_FAIL_NULL_V_MSG(dupe, nullptr, "Failed to duplicate node.");
 
 	if (p_flags & DUPLICATE_SCRIPTS) {
-		_duplicate_scripts(this, dupe);
+		_duplicate_scripts(this, dupe, p_flags);
 	}
 
 	_duplicate_properties(this, this, dupe, p_flags);
@@ -2844,7 +2844,7 @@ Node *Node::duplicate_from_editor(HashMap<const Node *, Node *> &r_duplimap, Nod
 	ERR_FAIL_NULL_V_MSG(dupe, nullptr, "Failed to duplicate node.");
 
 	if (flags & DUPLICATE_SCRIPTS) {
-		_duplicate_scripts(this, dupe);
+		_duplicate_scripts(this, dupe, flags);
 	}
 
 	_duplicate_properties(this, this, dupe, flags);
@@ -2937,7 +2937,7 @@ void Node::_emit_editor_state_changed() {
 }
 #endif
 
-void Node::_duplicate_scripts(const Node *p_original, Node *p_copy) const {
+void Node::_duplicate_scripts(const Node *p_original, Node *p_copy, int p_flags) const {
 	bool is_valid = false;
 	Variant scr = p_original->get(CoreStringName(script), &is_valid);
 	if (is_valid) {
@@ -2945,9 +2945,11 @@ void Node::_duplicate_scripts(const Node *p_original, Node *p_copy) const {
 	}
 
 	for (int i = 0; i < p_original->get_child_count(false); i++) {
-		Node *copy_child = p_copy->get_child(i, false);
+		Node *original_child = p_original->get_child(i, false);
+		// Instantiated descendants may have a different child order, including below a non-instance root.
+		Node *copy_child = (p_flags & DUPLICATE_USE_INSTANTIATION) ? p_copy->get_node(p_original->get_path_to(original_child)) : p_copy->get_child(i, false);
 		ERR_FAIL_NULL_MSG(copy_child, "Child node disappeared while duplicating.");
-		_duplicate_scripts(p_original->get_child(i, false), copy_child);
+		_duplicate_scripts(original_child, copy_child, p_flags);
 	}
 }
 
@@ -3005,9 +3007,11 @@ void Node::_duplicate_properties(const Node *p_root, const Node *p_original, Nod
 	}
 
 	for (int i = 0; i < p_original->get_child_count(false); i++) {
-		Node *copy_child = p_copy->get_child(i, false);
+		Node *original_child = p_original->get_child(i, false);
+		// Resolve relative to this level of the original tree, not the duplication root.
+		Node *copy_child = (p_flags & DUPLICATE_USE_INSTANTIATION) ? p_copy->get_node(p_original->get_path_to(original_child)) : p_copy->get_child(i, false);
 		ERR_FAIL_NULL_MSG(copy_child, "Child node disappeared while duplicating.");
-		_duplicate_properties(p_root, p_original->get_child(i, false), copy_child, p_flags);
+		_duplicate_properties(p_root, original_child, copy_child, p_flags);
 	}
 }
 

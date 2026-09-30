@@ -77,7 +77,66 @@ static Array _sanitize_node_pinned_properties(Node *p_node) {
 	return pinned;
 }
 
+Variant SceneState::_duplicate_recursive(const Variant &p_variant, HashMap<Node *, HashMap<Ref<Resource>, Ref<Resource>>> &p_remap_cache, const Variant &p_fallback, Node *p_for_scene, ContainerRemapCache &p_container_cache) {
+	switch (p_variant.get_type()) {
+		case Variant::OBJECT: {
+			Ref<Resource> resource = p_variant;
+			if (resource.is_valid() && resource->is_local_to_scene()) {
+				return _get_remap_resource(resource, p_remap_cache, p_fallback, p_for_scene, p_container_cache);
+			}
+		} break;
+		case Variant::ARRAY: {
+			const Array source = p_variant;
+			if (const Variant *existing = p_container_cache[p_for_scene].getptr(source.id())) {
+				return *existing;
+			}
+			const Array fallback = p_fallback.get_type() == Variant::ARRAY ? Array(p_fallback) : Array();
+			const bool use_fallback = !source.is_typed() || source.is_same_typed(fallback);
+			Array destination;
+			if (source.is_typed()) {
+				destination.set_typed(source.get_typed_builtin(), source.get_typed_class_name(), source.get_typed_script());
+			}
+			destination.resize(source.size());
+			// Register before recursion to preserve aliases and self-referential containers.
+			p_container_cache[p_for_scene][source.id()] = destination;
+			for (int i = 0; i < source.size(); i++) {
+				const Variant value_fallback = use_fallback && i < fallback.size() ? fallback[i] : Variant();
+				destination[i] = _duplicate_recursive(source[i], p_remap_cache, value_fallback, p_for_scene, p_container_cache);
+			}
+			return destination;
+		} break;
+		case Variant::DICTIONARY: {
+			const Dictionary source = p_variant;
+			if (const Variant *existing = p_container_cache[p_for_scene].getptr(source.id())) {
+				return *existing;
+			}
+			const Dictionary fallback = p_fallback.get_type() == Variant::DICTIONARY ? Dictionary(p_fallback) : Dictionary();
+			const bool use_fallback = !source.is_typed() || source.is_same_typed(fallback);
+			Dictionary destination;
+			if (source.is_typed()) {
+				destination.set_typed(source.get_typed_key_builtin(), source.get_typed_key_class_name(), source.get_typed_key_script(), source.get_typed_value_builtin(), source.get_typed_value_class_name(), source.get_typed_value_script());
+			}
+			p_container_cache[p_for_scene][source.id()] = destination;
+			for (const KeyValue<Variant, Variant> &entry : source) {
+				// Resource keys may already differ in the fallback after remapping;
+				// there is no general positional correspondence for those keys.
+				const Variant value_fallback = use_fallback && fallback.has(entry.key) ? fallback[entry.key] : Variant();
+				destination[_duplicate_recursive(entry.key, p_remap_cache, Variant(), p_for_scene, p_container_cache)] = _duplicate_recursive(entry.value, p_remap_cache, value_fallback, p_for_scene, p_container_cache);
+			}
+			return destination;
+		} break;
+		default:
+			break;
+	}
+	return p_variant;
+}
+
 Ref<Resource> SceneState::get_remap_resource(const Ref<Resource> &p_resource, HashMap<Node *, HashMap<Ref<Resource>, Ref<Resource>>> &remap_cache, const Ref<Resource> &p_fallback, Node *p_for_scene) {
+	ContainerRemapCache container_cache;
+	return _get_remap_resource(p_resource, remap_cache, p_fallback, p_for_scene, container_cache);
+}
+
+Ref<Resource> SceneState::_get_remap_resource(const Ref<Resource> &p_resource, HashMap<Node *, HashMap<Ref<Resource>, Ref<Resource>>> &remap_cache, const Ref<Resource> &p_fallback, Node *p_for_scene, ContainerRemapCache &p_container_cache) {
 	ERR_FAIL_COND_V(p_resource.is_null(), Ref<Resource>());
 
 	// Find the shared copy of the source resource.
@@ -99,6 +158,8 @@ Ref<Resource> SceneState::get_remap_resource(const Ref<Resource> &p_resource, Ha
 	}
 
 	if (reuse_fallback) { // Simply copy the data from the source resource to update the fallback resource that was previously set.
+		// Resource properties can point back to this resource while being remapped.
+		remap_cache[p_for_scene][p_resource] = p_fallback;
 		p_fallback->reset_state(); // May want to reset state.
 
 		List<PropertyInfo> pi;
@@ -111,18 +172,10 @@ Ref<Resource> SceneState::get_remap_resource(const Ref<Resource> &p_resource, Ha
 				continue; // Do not change path.
 			}
 
-			Variant value = p_resource->get(E.name);
-
-			// The local-to-scene subresource instance is preserved, thus maintaining the previous sharing relationship.
-			// This is mainly used when the sub-scene root is reset in the main scene.
-			Ref<Resource> sub_res_of_from = value;
-			if (sub_res_of_from.is_valid() && sub_res_of_from->is_local_to_scene()) {
-				value = get_remap_resource(sub_res_of_from, remap_cache, p_fallback->get(E.name), p_fallback->get_local_scene());
-			}
+			Variant value = _duplicate_recursive(p_resource->get(E.name), remap_cache, p_fallback->get(E.name), p_for_scene, p_container_cache);
 
 			p_fallback->set(E.name, value);
 		}
-		remap_cache[p_for_scene][p_resource] = p_fallback;
 		return p_fallback;
 	}
 

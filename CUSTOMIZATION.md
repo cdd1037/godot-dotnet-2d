@@ -1074,3 +1074,30 @@ python3 misc/constant_registration_validation/compare_api.py /absolute/before /a
 ```
 
 工作区证据：`../godot-ninth-batch-validation/`。LTO 体积将在阶段一末尾做 **96caefac → 阶段一最终源码** 的同工具链/profile组合 A/B，涵盖 #123968 与之后批次，不把合计变化单独归因给某一 PR；不重复整套 .NET 导出矩阵或覆盖冻结包。
+
+<a id="upstream-tenth-batch"></a>
+## 19. 第十批：场景复制与嵌套 local-to-scene 资源
+
+记录：2026-09-30。基于 `72427fff`，完成 [#120354](https://github.com/godotengine/godot/pull/120354) 与 [#115557](https://github.com/godotengine/godot/pull/115557) 的窄适配，不机械套用已确认有缺口的递归代码。
+
+### 19.1 重排场景实例复制
+
+- script/property walkers 在 DUPLICATE_USE_INSTANTIATION 路线按当前 `p_original` 的相对路径找到对应 child，避免上游递归时仍使用 this 根路径
+- 只要启用实例化复制就使用路径，不依赖最外层 this 是否 scene instance，因此普通父节点下面的嵌套实例也正确；未启用实例化时仍用原索引路线
+- 回归覆盖实例根、普通父节点下的实例、关闭实例化、关闭 script 复制四种子场景；重排 A/B 和 Left/Right，并核对第三层 Leaf 的独立 Node2D position 与 metadata。没有为了测试引入 GDScript；普通子场景经过 script walker，但不是自定义 C# script 身份测试
+
+### 19.2 嵌套资源 remap
+
+- 递归处理 Array / Dictionary 中的 local-to-scene Resource，复用兼容 fallback，保留 typed 容器类型，非 local 资源保持身份
+- 每次公共 remap 调用内部采用按场景分区的 container identity cache，在遍历前登记目标容器，保留共享 alias 并终止该路线的自引用容器；可复用的 Resource fallback 也先入缓存再遍历属性，避免资源 A↔B 回环
+- 公共 get_remap_resource 签名不变。目标场景由 make_local_resource 算出的 base 传入；正常配置过的 fallback 与 nested child 验证 get_local_scene()==该 base，cache 不落入 null 分区。本次未重新指定已有 fallback 的 local_scene，也不声称修复任意跨场景错配
+- **范围限制**：一般 Resource::duplicate_for_local_scene / _duplicate_recursive 的无 fallback 容器循环问题不在本补丁内；本测试仅证明 reusable-fallback remap 路线的循环与共享行为。以已 remap Resource 为 Dictionary key 时没有通用的位置对应关系，仍保留上游的 fallback-key 匹配限制。缓存是单次公共调用上下文，不是全场景永久容器缓存
+
+验证：同一 Linux Mono editor 增量构建。首轮新复制测试三个 get_node 调用缺显式 NodePath，修正测试后通过；没有为此扩展 API。聚焦 **4/4 test cases、271 断言通过**；PackedScene / Node / Resource aggregate **41/41、3,594 断言通过**。最终构建无编译 warning/error；未重复 .NET 三模式矩阵。
+
+```sh
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*SceneDuplicateBackport*,*TenthFixBatch*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*PackedScene*,*Node*,*Resource*,*SceneDuplicateBackport*,*TenthFixBatch*'
+```
+
+证据：`../godot-tenth-batch-validation/`。台账更新为 **37 high 完整移植、1 部分、2 明确延期、3 继续审查**。#119123/#120545 成对延期原因已落实：异步 shader-cache patch 失去当前创建失败后的源码编译 fallback，失败 placeholder RID 的所有权也需调整；当前串行 driver-call mutex 保留，不把尚未引入的并行 Metal race 当作现存未修故障。
