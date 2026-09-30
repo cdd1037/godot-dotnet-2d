@@ -31,6 +31,25 @@ class HelperTests(unittest.TestCase):
                     self.assertEqual(sentinel.read_text(encoding="utf-8"), "preserved")
                 self.assertIn(f"target={target}", first)
 
+    def test_scons_accesskit_path_is_absolute_and_independent_of_working_directory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "checkout"
+            unrelated = Path(temp) / "elsewhere"
+            unrelated.mkdir()
+            previous = Path.cwd()
+            try:
+                os.chdir(unrelated)
+                with patch.object(pipeline, "ROOT", root):
+                    for target in ["editor", "template_release"]:
+                        with self.subTest(target=target):
+                            command = pipeline.scons(target)
+                            argument = next(arg for arg in command if arg.startswith("accesskit_sdk_path="))
+                            sdk = Path(argument.split("=", 1)[1])
+                            self.assertTrue(sdk.is_absolute())
+                            self.assertEqual(sdk, root / "bin/build_deps/accesskit")
+            finally:
+                os.chdir(previous)
+
     def test_documentation_filter_is_conservative(self):
         self.assertTrue(docs_only(["README.md", "doc/intro.rst"]))
         for paths in [

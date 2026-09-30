@@ -92,7 +92,7 @@ def scons(target: str) -> list[str]:
         "verbose=yes",
         "progress=no",
         "silence_msvc=no",
-        "accesskit_sdk_path=bin/build_deps/accesskit",
+        f"accesskit_sdk_path={ROOT / 'bin/build_deps/accesskit'}",
         "--cache-show",
         f"-j{min(4, os.cpu_count() or 2)}",
         "cache_limit=2",
