@@ -32,6 +32,7 @@
 
 #include "core/os/memory.h"
 #include "core/os/thread.h"
+#include "core/variant/type_info.h"
 
 GDType::GDType(const GDType *p_super_type, StringName p_name) :
 		super_type(p_super_type), name(std::move(p_name)) {
@@ -100,6 +101,12 @@ void GDType::bind_integer_constant(const StringName &p_enum, const StringName &p
 			enum_map[enum_name] = enum_info;
 		}
 	}
+}
+
+void GDType::bind_integer_constant_raw(const char *p_enum_qualified_name, const char *p_name, int64_t p_constant, bool p_is_bitfield) {
+	String enum_name = GodotTypeInfo::Internal::enum_qualified_name_to_class_info_name(p_enum_qualified_name);
+	String value_name = String(p_name).get_slice("::", 1);
+	bind_integer_constant(enum_name, value_name, p_constant, p_is_bitfield);
 }
 
 const GDType::EnumInfo *GDType::get_integer_constant_enum(const StringName &p_name, bool p_no_inheritance) const {

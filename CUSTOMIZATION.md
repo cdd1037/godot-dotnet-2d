@@ -868,3 +868,35 @@ ASAN_OPTIONS=detect_leaks=0 GLSLANG_ARCHIVE="$PWD/bin/obj/modules/libmodule_glsl
 ```
 
 本工作区日志和上游审计 snapshot 摘录：`../godot-second-batch-validation/`（不纳入 Git）。这是本地工作树验证，远程 CI 必须另外核对最终提交；native binary 的版本标签可能仍显示构建时 HEAD。
+
+
+<a id="constant-registration"></a>
+## 11. 常量注册去重（#123968）
+
+记录：2026-09-30。基于 `96caefacf36fa83b5cf8f1639ca0cfa47bde3c18`，单独适配 [上游 #123968](https://github.com/godotengine/godot/pull/123968)；merge SHA `cd9c5d57fb9795886f3bfed8e2003062e1378178`，原补丁 `6bca64ff473998f9268c838e6873237af9407df3`。
+
+### 11.1 适配范围
+
+- 将全局常量宏展开中的重复容器写入收敛到一个 `_NO_INLINE_` helper；enum / bitfield 的编译期限定名称保存在 `GetTypeInfo`，不再为每次注册创建整份 `PropertyInfo`
+- 将限定名称转换移到独立 `core/variant/type_info.cpp`；在旧 `GDType` 上增加 raw-name wrapper，随后仍调用原来的 `bind_integer_constant`。保留现有常量/enum map、继承、主线程与初始化状态检查、重复注册检查和 ClassDB API/hash 路径
+- 保留原来的 `get_slice("::", 1)` 命名规则、64-bit 数值、enum / bitfield 与文档 metadata。未移入新 GDType Member 架构、上游较新的 EXT 注册宏、#123984 / #124025 或 .NET 10
+- 已核对[上游 review](https://github.com/godotengine/godot/pull/123968#pullrequestreview-5357046011)及三个 `BitField<>` 一致性建议；审计补丁已含建议的最终形式。上游报告的体积收益不是本 fork 的实测值
+
+### 11.2 按风险精简验证
+
+- 仅构建一个 GCC 14 Linux Mono editor + tests 配置：`optimize=none lto=none`。首次测试文件缺少 `variant_caster.h` 导致编译失败，补齐 include 后增量续建成功；最终构建日志没有 compiler warning/error。这是一种构建配置，不是一次失败被省略的全绿首跑
+- 三项聚焦 native 测试 **3/3、3,199 项断言通过**：限定名称与属性 enum/bitfield metadata、旧 GDType raw/direct 注册与继承等价、所有全局常量的索引/map/enum membership；含 64-bit 极值、多层限定名及自定义公开名称
+- 以修改前已有的第二批 editor 获取 baseline，修改后 editor 再导出完整 `--dump-extension-api-with-docs`；两份 JSON **逐字节相同**，SHA-256 均为 `73806db750b20ce1c5749306b996299d414b2dd69bd7aa1c598ddbec3ea73722`。覆盖 687 类、11 个普通全局常量、22 个全局 enum / 517 个值、142 个普通类常量、542 个类 enum / 3,629 个值，以及其余完整 API 和文档
+- ClassDB hash 保持：core `131315370`，editor `1704154020`。Baseline editor 版本标签仍显示其构建开始时的 `a043f328e`；不是另外从 `96caefac` 重建的 LTO 基线。前一批源码构建日志和本轮修改前 dump 保留，不用版本标签冒充新的独立 baseline 构建
+- 可复现工具：`misc/constant_registration_validation/`；原生测试：`tests/core/object/test_constant_registration.cpp`。比较脚本经 Ruff、Python 编译检查、自比较和修改 enum 值的负对照检查
+- 响应减少测试压力的要求，本轮未重复 release / JIT / Trimmed JIT / NativeAOT 矩阵、source-generator 全套或跨平台运行。没有覆盖冻结交付包或发布新产物
+
+**体积尚未实测**：匹配 LTO baseline 的 dry-run 仍需近完整重编译，故将严格 A/B 延至下一交付检查点；保留不可变 before commit `96caefac` 供未来同工具链/profile/strip/LTO 比较。旧 29.89 MiB 模板还缺少前两批改动，不能直接相减并归因给 #123968，也不能把 debug/editor 文件大小当作 shipping 收益。
+
+工作区证据：`../godot-constant-registration-validation/`，包括 before/after API、hash 日志、构建/测试日志和来源记录；不纳入 Git。主要命令：
+
+```sh
+scons platform=linuxbsd target=editor module_mono_enabled=yes tests=yes dev_build=no debug_symbols=no optimize=none lto=none accesskit=no wayland=no -j8
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*ConstantRegistration*'
+python3 misc/constant_registration_validation/compare_api.py /absolute/before /absolute/after
+```
