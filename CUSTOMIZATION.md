@@ -819,3 +819,52 @@ dotnet test modules/mono/editor/Godot.NET.Sdk/Godot.SourceGenerators.Tests -c Re
 - Editor / release 均完成增量构建；editor animation-focused **12/12**（530 断言），相关 aggregate **320/320**（115,242 断言）；release 的 animation + first-batch 集合 **17/17**（568 断言）
 - Read-only review 通过。没有为这一行 runtime 错误返回修复再次执行三套导出；第 9.2 节 JIT/Trim/AOT 导出证据仍明确属于先前 12 项批次，图形环境与平台验证边界不变
 - 日志：`../godot-first-batch-validation/animation-enum-{editor-build,focused,aggregate,release-build,release-tests}.log`
+
+
+<a id="upstream-second-batch"></a>
+## 10. 第二批小型性能回移
+
+记录：2026-09-30。基于 `a043f328`，仅处理已批准的五项局部优化；不引入 .NET 10、PhysicsServer enum 重构或 #123968。未测量 FPS、加载耗时或 Apple shader 编译速度，不把上游的性能数字当成本 fork 的结果。
+
+### 10.1 来源与适配
+
+| 上游 PR / merge SHA | 本地处理 |
+|---|---|
+| [#110402](https://github.com/godotengine/godot/pull/110402) / `bb0e47633af893227bde5a06f5d00a765e908a24` | 删除仍会求值和构造字符串的 `print_bl` 调试宏及调用；保留 `use_real64` header 字段的读取，避免改变文件游标 |
+| [#123809](https://github.com/godotengine/godot/pull/123809) / `90148f1c9448e3de59e103611957dd682bbd1852` | `VariantInternalAccessor<Ref<T>>::get` 先转为 `T *`，直接调用 pointer constructor，避免先隐式构造临时 Variant；保留旧参数名。此 internal API 原本就要求已经验证的兼容类型，不用它处理任意不匹配对象；公开 `Ref` 类型检查未改变 |
+| [#121446](https://github.com/godotengine/godot/pull/121446) / `d238a74a36ebea170d37f1ec9c0793508cb6ae1e` | 无 CCD 的 kinematic body 不扩大整段移动/传送路径的 broadphase AABB，并在最终位置更新 bounds；ray/shape CCD 保留 sweep。只将上游 `PS2DE` 名称适配为本分支的 `PhysicsServer2D` |
+| [#123739](https://github.com/godotengine/godot/pull/123739) / `9197671a5660c94efdd356985ec6ca7d76073209` | 锁内复用 `StringBuilder`，批量 `ToString/Clear` 与 `AppendLine`；锁和 deferred 调度边界不变。跟随上游采用平台换行，Windows 为 CRLF；未声称 Windows 运行验证 |
+| [#123319](https://github.com/godotengine/godot/pull/123319) / `8c4486ad3e5476aedf073b39c854b6210b3586f0` | 原样回移 bounded token `memcpy`、vendor patch `0003` 和 README；本分支已有 `0002`，没有补入额外 glslang 版本升级 |
+
+### 10.2 验证结果与边界
+
+- GCC 14 Linux Mono editor 与 minimal-extra release + tests 增量构建通过；使用 `optimize=none lto=none`，release 复用隔离的 `first_batch_validation` 后缀，不覆盖 shipping/LTO 产物
+- 新增 native focused：editor **4/4、278 断言**，随机顺序再次通过；release 与首批组合 **10/10、323 断言**。二进制资源测试覆盖普通/压缩 × little/big endian 四种组合、嵌套资源、Unicode、64-bit 整数及 Variant 数据；Ref 测试覆盖 derived/base、null、正确引用计数、提取后的存活与最终释放，另验公开 API 拒绝不兼容类型
+- 物理测试调用真实 `GodotBody2D` force/velocity integration 与 broadphase/direct-space collision query，覆盖无 CCD 的连续两次远距离传送、终点碰撞、旧位置/中途排除，以及 ray/shape CCD sweep 的保留与下一静止 step 清除。不是完整游戏场景 benchmark
+- 扩展相关 native aggregate：editor **381/381、124,568 断言**；release **362/362、86,368 断言**。包含 Variant、Resource、GodotPhysics2D、首批回归、Animation、Callable、ClassDB、Dictionary、Array、Tree 和 Shader 名称匹配集合。沿用旧 GUI 测试的预期非 `_draw()` 绘制诊断，断言全通过；不是整个引擎测试套件
+- .NET 8 source-generator 全量 **66/66**；既有 managed editor smoke **35 断言**再次通过。GodotTools 与新增日志测试项目均 **0 warnings / 0 errors**
+- MSBuild 实际 headless editor/panel 测试 **11 断言**：null/空/空白/内嵌 LF 和 CRLF、实际 deferred queue、重复 flush、后续批次、builder 复用、20,000 条并发 stdout/stderr 完整且各流顺序不乱。原始 buffer 按平台换行检查，RichTextLabel 的 CR 归一化另行检查。格式整理后用本轮重建的 editor 再次通过
+- glslang 实际生产 header 的 ASan/UBSan 边界测试：**1,283** 种长度、显式 prefix、精确分配且无 NUL 的 source、`SIZE_MAX` 截断、NUL 终止、尾部/相邻 guard 与 metadata 保持。LeakSanitizer 在 ptrace 环境不可用，仅关闭 leak 检查；未将其计为 leak pass
+- glslang 八个受 header 影响的 translation unit 独立重编译；四种实际 preprocess + original/expanded parse/link 场景通过：macro replay/punctuation、identifier/operator paste、stringification、1024-character identifier。旧 archive 上同一 expected-expansion 集合也通过；源码上游 patch 和 vendor patch 逆向应用检查通过
+- 本轮未重复三套 JIT/Trim/NativeAOT 导出；之前第 9 节导出证据仍属于首批。未进行 GPU render、Apple、Windows/macOS 真机运行或性能测量，不重新发布冻结交付包
+
+### 10.3 可复现入口
+
+原生回归已纳入 `tests/core/io/test_resource.cpp`、`tests/core/variant/test_variant.cpp` 和 `tests/servers/test_godot_physics_2d.cpp`。两个独立 runner 随源码保留：`misc/msbuild_log_validation/` 和 `misc/glslang_validation/`，详见各自 README。
+
+工具链环境同第 9 节。主要命令：
+
+```sh
+scons platform=linuxbsd target=editor module_mono_enabled=yes tests=yes dev_build=no debug_symbols=no optimize=none lto=none accesskit=no wayland=no -j8
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*SecondFixBatch*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*SecondFixBatch*' --order-by=rand --rand-seed=17
+scons profile=misc/build_profiles/linux_release_minimal_extra.py target=template_release tests=yes lto=none optimize=none extra_suffix=first_batch_validation accesskit=no wayland=no -j8
+bin/godot.linuxbsd.template_release.x86_64.first_batch_validation.mono --headless --test --test-case='*SecondFixBatch*,*FirstFixBatch*'
+# 对 editor 和 release 分别运行此 aggregate filter：
+# --test-case='*Variant*,*Resource*,*GodotPhysics2D*,*FirstFixBatch*,*Animation*,*Callable*,*ClassDB*,*Dictionary*,*Array*,*Tree*,*Shader*'
+dotnet test modules/mono/editor/Godot.NET.Sdk/Godot.SourceGenerators.Tests -c Release -m:1 -p:BuildInParallel=false
+misc/msbuild_log_validation/run.sh "$PWD/bin/godot.linuxbsd.editor.x86_64.mono" /absolute/isolated-output
+ASAN_OPTIONS=detect_leaks=0 GLSLANG_ARCHIVE="$PWD/bin/obj/modules/libmodule_glslang.linuxbsd.editor.x86_64.a" misc/glslang_validation/run.sh /absolute/isolated-output
+```
+
+本工作区日志和上游审计 snapshot 摘录：`../godot-second-batch-validation/`（不纳入 Git）。这是本地工作树验证，远程 CI 必须另外核对最终提交；native binary 的版本标签可能仍显示构建时 HEAD。
