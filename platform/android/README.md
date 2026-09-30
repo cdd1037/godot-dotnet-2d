@@ -45,3 +45,10 @@ source attribution, build evidence and device-verification limits.
 Full LTO exceeded the validation machine’s RAM budget even with bounded threads.
 This is a build-environment limit, not a claim that Android cannot use full LTO.
 The maintained release profile therefore uses four-thread ThinLTO.
+
+## JVM provider regression tests
+
+Run `./gradlew :lib:testTemplateDebugUnitTest` from `platform/android/java`.
+The SAF suite covers Android API 24/28 and 36. Install a Java 21 JDK for the
+Robolectric test launcher; the Android application still compiles to Java 17.
+This is provider simulation, not device validation.

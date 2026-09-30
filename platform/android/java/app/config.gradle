@@ -55,12 +55,13 @@ ext.getExportVersionName = { ->
 ext.getExportMinSdkVersion = { ->
     String minSdkVersion = project.hasProperty("export_version_min_sdk") ? project.property("export_version_min_sdk") : ""
     if (minSdkVersion == null || minSdkVersion.isEmpty()) {
-        minSdkVersion = "$versions.minSdk"
+        // Prebuilt templates also need the Vulkan 1.1 app floor; the AAR/native floor stays 24.
+        minSdkVersion = "29"
     }
     try {
-        return Integer.parseInt(minSdkVersion)
+        return Math.max(29, Integer.parseInt(minSdkVersion))
     } catch (NumberFormatException ignored) {
-        return versions.minSdk
+        return 29
     }
 }
 

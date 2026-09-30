@@ -4186,9 +4186,8 @@ Error EditorExportPlatformAndroid::export_project_helper(const Ref<EditorExportP
 		}
 
 		if (file == THEMED_ICON_XML_PATH) {
-			// Store themed_icon.xml data.
+			// Retain this resource as well as its data: resources.arsc still references it.
 			themed_icon_xml_data = data;
-			skip = true;
 		}
 
 		if (file == ICON_XML_PATH) {
