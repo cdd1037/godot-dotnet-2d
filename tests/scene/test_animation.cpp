@@ -137,10 +137,44 @@ TEST_CASE("[Animation] Deleted track formats are rejected") {
 		CHECK_FALSE(valid);
 		CHECK(animation->get_track_count() == 0);
 	}
+	const int invalid_types[] = { -1, 1, 2, 3, 4, 9, 127, 255 };
 	ERR_PRINT_OFF;
-	CHECK(animation->add_track(static_cast<Animation::TrackType>(1)) == -1);
+	for (const int type : invalid_types) {
+		for (const int position : { -1, 0, 100 }) {
+			CHECK_EQ(animation->add_track(static_cast<Animation::TrackType>(type), position), -1);
+			CHECK_EQ(animation->get_track_count(), 0);
+		}
+	}
 	ERR_PRINT_ON;
-	CHECK(animation->get_track_count() == 0);
+
+	// Every retained type still supports insertion and append, and invalid
+	// additions must leave existing track order, paths and key data untouched.
+	for (const Animation::TrackType type : { Animation::TYPE_VALUE, Animation::TYPE_METHOD,
+			 Animation::TYPE_BEZIER, Animation::TYPE_AUDIO, Animation::TYPE_ANIMATION }) {
+		Ref<Animation> populated = memnew(Animation);
+		CHECK_EQ(populated->add_track(Animation::TYPE_VALUE), 0);
+		populated->track_set_path(0, NodePath("Anchor:position"));
+		populated->track_insert_key(0, 0.0, 42);
+		CHECK_EQ(populated->add_track(type, 0), 0);
+		CHECK_EQ(populated->track_get_type(0), type);
+		ERR_PRINT_OFF;
+		for (const int invalid : invalid_types) {
+			for (const int position : { -1, 0, 1, 100 }) {
+				CHECK_EQ(populated->add_track(static_cast<Animation::TrackType>(invalid), position), -1);
+				CHECK_EQ(populated->get_track_count(), 2);
+			}
+		}
+		ERR_PRINT_ON;
+		CHECK_EQ(populated->track_get_type(0), type);
+		CHECK_EQ(populated->track_get_type(1), Animation::TYPE_VALUE);
+		CHECK_EQ(populated->track_get_path(1), NodePath("Anchor:position"));
+		CHECK_EQ(int(populated->track_get_key_value(1, 0)), 42);
+		CHECK_EQ(populated->add_track(type), 2);
+		CHECK_EQ(populated->add_track(type, 100), 3);
+		CHECK_EQ(populated->track_get_type(2), type);
+		CHECK_EQ(populated->track_get_type(3), type);
+		CHECK_EQ(populated->get_track_count(), 4);
+	}
 }
 
 TEST_CASE("[Animation][FirstFixBatch] Moving tracks respects both boundaries") {

@@ -780,7 +780,7 @@ Android NativeAOT 等微软所需支持就绪后另行评估，当前不做适�
 - .NET 8 source-generator 全量测试：66/66 通过；新增 getter-only override 继承 base setter 的 TOOLS / 无 TOOLS 两种测试。此问题发生在生成阶段，不能描述成所有 AOT 导出都会失败
 - 原生聚合构建：GCC 14 Linux editor + Mono + tests 构建通过；minimal-extra release + Mono + tests 构建通过。验证构建使用 `optimize=none lto=none`，不是新的 shipping/LTO 体积测量
 - 新增原生回归：editor 8/8、随机顺序重复 8/8；release 6/6（内存计数仅 DEBUG 可用，PCK helper 测试仅 editor 可用，故 release 不伪报这两项）。覆盖释放后 Callable、Tree 析构、Animation 两侧边界、matrix/vector 常量折叠、解析器节点释放、ClassDB 四线程冷缓存与 constructor 重入、五类 dummy RID owner 并发分配/释放
-- 扩大后的相关原生集合：320 个测试中 319 通过、1 个既有失败。`Deleted track formats are rejected` 要求已删除枚举值 1 的 `Animation::add_track` 返回 -1；`dbd171fd` 原实现只记录错误并返回 0、没有新增轨道。此失败不来自本批 move-up/down 补丁，未通过降低断言掩盖
+- 扩大后的相关原生集合初轮为 319/320，发现一个既有失败：`Animation::add_track` 收到已删除类型时没有新增轨道，却返回 0 而非 -1。用户随后单独批准修复；按第 9.4 节修改实现并扩充断言后，当前集合为 **320/320，通过 115,242 项断言**。未降低断言或把旧故障归因于本批 move-up/down 补丁
 - Managed editor smoke：35 项断言通过，包含 binary/JSON typed Dictionary 保持不同 C# key/value scripts、继承属性 native Set/Get、Error 返回值、signal awaiter 和释放后的 native Callable
 - PCK 宽度边界回归：196 个真实 helper 的 alignment/residue 组合覆盖 2^31、2^32、2^40 与接近 2^63 的位置。独立编译原 helper 得到 75 个失败，修复后为 0；持久化原生测试直接调用生产 helper（protected static，仅测试 accessor 暴露），不分配巨型文件
 - 三模式真实 embedded release export：JIT、Trimmed JIT、NativeAOT 各 35 项断言通过；AOT 在移除 `DOTNET_ROOT` 后再次通过（`dynamic_code=False`）。模板副本分别设置长度余数 3/5/7，实际 PCK magic 起点、footer 和 embedded region 长度校验通过；另有覆盖起始/载荷全部 8×8 余数组合的模型检查，此模型不冒充 64 次实际导出
@@ -808,3 +808,14 @@ dotnet test modules/mono/editor/Godot.NET.Sdk/Godot.SourceGenerators.Tests -c Re
 ```
 
 具体 source snapshot、上游 merge/constituent SHA、完整命令日志和 smoke runner 保存在本工作区验证目录。首轮 native binary 在提交前从相同工作树源码构建，显示的 Git 版本标签可仍为 base HEAD；这不是针对最终提交的远程 CI 验证，也不与冻结交付包混用。
+
+
+### 9.4 单独授权的 Animation 无效轨道类型修复
+
+记录：2026-09-30。此项是首批回归发现后另行批准的本地修复，不算作额外上游 PR，也不改动第一批 12 项的来源范围。
+
+- `Animation::add_track` 的 default 分支改为 `ERR_FAIL_V_MSG(-1, ...)`，无效类型立即返回失败，不创建轨道，也不再触发虚假的 `changed` 通知。有效类型的 insertion / append 路径不变
+- 扩充现有测试，覆盖负值转换、已删除的类型 1–4、未知值 9/127/255，以及空/非空 Animation、不同插入位置、所有五种保留类型；检查既有轨道顺序、路径、key 数据和有效返回索引
+- Editor / release 均完成增量构建；editor animation-focused **12/12**（530 断言），相关 aggregate **320/320**（115,242 断言）；release 的 animation + first-batch 集合 **17/17**（568 断言）
+- Read-only review 通过。没有为这一行 runtime 错误返回修复再次执行三套导出；第 9.2 节 JIT/Trim/AOT 导出证据仍明确属于先前 12 项批次，图形环境与平台验证边界不变
+- 日志：`../godot-first-batch-validation/animation-enum-{editor-build,focused,aggregate,release-build,release-tests}.log`

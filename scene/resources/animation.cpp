@@ -622,7 +622,7 @@ int Animation::add_track(TrackType p_type, int p_at_pos) {
 
 		} break;
 		default: {
-			ERR_PRINT("Unknown track type");
+			ERR_FAIL_V_MSG(-1, "Unknown track type");
 		}
 	}
 	emit_changed();
