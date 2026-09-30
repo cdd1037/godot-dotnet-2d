@@ -131,3 +131,10 @@ checks must not be mistaken for those remote validations.
 References: [Windows runner image](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md),
 [MSVC /GL](https://learn.microsoft.com/en-us/cpp/build/reference/gl-whole-program-optimization),
 [MSVC /LTCG](https://learn.microsoft.com/en-us/cpp/build/reference/ltcg-link-time-code-generation).
+
+A branch push can explicitly request the existing full build by putting `[full-ci]`
+in the head commit's subject line. This also overrides a documentation-only skip.
+Commit-body mentions and pull-request titles/messages do not enable it. Ordinary
+pushes and PRs keep the lightweight path. The opt-in runs the one LTO template,
+three managed publishing modes and Actions artifact upload; release creation
+remains restricted to the existing validated tag push job.

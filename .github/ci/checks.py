@@ -28,7 +28,13 @@ def classify() -> list[str]:
     event_name = os.environ.get("GITHUB_EVENT_NAME", "")
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     event = json.loads(Path(event_path).read_text()) if event_path else {}
-    full = event_name == "workflow_dispatch" or os.environ.get("GITHUB_REF", "").startswith("refs/tags/")
+    ref = os.environ.get("GITHUB_REF", "")
+    title = ((event.get("head_commit") or {}).get("message") or "").partition("\n")[0]
+    full = (
+        event_name == "workflow_dispatch"
+        or ref.startswith("refs/tags/")
+        or (event_name == "push" and ref.startswith("refs/heads/") and "[full-ci]" in title)
+    )
     base = event.get("pull_request", {}).get("base", {}).get("sha") or event.get("before", "")
     if base and set(base) != {"0"}:
         try:

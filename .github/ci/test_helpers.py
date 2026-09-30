@@ -92,6 +92,39 @@ class HelperTests(unittest.TestCase):
                     classify()
                 self.assertEqual(output.read_text().strip(), expected)
 
+    def test_full_ci_marker_is_branch_push_title_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            event = Path(temp) / "event.json"
+            output = Path(temp) / "output.txt"
+            for event_name, ref, head_commit, expected in [
+                ("push", "refs/heads/main", {"message": "[full-ci] Validate .NET 10"}, True),
+                ("push", "refs/heads/check", {"message": "Validate .NET 10 [full-ci]"}, True),
+                ("push", "refs/heads/main", {"message": "Docs\n\n[full-ci]"}, False),
+                ("push", "refs/heads/main", {"message": "full-ci without brackets"}, False),
+                ("push", "refs/heads/main", None, False),
+                ("pull_request", "refs/pull/1/merge", {"message": "[full-ci] Untrusted title"}, False),
+                ("pull_request", "refs/heads/main", {"message": "[full-ci] Untrusted title"}, False),
+                ("push", "refs/pull/1/merge", {"message": "[full-ci] Not a branch"}, False),
+            ]:
+                event.write_text(json.dumps({"before": "a" * 40, "head_commit": head_commit}))
+                output.write_text("")
+                with (
+                    patch.dict(
+                        os.environ,
+                        {
+                            "GITHUB_EVENT_NAME": event_name,
+                            "GITHUB_EVENT_PATH": str(event),
+                            "GITHUB_REF": ref,
+                            "GITHUB_OUTPUT": str(output),
+                        },
+                        clear=True,
+                    ),
+                    patch("checks.git", return_value="README.md\0"),
+                ):
+                    classify()
+                value = str(expected).lower()
+                self.assertEqual(output.read_text().strip(), f"build={value}\nfull={value}")
+
     def test_ltcg_requires_real_code_generation(self):
         verify_ltcg("link /LTCG foo.obj\nGenerating code\nFinished generating code\n")
         for text in [
