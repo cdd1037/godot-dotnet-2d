@@ -16,6 +16,21 @@ from pipeline import verify_ltcg
 
 
 class HelperTests(unittest.TestCase):
+    def test_scons_creates_cache_parent_on_clean_and_repeated_runs(self):
+        for target in ["editor", "template_release"]:
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                cache = root / ".scons-cache"
+                self.assertFalse(cache.exists())
+                with patch.object(pipeline, "ROOT", root):
+                    first = pipeline.scons(target)
+                    self.assertTrue(cache.is_dir())
+                    sentinel = cache / "existing-cache-entry"
+                    sentinel.write_text("preserved", encoding="utf-8")
+                    self.assertEqual(pipeline.scons(target), first)
+                    self.assertEqual(sentinel.read_text(encoding="utf-8"), "preserved")
+                self.assertIn(f"target={target}", first)
+
     def test_documentation_filter_is_conservative(self):
         self.assertTrue(docs_only(["README.md", "doc/intro.rst"]))
         for paths in [

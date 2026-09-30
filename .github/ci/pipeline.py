@@ -73,6 +73,8 @@ def prepare() -> None:
 
 
 def scons(target: str) -> list[str]:
+    # SCons creates each cache atomically inside its parent after a cache miss.
+    (ROOT / ".scons-cache").mkdir(parents=True, exist_ok=True)
     return [
         sys.executable,
         "-m",
