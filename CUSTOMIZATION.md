@@ -977,3 +977,29 @@ misc/integer_math_validation/run.sh /absolute/output-directory
 ```
 
 调试器 GUI 的图标回退未专项交互测试。没有重复 release / .NET generator / JIT-Trim-AOT / 跨平台矩阵；未推送、未更改冻结产物。证据：`../godot-fifth-batch-validation/`。
+
+<a id="upstream-sixth-batch"></a>
+## 15. 第六批：UTF-8 生命周期与平台防护
+
+记录：2026-09-30。基于 `f2f95400`，保持本地提交、不推送、不改冻结产物。
+
+- **部分回移** [#120746](https://github.com/godotengine/godot/pull/120746)：仅修正 ASAP error reporting、PulseAudio 输出/输入设备名称的临时 UTF-8 悬空指针，令 owning CharString 覆盖使用周期。上游 input hunk 误用 output_device_name，本地保留正确的 input_device_name。未移入 lifetime attribute 体系、Image/StreamPeerBuffer/Polygon2D/NavigationPolygon 的返回引用 API 或已删除 MeshDataTool；不能把本 PR 标记为完整移植
+- [#120087](https://github.com/godotengine/godot/pull/120087)：Windows file-ID 查询检查错误、为不支持 Ex API 的卷回退 legacy API、比较卷序号及完整 ID，并在比较期间保留两个打开句柄。不同句柄使用不同查询能力时保守返回 false；这不是所有文件系统上完美等价性判断的承诺
+- [#121995](https://github.com/godotengine/godot/pull/121995)：Metal extension texture 无需创建 view 时 retain 借入纹理，与释放路径配对
+- [#123439](https://github.com/godotengine/godot/pull/123439)：metal-cpp SharedPtr 用 nil-safe Objective-C message 调用代替对空 C++ 对象调用方法；同步保留 vendor patch 和更新脚本的 patch 目录处理
+- [#123580](https://github.com/godotengine/godot/pull/123580)：Wayland popup 缩放后的尺寸 clamp 到至少 1×1，避免提交无效协议尺寸
+
+验证按平台分开说明：
+
+- Linux Mono editor 增量构建通过，包含 error/PulseAudio 修改，无编译 warning/error。ASAP 回归在 callback 中分配同长度 UTF-8 buffers 后核对完整非 ASCII 文本：**1/1 case、2 断言通过**；String / CowData aggregate **127/127、14,867 断言通过**。运行时打印的一条 WARNING 是测试的显式输入
+- 当前 Windows 生产函数原文被提取到 portable mock Win32 harness，在 `-O2` + UBSan 下覆盖 **13 条路径**：Ex / legacy 相同与不同卷及高低 ID、混合能力、打开失败、查询失败、base fallback，以及所有路径的句柄关闭。测试在 `misc/platform_fix_validation/`；这是控制流与比较逻辑检查，**不是 Windows 编译或真实外置盘/网络盘测试**
+- metal-cpp 两份 vendor patch 均通过 `git apply --reverse --check --directory=thirdparty/metal-cpp`，更新脚本通过 Bash 语法检查；Metal retain/release 与 nil 调用路线已源码审查
+- **未验证**：macOS/Metal 编译与设备运行、真实 Windows 文件系统、Wayland popup 运行、PulseAudio 设备连接。本次 editor 为 `wayland=no`，因此不能用它冒称 Wayland 编译验证。没有安装额外环境或重跑 .NET 三模式矩阵
+
+```sh
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*SixthFixBatch*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*SixthFixBatch*,*String*,*CowData*'
+misc/platform_fix_validation/run_windows_file_id.sh /absolute/output-directory
+```
+
+证据：`../godot-sixth-batch-validation/`。这一批不改变 ClassDB / C# SDK 公共签名；平台行为的真实验证仍需适用环境。

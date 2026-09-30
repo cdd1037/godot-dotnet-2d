@@ -261,7 +261,8 @@ Error AudioDriverPulseAudio::init_output_device() {
 	attr.maxlength = (uint32_t)-1;
 	attr.minreq = (uint32_t)-1;
 
-	const char *dev = output_device_name == "Default" ? nullptr : output_device_name.utf8().get_data();
+	const CharString device_name = output_device_name == "Default" ? CharString() : output_device_name.utf8();
+	const char *dev = device_name.ptr(); // nullptr for the default device.
 	pa_stream_flags flags = pa_stream_flags(PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE);
 	int error_code = pa_stream_connect_playback(pa_str, dev, &attr, flags, nullptr, nullptr);
 	ERR_FAIL_COND_V(error_code < 0, ERR_CANT_OPEN);
@@ -752,7 +753,8 @@ Error AudioDriverPulseAudio::init_input_device() {
 		ERR_FAIL_V(ERR_CANT_OPEN);
 	}
 
-	const char *dev = input_device_name == "Default" ? nullptr : input_device_name.utf8().get_data();
+	const CharString device_name = input_device_name == "Default" ? CharString() : input_device_name.utf8();
+	const char *dev = device_name.ptr(); // nullptr for the default device.
 	pa_stream_flags flags = pa_stream_flags(PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE);
 	int error_code = pa_stream_connect_record(pa_rec_str, dev, &attr, flags);
 	if (error_code < 0) {
