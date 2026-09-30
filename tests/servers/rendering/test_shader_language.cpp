@@ -36,6 +36,53 @@ TEST_FORCE_LINK(test_shader_language)
 
 namespace TestShaderLanguage {
 
+
+TEST_CASE("[ShaderLanguage][FourthFixBatch] Struct comparisons avoid scalar constant evaluation") {
+	ShaderLanguage::ShaderCompileInfo info;
+	info.shader_types.insert("canvas_item");
+	for (const char *op : { "==", "!=" }) {
+		ShaderLanguage language;
+		const String code = String("shader_type canvas_item; struct Foo { int x; }; void compare() { Foo a; a ") + op + " a; }";
+		CHECK_MESSAGE(language.compile(code, info) == OK, language.get_error_text());
+	}
+	for (const char *op : { "<", "+" }) {
+		ShaderLanguage language;
+		const String code = String("shader_type canvas_item; struct Foo { int x; }; void compare() { Foo a; a ") + op + " a; }";
+		CHECK(language.compile(code, info) != OK);
+	}
+	ShaderLanguage language;
+	CHECK(language.compile("shader_type canvas_item; struct Foo { int x; }; void compare() { Foo a; a == 1; }", info) != OK);
+}
+
+TEST_CASE("[ShaderLanguage][FourthFixBatch] Function argument defaults are initialized") {
+	// Poison raw storage before constructing, so this exercises default member
+	// initializers rather than relying on zero-filled stack memory.
+	alignas(ShaderLanguage::FunctionNode::Argument) unsigned char storage[sizeof(ShaderLanguage::FunctionNode::Argument)];
+	memset(storage, 0xA5, sizeof(storage));
+	auto *argument = memnew_placement(storage, ShaderLanguage::FunctionNode::Argument);
+	CHECK_FALSE(argument->tex_argument_check);
+	CHECK_FALSE(argument->tex_builtin_check);
+	CHECK(argument->tex_hint == ShaderLanguage::ShaderNode::Uniform::HINT_NONE);
+	CHECK_FALSE(argument->is_const);
+	CHECK(argument->array_size == 0);
+	argument->~Argument();
+
+	ShaderLanguage language;
+	ShaderLanguage::ShaderCompileInfo info;
+	info.shader_types.insert("canvas_item");
+	REQUIRE_MESSAGE(language.compile("shader_type canvas_item; float helper(float value) { return value; }", info) == OK, language.get_error_text());
+	const auto *function = language.get_shader()->functions.getptr("helper");
+	REQUIRE(function != nullptr);
+	REQUIRE(function->function != nullptr);
+	REQUIRE(function->function->arguments.size() == 1);
+	const auto &parsed = function->function->arguments[0];
+	CHECK_FALSE(parsed.tex_argument_check);
+	CHECK_FALSE(parsed.tex_builtin_check);
+	CHECK(parsed.tex_hint == ShaderLanguage::ShaderNode::Uniform::HINT_NONE);
+	CHECK_FALSE(parsed.is_const);
+	CHECK(parsed.array_size == 0);
+}
+
 TEST_CASE("[ShaderLanguage][FirstFixBatch] Constant mat4 vector multiplication") {
 	ShaderLanguage language;
 	ShaderLanguage::ShaderCompileInfo info;

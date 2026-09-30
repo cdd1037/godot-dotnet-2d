@@ -928,3 +928,30 @@ scons platform=linuxbsd target=editor module_mono_enabled=yes tests=yes dev_buil
 bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*ThirdFixBatch*,*VariantInitialization*'
 bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*NodePath*,*String*,*CowData*,*Variant*,*PackedScene*,*GodotPhysics2D*,*ThirdFixBatch*'
 ```
+
+<a id="upstream-fourth-batch"></a>
+## 13. 第四批：shader parser 与编辑器稳定性
+
+记录：2026-09-30。基于 `c09c6ec6`，六项小修正继续仅在本地合入，冻结产物与托管 SDK 不变。
+
+- [#121409](https://github.com/godotengine/godot/pull/121409)：struct 的有效比较不再进入仅支持 scalar 的常量求值；回归将原 spatial 复现改为保留的 canvas_item，覆盖 `==` / `!=`、非法比较与运算
+- [#121785](https://github.com/godotengine/godot/pull/121785)：初始化 shader 函数参数的五个字段；poisoned raw storage placement-construction 和实际解析结果均检查默认值
+- [#121784](https://github.com/godotengine/godot/pull/121784)：dock 目标不是 DockTabContainer 时不解引用空 cast；适配当前旧版嵌套条件，未引入新 dock layout API
+- [#122254](https://github.com/godotengine/godot/pull/122254)：延期滚动改传 TreeItem 的 ObjectID，调用时再取活对象；保留 center_on_item 参数。旧 header 的相邻方法不同，签名手工适配
+- [#121403](https://github.com/godotengine/godot/pull/121403)：用 display server 名称识别 headless，不再把暂时不能绘制的普通窗口当作命令行模式
+- [#122935](https://github.com/godotengine/godot/pull/122935)：只有实际成功加载或卸载 GDExtension 才触发 reload 信号；不存在的扩展连续加载三次，不产生 reload 信号
+
+验证：同一个 Linux Mono editor 配置增量构建成功，无编译 warning/error；聚焦含既有 shader 回归 **5/5 cases、68 断言通过**。Shader / Tree / Object / Callable 相关 aggregate **254/254、11,915 断言通过**，运行中有三条既有绘制上下文 guard 报错，不能描述成完全无错误输出。
+
+真实 headless editor import：缺少 Linux 库的 GDExtension 正常报出 unsupported-platform 错误后退出（exit 0，未超时），project.godot SHA-256 不变。首次 smoke fixture 使用了不再允许的 compatibility_minimum=4.0，随后改成 4.1 重跑，最终确实到达缺平台库路径。可复现脚本 `misc/editor_stability_validation/run.sh` 已单独跑通。
+
+**验证边界**：dock 浮窗/移动、普通窗口最小化和关闭全部场景的真实 GUI 交互未专项自动化复现；本批有对应源码审查、编译与相关测试，并不冒称 UI 全路径通过。未重复托管 generator / 三发布模式 / release / Windows / Metal 矩阵。
+
+```sh
+scons platform=linuxbsd target=editor module_mono_enabled=yes tests=yes dev_build=no debug_symbols=no optimize=none lto=none accesskit=no wayland=no -j8
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*FourthFixBatch*,*ShaderLanguage*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*FourthFixBatch*,*Shader*,*Tree*,*Object*,*Callable*'
+misc/editor_stability_validation/run.sh "$PWD/bin/godot.linuxbsd.editor.x86_64.mono" /absolute/new-output-directory
+```
+
+证据：`../godot-fourth-batch-validation/`，包括 provenance.json、构建/原生测试/导入日志与 project.godot 前后摘要。该 shell smoke fixture 针对 Linux 环境设计。
