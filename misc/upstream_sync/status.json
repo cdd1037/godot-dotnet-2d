@@ -6,8 +6,7 @@
   "original_high_totals": {
     "ported": 38,
     "partially_ported": 1,
-    "deferred": 2,
-    "needs_deeper_review": 2
+    "deferred": 4
   },
   "entries": [
     {
@@ -238,7 +237,7 @@
       "audit_priority": "high",
       "status": "ported",
       "batch": "eleventh",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "77a9d05b"
     },
     {
       "number": 121958,
@@ -326,8 +325,8 @@
       "url": "https://github.com/godotengine/godot/pull/122667",
       "upstream_merge_sha": "6f2a20afbad43c3d23bc4965c1fd92f3315c52c9",
       "audit_priority": "high",
-      "status": "needs_deeper_review",
-      "reason": "Requires adaptation to trimmed animation editor and move/copy/paste/undo regression tests."
+      "status": "deferred",
+      "reason": "Upstream move-selection hunks restore Bezier handle modes using pre-move key indices after key ordering can change; duplicate-overwrite undo reinserts old values without restoring old handle modes. Requires time-based key identification plus overlapping-key move/copy/paste/undo/redo regression coverage before adoption."
     },
     {
       "number": 122935,
@@ -425,8 +424,8 @@
       "url": "https://github.com/godotengine/godot/pull/123693",
       "upstream_merge_sha": "dc9675d5266b16f956e988afe6e81ae8ea4fb7af",
       "audit_priority": "high",
-      "status": "needs_deeper_review",
-      "reason": "Broader inspector/connection callback lifetime conversion needs deletion and deferred callback regression coverage."
+      "status": "deferred",
+      "reason": "Patch conflicts with older inspector/connection callback structure. Resolving a deleted edited object to nullptr makes edit(nullptr) return early on pointer equality, skipping stale-editor cleanup; several newly resolved pointers are dereferenced without null guards. Requires ObjectID-based state comparison and deferred deletion/clear/edit callback regression coverage."
     },
     {
       "number": 123739,
@@ -528,5 +527,8 @@
       "batch": "ninth",
       "checkpoint": "72427fff"
     }
-  ]
+  ],
+  "stage_1_status": "Complete: source frozen at dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7; matched full-LTO A/B and native smoke passed; parent-coordinated stage-boundary publication pending.",
+  "stage_1_source_commit": "dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7",
+  "stage_1_measurement": "misc/upstream_sync/stage1_lto_comparison.json"
 }

@@ -1126,3 +1126,54 @@ bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*RenderingD
 ```
 
 可复现工具在 `misc/spirv_reflection_validation/`；工作区证据 `../godot-eleventh-batch-validation/`。冻结包不变。high 台账现在 **38 完整、1 部分、2 明确延期、2 待深入验证**。
+
+<a id="stage-one-freeze"></a>
+## 21. 阶段一源码冻结与剩余项
+
+记录：2026-09-30。最后生产代码批次为 `77a9d05b`。阶段一按“正确性 → 低风险性能 → 体积”完成这一轮有界同步；最新安排是在 A/B 和汇总后统一推送，再开始单独的 .NET 10 + Android 阶段。此时生产树仍是 .NET 8 桌面，不把已准备的 Android 工具链误称为已恢复 Android。
+
+原 high 清单 **43 = 38 完整移植 + 1 部分移植 + 4 具体原因延期**：
+
+- #120746 部分：已移入实际 UTF-8 临时对象生命周期修正；完整 lifetime annotation / 引用返回签名迁移未采用
+- #119123 + #120545 延期：异步 shader-cache 加载没有保留当前创建失败后的源码重编译 fallback，失败 placeholder RID 还需所有权修正；当前串行锁仍覆盖 driver shader creation，所以尚未引入这组并行 Metal race
+- #122667 延期：上游移动 Bezier keys 的若干新增调用使用移动前 index，而新时间可改变 index；duplicate-overwrite 的 undo 又未恢复覆盖前 handle mode。需要统一基于 key time 的定位，并验证跨越/重叠 key 的 move/copy/paste/undo/redo，不能把该原补丁当作完整修正
+- #123693 延期：与旧 inspector/connection 结构有冲突；dead ObjectID 解析成 null 后，edit(nullptr) 的 pointer-equality early return 会跳过 stale editor 清理，且一些新增解析指针随即无 guard 解引用。需要 ObjectID 状态比较和 deferred delete/clear/edit 交互回归，不做整段盲移植
+
+除此之外已合入先前 Ref / MSBuild / 常量注册及本轮 WAV / 扫描释放 / metadata 体积等有证据的小项；完整记录在 `misc/upstream_sync/status.json`。这不是宣称审计中其余数百个 medium/low 均已处理。
+
+### 阶段一收尾验证口径
+
+- 每批一个 Linux Mono editor 配置并用相关 native tests 验证，复用未受影响的测试结果；没有逐 PR 重跑 JIT / Trim / NativeAOT 或跨平台矩阵
+- 源码与托管 API 的新鲜 before/after 全量 extension API + docs 比较保持逐字节一致（见第 18 节）
+- Windows mock / graph CPU-recording / SPIR-V standalone 证据各有明确限制；不冒称 Windows、Metal、NVIDIA 或真实 GUI 所有路径均运行通过
+- 组合 LTO A/B 选择 `96caefac`（#123968 前）与本阶段冻结源码，同 GCC 14、Linux x86_64 minimal-extra、optimize=size、full LTO、accesskit=no、wayland=no，独立工作树且顺序构建，避免同时 LTO 峰值内存和干扰后续 Android 环境。只测 native 模板与一致压缩包；不替换冻结交付物，不单独归因给某个 PR
+
+<a id="stage-one-lto-results"></a>
+## 22. 阶段一最终 LTO A/B 结果
+
+记录：2026-09-30。阶段一生产代码冻结在 `dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7`（最后生产代码批次 `77a9d05b`），本节和测量 JSON 是后续仅文档提交，不把二进制版本标签冒充成这个后续文档提交。
+
+**同配置组合结果**，before=`96caefacf36fa83b5cf8f1639ca0cfa47bde3c18`、after=`dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7`：
+
+| 指标 | Before | After | 减少 |
+|---|---:|---:|---:|
+| 已 strip 原生模板 | 31,328,888 B / 29.87756 MiB | 30,681,688 B / 29.26034 MiB | **647,200 B，2.0658%** |
+| 仅原生模板 ZIP | 11,749,981 B | 11,542,810 B | **207,171 B，1.7632%** |
+
+- 两侧都是 GCC 14.2.0、Linux x86_64、`linux_release_minimal_extra.py`、`optimize=size`、**full LTO**、`accesskit=no`、`wayland=no`、`-j4`。独立工作树顺序构建，两个 return code 都是 0；.gnu.lto_.opts 明确包含 `-Os` / `-flto`
+- 该 SCons 配置已 strip，显式 `strip --strip-unneeded` 不再改变字节。ZIP 固定同 entry 名称、1980-01-01 时间、Unix 0755 属性、deflate level 9；不混入 PCK、SDK、C# 程序或 .NET runtime
+- 原生 SHA-256：before `8e082b52277a9e8334d9b05db57901605b394af21e53bc8fbddba170e2982561`；after `f8d880f6607f8cb5024933c2434d159fcf2b9e66ead15f31093a301f0c6aa519`
+- 结果是 **#123968 与之后整个阶段一的合计变化**，不把它全部归因于 StringName、常量宏或某一单独 PR；源码 revision 字符串自然不同。也不能外推成 Windows/macOS/Android、完整 .NET 游戏包或 AOT payload 的实测收益
+
+### 最终验证
+
+- 合并运行新增/既有修复相关 native filters：**37/37 test cases、5,754 断言通过**；复用同一 editor 配置，不再重跑无关矩阵。显式 lifetime regression 会打印一条测试 WARNING
+- 阶段一最终 editor 与 #123968 前 baseline 的完整 extension API + docs 仍逐字节相同：SHA-256 `73806db750b20ce1c5749306b996299d414b2dd69bd7aa1c598ddbec3ea73722`；core/editor hash 仍 `131315370` / `1704154020`
+- 两个 LTO template 均用同一 **1,648-byte native-only PCK** 完成 headless startup、5 frames、正常退出。PCK SHA-256 `d9c0f4c1521caed28a82b685c3e4ab95f3374df1648b501f032779789e6f85fe`。这不是 managed JIT/Trim/AOT 或 GPU 实机验证
+- 初始 smoke 先尝试 --path 和 CWD，两者被 release 的 `disable_path_overrides` 策略正确拒绝；随后改用真实 PCK 完成验证，**没有为了 smoke 改变两侧构建配置**
+- 两侧 LTO 都保留同一既有 ICU ODR warning：`icudt_godot78_dat` 的 `DataHeader` / `ICU_data_header` 类型名不同。构建和 native smoke 成功，但不能称为 warning-free，也没有把这个独立既有问题临时纳入冻结代码
+- 构建耗时记录：before 393.85 s、after 379.84 s；最大单个 child RSS 约 2.16 / 2.14 GiB。这仅是本次资源/耗时记录，**不是编译速度或运行内存 benchmark**
+
+完整机读结果和 hashes：[misc/upstream_sync/stage1_lto_comparison.json](misc/upstream_sync/stage1_lto_comparison.json)。工作区保留 before/after 可执行文件、确定性 ZIP、PCK、日志、manifest、API dumps 与配置证据：`../godot-stage1-size-validation/`。历史冻结交付包没有被覆盖。
+
+阶段一原 high 清单最终仍为 **38 完整 + 1 部分 + 4 有具体依据的延期 = 43**。此检查点只等待上层统一推送及随后 .NET 10/Android 阶段；没有把后续迁移预先混入本轮源码或测量。

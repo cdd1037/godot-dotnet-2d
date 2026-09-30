@@ -1,0 +1,132 @@
+{
+  "before_commit": "96caefacf36fa83b5cf8f1639ca0cfa47bde3c18",
+  "after_source_commit": "dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7",
+  "metrics": {
+    "godot.linuxbsd.template_release.x86_64.mono": {
+      "before_bytes": 31328888,
+      "after_bytes": 30681688,
+      "delta_bytes": -647200,
+      "reduction_bytes": 647200,
+      "reduction_percent": 2.0658249983210384,
+      "before_MiB": 29.87755584716797,
+      "after_MiB": 29.260337829589844
+    },
+    "native-only.zip": {
+      "before_bytes": 11749981,
+      "after_bytes": 11542810,
+      "delta_bytes": -207171,
+      "reduction_bytes": 207171,
+      "reduction_percent": 1.7631602978762264,
+      "before_MiB": 11.205655097961426,
+      "after_MiB": 11.008081436157227
+    }
+  },
+  "warning": "Both builds report the existing ICU DataHeader/ICU_data_header ODR warning.",
+  "scope": "Matched Linux x86_64 native template only. Combined #123968 and subsequent stage-1 changes, not individual PR attribution. ZIP uses same entry name, timestamp, permissions and deflate level 9; PCK excluded.",
+  "toolchain": [
+    "gcc (Debian 14.2.0-19) 14.2.0",
+    "g++ (Debian 14.2.0-19) 14.2.0",
+    "GNU ld (GNU Binutils for Debian) 2.44",
+    "GNU strip (GNU Binutils for Debian) 2.44"
+  ],
+  "builds": {
+    "before": {
+      "command": [
+        "scons",
+        "profile=misc/build_profiles/linux_release_minimal_extra.py",
+        "use_llvm=no",
+        "accesskit=no",
+        "wayland=no",
+        "-j4"
+      ],
+      "seconds": 393.8506766560022,
+      "returncode": 0,
+      "max_child_rss_kib": 2262848
+    },
+    "after": {
+      "command": [
+        "scons",
+        "profile=misc/build_profiles/linux_release_minimal_extra.py",
+        "use_llvm=no",
+        "accesskit=no",
+        "wayland=no",
+        "-j4"
+      ],
+      "seconds": 379.8408588090024,
+      "returncode": 0,
+      "max_child_rss_kib": 2240248
+    }
+  },
+  "artifacts": {
+    "before": {
+      "commit": "96caefacf36fa83b5cf8f1639ca0cfa47bde3c18",
+      "configuration": "Linux x86_64 minimal-extra; GCC 14; optimize=size; full LTO; tests=no; accesskit=no; wayland=no; -j4",
+      "files": {
+        "godot.linuxbsd.template_release.x86_64.mono": {
+          "bytes": 31328888,
+          "sha256": "8e082b52277a9e8334d9b05db57901605b394af21e53bc8fbddba170e2982561"
+        },
+        "native-only.zip": {
+          "bytes": 11749981,
+          "sha256": "d02a30d921c2fd94d461d124f7bf38d15f5a77ad300629fda3751eb1227ab319"
+        },
+        "native-as-built": {
+          "bytes": 31328888,
+          "sha256": "8e082b52277a9e8334d9b05db57901605b394af21e53bc8fbddba170e2982561"
+        }
+      },
+      "note": "SCons already stripped the output; explicit strip --strip-unneeded does not change bytes. Native-only PCK smoke, not managed JIT/trim/AOT validation.",
+      "native_smoke_pck": {
+        "bytes": 1648,
+        "sha256": "d9c0f4c1521caed28a82b685c3e4ab95f3374df1648b501f032779789e6f85fe",
+        "exit_code": 0
+      }
+    },
+    "after": {
+      "commit": "dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7",
+      "configuration": "Linux x86_64 minimal-extra; GCC 14; optimize=size; full LTO; tests=no; accesskit=no; wayland=no; -j4",
+      "files": {
+        "native-as-built": {
+          "bytes": 30681688,
+          "sha256": "f8d880f6607f8cb5024933c2434d159fcf2b9e66ead15f31093a301f0c6aa519"
+        },
+        "godot.linuxbsd.template_release.x86_64.mono": {
+          "bytes": 30681688,
+          "sha256": "f8d880f6607f8cb5024933c2434d159fcf2b9e66ead15f31093a301f0c6aa519"
+        },
+        "native-only.zip": {
+          "bytes": 11542810,
+          "sha256": "010db0fd5fe8be29d2cdd6b99087e688cf1d701048fc4525b0cc20123f9d536a"
+        }
+      },
+      "native_smoke_pck": {
+        "bytes": 1648,
+        "sha256": "d9c0f4c1521caed28a82b685c3e4ab95f3374df1648b501f032779789e6f85fe",
+        "exit_code": 0
+      },
+      "note": "SCons already stripped the output; explicit strip --strip-unneeded does not change bytes. Native-only PCK smoke, not managed JIT/trim/AOT validation."
+    }
+  },
+  "final_targeted_regression": {
+    "cases_passed": 37,
+    "assertions_passed": 5754,
+    "configuration": "Linux Mono editor, optimize=none, lto=none, tests=yes; reused unchanged source components"
+  },
+  "final_api_comparison": {
+    "full_api_equal": true,
+    "api_hashes": {
+      "CORE": "131315370",
+      "EDITOR": "1704154020"
+    },
+    "before_json_sha256": "73806db750b20ce1c5749306b996299d414b2dd69bd7aa1c598ddbec3ea73722",
+    "after_json_sha256": "73806db750b20ce1c5749306b996299d414b2dd69bd7aa1c598ddbec3ea73722",
+    "global_constants": 11,
+    "global_enums": 22,
+    "global_enum_values": 517,
+    "classes": 687,
+    "class_constants": 142,
+    "class_enums": 542,
+    "class_enum_values": 3629
+  },
+  "evidence_directory": "../godot-stage1-size-validation/"
+}
