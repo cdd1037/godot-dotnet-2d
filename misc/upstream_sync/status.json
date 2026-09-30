@@ -94,7 +94,7 @@
       "audit_priority": "high",
       "status": "ported",
       "batch": "seventh",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "d34cce71"
     },
     {
       "number": 120731,
@@ -226,7 +226,7 @@
       "audit_priority": "high",
       "status": "ported",
       "batch": "seventh",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "d34cce71"
     },
     {
       "number": 121835,
@@ -463,6 +463,36 @@
       "status": "ported",
       "batch": "constant-registration",
       "checkpoint": "5031c516"
+    },
+    {
+      "number": 120036,
+      "title": "Improve performance of WAV parsing",
+      "url": "https://github.com/godotengine/godot/pull/120036",
+      "upstream_merge_sha": "9749dbfe764a705fe385d88476bac5c7a3fcf15c",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "eighth",
+      "checkpoint": "see git history for this status file"
+    },
+    {
+      "number": 122829,
+      "title": "Fix memory leak of a `ScannedDirectory` instance in `EditorFileSystem`",
+      "url": "https://github.com/godotengine/godot/pull/122829",
+      "upstream_merge_sha": "075654d1872db3494db9fab7f87e37a09ce63826",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "eighth",
+      "checkpoint": "see git history for this status file"
+    },
+    {
+      "number": 123813,
+      "title": "Fix memory leak when falling back to a different display or accessibility server",
+      "url": "https://github.com/godotengine/godot/pull/123813",
+      "upstream_merge_sha": "d797b26d5421d5669237dfb81e7b32df8d5ba3e9",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "eighth",
+      "checkpoint": "see git history for this status file"
     }
   ]
 }

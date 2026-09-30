@@ -41,6 +41,103 @@ TEST_FORCE_LINK(test_audio_stream_wav)
 
 namespace TestAudioStreamWAV {
 
+
+static Vector<uint8_t> make_regression_wav(int p_bits, bool p_float, bool p_constant = false, bool p_silence_edges = false) {
+	constexpr int frames = 32;
+	constexpr int channels = 2;
+	const int bytes = p_bits / 8;
+	Vector<uint8_t> result;
+	result.resize(44 + frames * channels * bytes);
+	uint8_t *w = result.ptrw();
+	memcpy(w, "RIFF", 4);
+	encode_uint32(result.size() - 8, w + 4);
+	memcpy(w + 8, "WAVEfmt ", 8);
+	encode_uint32(16, w + 16);
+	encode_uint16(p_float ? 3 : 1, w + 20);
+	encode_uint16(channels, w + 22);
+	encode_uint32(48000, w + 24);
+	encode_uint32(48000 * channels * bytes, w + 28);
+	encode_uint16(channels * bytes, w + 32);
+	encode_uint16(p_bits, w + 34);
+	memcpy(w + 36, "data", 4);
+	encode_uint32(frames * channels * bytes, w + 40);
+	const double pattern[] = { -0.5, 0.0, 0.5, 0.25 };
+	for (int i = 0; i < frames * channels; i++) {
+		double sample = p_constant ? (i % 2 == 0 ? 0.25 : 0.5) : pattern[i % 4];
+		if (p_silence_edges && (i / channels < 4 || i / channels >= frames - 4)) {
+			sample = 0;
+		}
+		uint8_t *dst = w + 44 + i * bytes;
+		if (p_float) {
+			if (p_bits == 32) {
+				encode_float(sample, dst);
+			} else {
+				encode_double(sample, dst);
+			}
+		} else if (p_bits == 8) {
+			*dst = int(sample * 128) + 128;
+		} else {
+			const uint32_t encoded = uint32_t(int64_t(sample * double(uint64_t(1) << (p_bits - 1))));
+			for (int byte = 0; byte < bytes; byte++) {
+				dst[byte] = (encoded >> (8 * byte)) & 0xFF;
+			}
+		}
+	}
+	return result;
+}
+
+TEST_CASE("[Audio][AudioStreamWAV][EighthFixBatch] Buffered WAV parsing preserves PCM and float samples") {
+	for (int encoding : { 8, 16, 24, 32, -32, -64 }) {
+		const int bits = Math::abs(encoding);
+		Vector<uint8_t> input = make_regression_wav(bits, encoding < 0);
+		const Vector<uint8_t> original = input;
+		Ref<AudioStreamWAV> stream = AudioStreamWAV::load_from_buffer(input, Dictionary());
+		REQUIRE(stream.is_valid());
+		CHECK(input == original);
+		CHECK(stream->is_stereo());
+		CHECK(stream->get_mix_rate() == 48000);
+		const Vector<uint8_t> output = stream->get_data();
+		CHECK(output.size() == 64 * (bits == 8 ? 1 : 2));
+		const int16_t expected[] = { -16384, 0, 16384, 8192 };
+		for (int i = 0; i < 64; i++) {
+			if (bits == 8) {
+				CHECK(int8_t(output[i]) == expected[i % 4] / 256);
+			} else {
+				CHECK(int16_t(decode_uint16(output.ptr() + i * 2)) == expected[i % 4]);
+			}
+		}
+	}
+}
+
+TEST_CASE("[Audio][AudioStreamWAV][EighthFixBatch] WAV transforms preserve resample normalize mono and trim") {
+	Dictionary options;
+	options["force/max_rate"] = true;
+	options["force/max_rate_hz"] = 24000;
+	options["edit/normalize"] = true;
+	options["force/mono"] = true;
+	Ref<AudioStreamWAV> stream = AudioStreamWAV::load_from_buffer(make_regression_wav(32, true, true), options);
+	REQUIRE(stream.is_valid());
+	CHECK_FALSE(stream->is_stereo());
+	CHECK(stream->get_mix_rate() == 24000);
+	Vector<uint8_t> output = stream->get_data();
+	REQUIRE(output.size() == 32);
+	for (int i = 0; i < 16; i++) {
+		CHECK(int16_t(decode_uint16(output.ptr() + i * 2)) == 24576);
+	}
+	options.clear();
+	options["edit/trim"] = true;
+	stream = AudioStreamWAV::load_from_buffer(make_regression_wav(16, false, true, true), options);
+	REQUIRE(stream.is_valid());
+	CHECK(stream->get_data().size() > 0);
+	CHECK(stream->get_data().size() < 32 * 2 * 2);
+	options.clear();
+	options["compress/mode"] = 1;
+	stream = AudioStreamWAV::load_from_buffer(make_regression_wav(16, false, true), options);
+	REQUIRE(stream.is_valid());
+	CHECK(stream->get_format() == AudioStreamWAV::FORMAT_IMA_ADPCM);
+	CHECK_FALSE(stream->get_data().is_empty());
+}
+
 // Default wav rate for test cases.
 constexpr float WAV_RATE = 44100;
 /* Default wav count for test cases. 1 second of audio is used so that the file can be listened

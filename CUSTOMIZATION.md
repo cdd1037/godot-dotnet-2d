@@ -1028,3 +1028,25 @@ bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*RenderingD
 可机读台账：[misc/upstream_sync/status.json](misc/upstream_sync/status.json)。原 43 项 high 中 **35 项已移植、1 项部分移植、7 项待深入验证**；“已移植”指源码集成和本文明确范围的验证，不代表全部平台均运行通过。台账另记录前面已移植的 medium/low 项，不把它们加进 43 项分母。
 
 剩余 high：#115557 nested local-to-scene、#120354 深层重排复制、#119123/#120545 并行 shader cache 与 Metal 锁、#121835 SPIR-V reflection lookup、#122667 Bezier undo/clipboard、#123693 inspector/connection 生命周期。各自的具体待验证点见台账；不为清零计数机械套用补丁。后续可先处理证据充分的小型正确性/性能改进，并继续研究这些剩余项。
+
+<a id="upstream-eighth-batch"></a>
+## 17. 第八批：WAV 解析与临时对象释放
+
+记录：2026-09-30。基于 `d34cce71`，在剩余 high 需要更深验证时先处理三个小型 medium 项；high 台账仍为 35 完整、1 部分、7 待深入验证。
+
+- [#120036](https://github.com/godotengine/godot/pull/120036)：WAV 读样本、重采样、normalize、trim、mono、ADPCM 声道分离循环缓存 Vector 指针，避免逐样本重复执行 COW 检查。指针均局限在没有 resize/替换原 buffer 的循环内；未声称已量化加速
+- [#122829](https://github.com/godotengine/godot/pull/122829)：非首次文件扫描结束释放本次创建的 ScannedDirectory 树；首次扫描仍由 first_scan_root_dir 原有所有者释放，没有双重释放
+- [#123813](https://github.com/godotengine/godot/pull/123813)：启动时切换 display/accessibility fallback 之前销毁失败的旧实例。**本地适配**：当前 memdelete(Object*) 不接受空指针，因此先检查指针，不直接照搬上游无条件 memdelete，避免 nullptr failure 路径引入崩溃
+
+验证：同一 Linux Mono editor 增量构建成功，最终无编译 warning/error。首次测试编译发现本基线没有 ABS 宏且 load_from_buffer 要求显式 options，修正测试后继续构建；没有为了测试引入 API 变化。
+
+AudioStreamWAV 全套 **11/11 cases、573 断言通过**。新增人工构造 RIFF fixtures 覆盖 PCM 8/16/24/32-bit 与 IEEE float 32/64-bit，逐样本检查输出、保留输入 buffer，另测组合 resample + normalize + force-mono、trim 和 ADPCM 分支。现有 headless editor import smoke 再次通过并保持 project.godot 不变。
+
+**边界**：没有实测 WAV benchmark；没有专门触发真实 display/accessibility failure fallback 或量化重复 rescan 的内存回收。两处小型释放修改经所有权审查、编译和启动 smoke；不冒称它们已通过故障注入/LSan。未重复 .NET / release / 平台矩阵，也未推送或覆盖冻结包。
+
+```sh
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*AudioStreamWAV*'
+misc/editor_stability_validation/run.sh "$PWD/bin/godot.linuxbsd.editor.x86_64.mono" /absolute/new-output-directory
+```
+
+证据：`../godot-eighth-batch-validation/`。三个 medium 项已加入持续回移台账。
