@@ -1,5 +1,11 @@
 # Godot Engine
 
+## 本 fork：2D / .NET 桌面定制
+
+定制范围、引擎与 .NET 改动、匹配构建/产物、验证边界和分级长期待办见
+**[CUSTOMIZATION.md](CUSTOMIZATION.md)**。本 fork 已裁剪 3D、GDScript、移动/Web 等能力；
+下方保留的上游介绍不代表本 fork 的可用功能。Android 恢复、SAF 合并与定制导出尚在规划中。
+
 <p align="center">
   <a href="https://godotengine.org">
     <img src="misc/logo/logo_outlined.svg" width="400" alt="Godot Engine logo">
