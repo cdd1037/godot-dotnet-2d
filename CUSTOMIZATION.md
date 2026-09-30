@@ -1050,3 +1050,27 @@ misc/editor_stability_validation/run.sh "$PWD/bin/godot.linuxbsd.editor.x86_64.m
 ```
 
 证据：`../godot-eighth-batch-validation/`。三个 medium 项已加入持续回移台账。
+
+<a id="upstream-ninth-batch"></a>
+## 18. 第九批：StringName 与元数据析构体积优化
+
+记录：2026-09-30。基于 `1e5c2efd`，回移 [#123960](https://github.com/godotengine/godot/pull/123960)、[#123984](https://github.com/godotengine/godot/pull/123984)、[#124025](https://github.com/godotengine/godot/pull/124025)。最新安排是在阶段一完成后统一推送；本批提交时仍没有中途推送，也未启动 .NET 10/Android 集成。
+
+- StringName::Table 的 table/mutex/allocator 从 static inline 改为 cpp 中定义；configured 状态移入 Table，析构只判 `_data`，teardown guard 集中到 unref
+- PropertyInfo / MethodInfo 的默认析构标注 `_NO_INLINE_`，显式默认化 copy/move constructor 与 assignment，避免声明析构后丢失原来的 move 路线。不是 GDType Member 架构迁移，也不是改公开字段布局
+- 当前 GCC editor 对象文件确认 table 符号为 BSS (`B`) 且为 0x80000 字节，configured 为 BSS 1 字节；这只是节区证据，**不是完整 LTO 发布包节省 512 KiB 或上游数 MB 的实测结论**
+
+验证：一个 Linux Mono editor 构建配置；新增测试最初用 Vector<PropertyInfo> 整体比较触发此基线缺少 `operator!=` 的编译错误，改成逐元素既有 `operator==` 后构建干净，没有增添公开比较运算符。
+
+- StringName copy/move/reintern/lifetime、PropertyInfo/MethodInfo copy/move/vector relocation 与既有常量注册聚焦测试 **6/6 cases、3,764 断言通过**
+- String / ClassDB / metadata aggregate **136/136、120,381 断言通过**
+- 从本批修改前的新 editor 与修改后 editor 分别导出的完整 extension API + docs **逐字节相同**，SHA-256 均为 `73806db750b20ce1c5749306b996299d414b2dd69bd7aa1c598ddbec3ea73722`；core/editor ClassDB hash 仍为 `131315370` / `1704154020`，687 类及所有常量/enum/方法/文档保持一致
+- 正常 headless startup/API dump/shutdown 完成，没有借此宣称覆盖所有异常 teardown 路线
+
+```sh
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*NinthFixBatch*,*ConstantRegistration*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*ClassDB*,*String*,*PropertyInfo*,*MethodInfo*,*NinthFixBatch*'
+python3 misc/constant_registration_validation/compare_api.py /absolute/before /absolute/after
+```
+
+工作区证据：`../godot-ninth-batch-validation/`。LTO 体积将在阶段一末尾做 **96caefac → 阶段一最终源码** 的同工具链/profile组合 A/B，涵盖 #123968 与之后批次，不把合计变化单独归因给某一 PR；不重复整套 .NET 导出矩阵或覆盖冻结包。

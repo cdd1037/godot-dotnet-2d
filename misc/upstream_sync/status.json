@@ -1,7 +1,7 @@
 {
   "updated": "2026-09-30",
   "source_audit_master": "2490bf30ec229ef3eeda24befb9d80d2226c8d29",
-  "publication": "Local commits only; no push authorized for these batches. Frozen artifacts unchanged.",
+  "publication": "Local stage-1 work; parent coordinates one stage-boundary push after validation. No intermediate GitHub writes. Frozen artifacts unchanged.",
   "scope": "Integration ledger; the original 1362-PR applicability audit remains an immutable snapshot. Ported means source integrated with risk-based verification documented in CUSTOMIZATION.md, not full platform runtime coverage.",
   "original_high_totals": {
     "ported": 35,
@@ -472,7 +472,7 @@
       "audit_priority": "medium",
       "status": "ported",
       "batch": "eighth",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "1e5c2efd"
     },
     {
       "number": 122829,
@@ -482,7 +482,7 @@
       "audit_priority": "medium",
       "status": "ported",
       "batch": "eighth",
-      "checkpoint": "see git history for this status file"
+      "checkpoint": "1e5c2efd"
     },
     {
       "number": 123813,
@@ -492,6 +492,36 @@
       "audit_priority": "medium",
       "status": "ported",
       "batch": "eighth",
+      "checkpoint": "1e5c2efd"
+    },
+    {
+      "number": 123960,
+      "title": "Move `StringName::Table` data into zero-fill sections to save ~512kb.",
+      "url": "https://github.com/godotengine/godot/pull/123960",
+      "upstream_merge_sha": "32d4957988b1caf8dc94e2315fa00120415fd935",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "ninth",
+      "checkpoint": "see git history for this status file"
+    },
+    {
+      "number": 123984,
+      "title": "Out-line the `configured` check of `~StringName()`, to save binary size. 4mb off macOS, ~750kb off web.",
+      "url": "https://github.com/godotengine/godot/pull/123984",
+      "upstream_merge_sha": "706e2958ab8fd626533437eec17ef72b288293ff",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "ninth",
+      "checkpoint": "see git history for this status file"
+    },
+    {
+      "number": 124025,
+      "title": "Move `MethodInfo` and `PropertyInfo` destructors to their `.cpp` file (1.3mb web)",
+      "url": "https://github.com/godotengine/godot/pull/124025",
+      "upstream_merge_sha": "e47d9a4205b594ac5a6e29078e46803d027fe7c0",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "ninth",
       "checkpoint": "see git history for this status file"
     }
   ]
