@@ -2,7 +2,7 @@
 
 更新：2026-09-30。本文是本 fork 的统一维护入口，记录引擎修改、构建配对、已验证产物和分级待办。
 
-- **引擎实现检查点**：`36914aeaa5d291f417afc83c70eb3d03feea19b3`；后续 CI 和本文提交不改变本节描述的引擎实现
+- **冻结包实现检查点**：`36914aeaa5d291f417afc83c70eb3d03feea19b3`；当前开发源码另包含 [第 9 节首批上游正确性回移](#upstream-first-batch)，冻结包未覆盖
 - **当前目标**：2D / .NET 桌面工具链；全平台 .NET 10 升级方向已确认，但尚未完成或合入。Android 目标仍为 .NET 10（`net10.0`）/CoreCLR 普通预编译 APK 模板导出，最新决定暂缓集成，尚未加入桌面分支
 - **迁移状态**：生产源码、已封存桌面包和现有 CI 仍以 .NET 8 为已配置/验证基线；独立迁移草稿保留、不合并，本轮不继续桌面或 Android 迁移。暂缓不等于永久取消 .NET 10 目标
 - **验证状态**：Linux 已完成下述场景的三模式运行；Windows 仅完成交叉编译和静态检查；Android 仅有独立源码补丁与局部测试
@@ -22,6 +22,7 @@
 6. [验证、体积和产物索引](#evidence)
 7. [分级待办与验收](#roadmap)
 8. [长期研究细节与参考](#research)
+9. [首批上游正确性回移](#upstream-first-batch)
 
 <a id="versions"></a>
 ## 1. 版本与项目布局
@@ -33,6 +34,7 @@
 | .NET 优化冻结版 | `1c26d4743e678d66db23c369c043ea738ea8bfe9` | interop、构造、静态元数据、三发布模式、typed collection 修正 |
 | Linux 当前冻结包 | `4c802b3b40e174f6aee45cc3d7b8c27e93960f8f` | 在 1c 上修复 custom-instance 注册宏，重建并回归 |
 | 桌面源码 / Windows 当前包 | `36914aeaa5d291f417afc83c70eb3d03feea19b3` | 在 4c 上加入 Windows 修正、可选 profile、真实 LTO 路径、SDL 两行回移 |
+| 首批上游正确性源码 | `d00abd3f`（含 `3c063387`、`b7989fd3`、`0f9e13ce`） | 第 9 节 12 项小修复，本地批量回归；冻结包不变 |
 | Windows-only CI 本地配置 | `3632efa16d7e90303eff0c243f8a35fbabf0f573` | 仅修改 `.github`；真实远程运行与发布仍未验证 |
 | Android 独立分支 | `5cbce23002b89339cc77118fdc2394d95ea67284` → `fdaea11a1f2bc877b7f102f177f078c645cb9b7e` | 直接基于官方 ed1daf0bf 的 `android-saf-diraccess`，未合入本 fork |
 
@@ -499,9 +501,12 @@ Android 插件、自定义 Gradle 构建或 AAB 如有需要，属于另行选�
 | R1 首次 PCK 全目录快照 #122438：用户暂缓 | 影响首次同步阻塞；依赖文件量/隐藏目录/忽略目录、首次和后续加载及目录枚举基线 | 磁盘/PCK 合并视图、replace_files、.godot/imported、UID、加载后新增文件都正确；不得简单跳过 .godot/隐藏目录或回滚可见性修复；性能与正确性同时验收 |
 | C1 NuGet.org 接入：以后单独配置 | 当前只构建/交付本地 NuGet 包；依赖用户以后准备账号、包名/版本策略、发布权限和安全凭证，并再次授权接入 | 用户自己的发布配置就绪后，验证版本/依赖配对、预发布或受控发布与失败处理；不能把生成 nupkg、CI artifact 或 Release 附件当作已发布 NuGet.org |
 | Q1 已记录诊断清理：候选维护项 | 改善升级与审查质量；依赖明确区分文档、退出残留和 native-host 契约 | 清理 53 条过期文档引用；复现并归因 Node StringName 退出残留；SDK 升级重验 native-host 内部属性/IL2026；不全局屏蔽、不无证据宣布泄漏或普遍 trim-safe |
+| B1 保留功能的编译耗时优化：已列入后续计划，尚未实施 | 优先分析 `core/variant/variant_call.cpp` 与 `modules/godot_physics_2d/godot_collision_solver_2d_sat.cpp`；先固定工具链与构建配置，采集编译器阶段计时，区分头文件解析、模板实例化、优化与代码生成瓶颈 | 评估头文件依赖整理、模板复用、适当移出头文件的实现、谨慎拆分翻译单元及缓存/增量构建；同机同配置比较干净构建与典型增量构建耗时，并复验运行性能、二进制体积与行为，无功能裁剪或静默降低优化质量 |
 
 N1 细节见 [导航研究](#research-navigation)，R1 见 [PCK 研究](#research-pck)。
 Q1 是对已知诊断的维护候选，不改变 frozen binaries 或当前运行结论。
+B1 先以编译器阶段数据定位原因，再决定具体改动；已有单文件耗时只作为调查线索，不能据此承诺优化收益。
+本次仅记录计划，不实施构建优化，也不为此中断正在运行的 CI。
 
 ### 7.5 P3：远期架构
 
@@ -744,3 +749,62 @@ Android NativeAOT 等微软所需支持就绪后另行评估，当前不做适�
 [最终 blob 检查](../godot-windows-minimal/artifacts/sdl-bool-fix-36914aea/icu-final-blob-check.json)
 同样找到唯一 56-byte stub、`.rdata` RVA `0x1671a80`、16-byte 对齐。
 这仍不证明语言层 ODR/aliasing 正确，不改变 Windows 尚未运行的事实。
+
+
+<a id="upstream-first-batch"></a>
+## 9. 首批上游正确性回移
+
+记录：2026-09-30。基于本地 `dbd171fd3ec2e13bc9624ea161d57aefe5053b11`，按完整上游审计的首批 12 项进行小型正确性修复。保持当前 2D 裁剪、自有静态 C# metadata、.NET 8、JIT/Trim/NativeAOT 架构；不包含 .NET 10 或大规模 GDType/ClassDB 迁移。
+
+### 9.1 来源与适配
+
+| 上游 PR | 本地处理 |
+|---|---|
+| [#98396](https://github.com/godotengine/godot/pull/98396) | 只取 `ScriptPropertyDefValGenerator` 缺失的一处继承 setter 检查；其他 helper/metadata 已有本地实现，不重复覆盖 |
+| [#121277](https://github.com/godotengine/godot/pull/121277) | `Dictionary::set_typed(ContainerType, ContainerType)` 正确使用 value script，保留本地 C# 静态类型元数据路径 |
+| [#112813](https://github.com/godotengine/godot/pull/112813) | embedded PCK 起点和尾部用 `_get_pad(8, ...)` 补齐；本地额外将 helper 的位置参数拓宽至 `uint64_t`，避免超过 2 GiB 时窄化为负数导致补齐为 0 |
+| [#120731](https://github.com/godotengine/godot/pull/120731) | 在较旧的 Tree 析构函数中移除第二次 `custom_ci` 释放；不引入本地不存在的 sticky-header 成员 |
+| [#118229](https://github.com/godotengine/godot/pull/118229) | 普通 Callable 无效 target 检查不再仅限 DEBUG，release 返回 `CALL_ERROR_INSTANCE_IS_NULL` |
+| [#121265](https://github.com/godotengine/godot/pull/121265) | Animation 向上/下移动轨道时分别限制负索引和零边界 |
+| [#123546](https://github.com/godotengine/godot/pull/123546) | ClassDB default-value cache 入口加已有递归读写锁的 write guard；不迁移其他 ClassDB 实现 |
+| [#120126](https://github.com/godotengine/godot/pull/120126) | shader 常量数组节点通过 `alloc_node` 纳入解析器生命周期 |
+| [#121163](https://github.com/godotengine/godot/pull/121163) | mat4 × vec4 常量折叠从 matrix 参数取系数 |
+| [#122653](https://github.com/godotengine/godot/pull/122653) | Canvas RD 析构前清除全部已登记 canvas texture 的失效 callback |
+| [#121958](https://github.com/godotengine/godot/pull/121958) | dummy shader/material/mesh/multimesh/texture 的五个 RID owner 启用内部线程安全 |
+| [#123448](https://github.com/godotengine/godot/pull/123448) | 三个 native Error-return interop 统一 `int64_t`，匹配本 fork 生成的 C# `Error : long` |
+
+### 9.2 验证范围
+
+本轮按批构建和回归，不对每个 PR 重跑一套完整构建。新增回归随源码提交；日志与临时导出位于工作区 `../godot-first-batch-validation/`，不纳入 Git。
+
+- .NET 8 source-generator 全量测试：66/66 通过；新增 getter-only override 继承 base setter 的 TOOLS / 无 TOOLS 两种测试。此问题发生在生成阶段，不能描述成所有 AOT 导出都会失败
+- 原生聚合构建：GCC 14 Linux editor + Mono + tests 构建通过；minimal-extra release + Mono + tests 构建通过。验证构建使用 `optimize=none lto=none`，不是新的 shipping/LTO 体积测量
+- 新增原生回归：editor 8/8、随机顺序重复 8/8；release 6/6（内存计数仅 DEBUG 可用，PCK helper 测试仅 editor 可用，故 release 不伪报这两项）。覆盖释放后 Callable、Tree 析构、Animation 两侧边界、matrix/vector 常量折叠、解析器节点释放、ClassDB 四线程冷缓存与 constructor 重入、五类 dummy RID owner 并发分配/释放
+- 扩大后的相关原生集合：320 个测试中 319 通过、1 个既有失败。`Deleted track formats are rejected` 要求已删除枚举值 1 的 `Animation::add_track` 返回 -1；`dbd171fd` 原实现只记录错误并返回 0、没有新增轨道。此失败不来自本批 move-up/down 补丁，未通过降低断言掩盖
+- Managed editor smoke：35 项断言通过，包含 binary/JSON typed Dictionary 保持不同 C# key/value scripts、继承属性 native Set/Get、Error 返回值、signal awaiter 和释放后的 native Callable
+- PCK 宽度边界回归：196 个真实 helper 的 alignment/residue 组合覆盖 2^31、2^32、2^40 与接近 2^63 的位置。独立编译原 helper 得到 75 个失败，修复后为 0；持久化原生测试直接调用生产 helper（protected static，仅测试 accessor 暴露），不分配巨型文件
+- 三模式真实 embedded release export：JIT、Trimmed JIT、NativeAOT 各 35 项断言通过；AOT 在移除 `DOTNET_ROOT` 后再次通过（`dynamic_code=False`）。模板副本分别设置长度余数 3/5/7，实际 PCK magic 起点、footer 和 embedded region 长度校验通过；另有覆盖起始/载荷全部 8×8 余数组合的模型检查，此模型不冒充 64 次实际导出
+- 已保留三模式 hidden MSBuild logs：JIT 和 NativeAOT issues CSV 为空；Trimmed JIT 有 1 条现存的 .NET 8 native-hosting `IL2026`（`ComponentActivator.GetFunctionPointer` → `InternalGetFunctionPointer`），并非零警告。先前 `static-registration-clean-trimmed-jit-msbuild.log` / `typed-collections-trimmed-jit-msbuild.log` 中已有相同警告，本批未新增。Runtime 故意调用 `Array.Resize(-1)`，预期的 `ERR_INVALID_PARAMETER` 日志被精确区分，不将其计为未预期错误
+- RD canvas teardown：已准备实际 Vulkan/lavapipe 的泄漏 CanvasTexture shutdown runner，但尚未执行到 engine。当前容器的 `socket(AF_UNIX)` 返回 EPERM，Xvfb 无法启动；申请提升后的相同命令及最小 socket probe 仍失败。未修改安全/网络设置，也未把 headless dummy 运行当作 RD 验证。#122653 只有源码审阅与编译覆盖，RD 运行和 sanitizer 仍待具备图形环境时补验
+- 不重新发布或覆盖冻结产物；本地 Linux 验证不替代 Windows/macOS 运行或全平台 ABI 验证
+
+
+### 9.3 本地提交与复现入口
+
+- `3c063387`：四项 core/scene 修复及原生回归（#118229、#120731、#121265、#123546）
+- `b7989fd3`：四项 shader/rendering 修复及原生回归（#120126、#121163、#121958、#122653）
+- `0f9e13ce`：四项 managed/export/collection 修复及 generator 回归（#98396、#121277、#112813、#123448）
+- `d00abd3f`：review 后的 #112813 64-bit helper 适配与边界回归；review 通过后用修正后的 editor 重新执行全部三模式实际导出（无旧导出复用）
+
+工作区工具链环境由 `../godot-build-tools/env.sh` 提供；其他机器应先配置等价的 .NET 8 SDK、GCC 14 与 SCons。批量验证命令：
+
+```sh
+scons platform=linuxbsd target=editor module_mono_enabled=yes tests=yes dev_build=no debug_symbols=no optimize=none lto=none accesskit=no wayland=no -j8
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*FirstFixBatch*'
+bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*FirstFixBatch*' --order-by=rand --rand-seed=17
+scons profile=misc/build_profiles/linux_release_minimal_extra.py target=template_release tests=yes lto=none optimize=none extra_suffix=first_batch_validation accesskit=no wayland=no -j8
+bin/godot.linuxbsd.template_release.x86_64.first_batch_validation.mono --headless --test --test-case='*FirstFixBatch*'
+dotnet test modules/mono/editor/Godot.NET.Sdk/Godot.SourceGenerators.Tests -c Release -m:1 -p:BuildInParallel=false
+```
+
+具体 source snapshot、上游 merge/constituent SHA、完整命令日志和 smoke runner 保存在本工作区验证目录。首轮 native binary 在提交前从相同工作树源码构建，显示的 Git 版本标签可仍为 base HEAD；这不是针对最终提交的远程 CI 验证，也不与冻结交付包混用。
