@@ -137,6 +137,10 @@ def prepare_smoke() -> None:
     upstream = ET.SubElement(mappings, "packageSource", key="nuget")
     ET.SubElement(upstream, "package", pattern="*")
     ET.ElementTree(config).write(SMOKE / "NuGet.Config", encoding="utf-8", xml_declaration=True)
+    # The export plugin requires a solution even though `dotnet build` accepts
+    # the project alone. Recreate it for deterministic, repeatable CI preparation.
+    run(["dotnet", "new", "sln", "--name", "CiSmoke", "--output", SMOKE, "--force"], "smoke-solution", 60)
+    run(["dotnet", "sln", SMOKE / "CiSmoke.sln", "add", SMOKE / "CiSmoke.csproj"], "smoke-solution-add", 60)
 
 
 def test() -> None:

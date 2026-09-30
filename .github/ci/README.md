@@ -74,6 +74,8 @@ runner-image/compiler/profile keys, each capped at 2 GiB. Native compile jobs us
 4 workers (or the runner CPU count if smaller). NuGet caches are per-run and never restored from other
 projects. The smoke project maps the four Godot package IDs exclusively to the
 new local fork feed, not official Godot packages with a colliding version.
+Preparation also creates `CiSmoke.sln` and adds its project with the pinned .NET
+SDK: the export plugin requires a solution, even when a project-only build passes.
 
 The normal editor retains its broader module API. The minimal template disables
 optional modules and retains the previously agreed navigation/deprecated APIs.

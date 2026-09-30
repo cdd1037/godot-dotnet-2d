@@ -46,7 +46,7 @@ winrt = True
 
 # Additional, explicitly approved removals; keep the first comparison unchanged.
 minizip = False
-brotli = False
+brotli = True  # Required by the embedded default WOFF2 font.
 graphite = False
 builtin_certs = False
 builtin_harfbuzz = True  # HarfBuzz stays enabled; this is not a module toggle.

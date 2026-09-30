@@ -8,8 +8,8 @@
 - `minizip=False`：不注册运行时 ZIP 资源包来源；普通 PCK / 嵌入 PCK 保留。
   当前 `core/SCsub` 仍无条件编译 minizip 的第三方源码，不能把这个开关解释成
   从构建图中删除整套库。ZIP 与 zlib/Deflate 也不是同一个开关
-- `brotli=False`：不再编入内置 Brotli，禁用 FreeType 的 Brotli 集成；不能再用
-  WOFF2 或 `Compression.MODE_BROTLI` 解压。普通 TTF/OTF 字体不因此禁用
+- `brotli=True`：按最新确认恢复内置 Brotli 与 FreeType 的 Brotli 集成，保留
+  默认内嵌 WOFF2 字体、其他 WOFF2 字体和 `Compression.MODE_BROTLI` 解压能力
 - `graphite=False`：移除 SIL Graphite 智能字体引擎和 HarfBuzz 的 Graphite 桥
 - `disable_navigation_2d=False`：按最新确认保留导航节点/API/资源，暂缓彻底裁剪。
   `module_navigation_2d` 仍然关闭，因此导航后端仍是 dummy，不能当作寻路可用
@@ -23,6 +23,22 @@
 HarfBuzz 一直开启，没有 `module_harfbuzz` 这个模块开关。这里显式保留
 `builtin_harfbuzz=True`，正常 OpenType 整形仍在；关闭 Graphite 不等于关闭 HarfBuzz。
 `builtin_harfbuzz=False` 表示改用外部依赖，不能当作“删除 HarfBuzz”的方法。
+
+## 恢复 Brotli，保留默认字体
+
+当前 Linux/Windows minimal-extra 长期配置已恢复 `brotli=True`。此前
+`brotli=False` 产物和体积只作为历史对照，不代表恢复后的产物。
+
+此前裁剪说明遗漏了一项关键依赖：引擎内嵌默认字体是
+`OpenSans_SemiBold.woff2`，`scene/theme/default_theme.cpp` 仅在
+`BROTLI_ENABLED` 时向默认 FontFile 装入字体数据。因此保留 FreeType/MSDFgen
+并不等于保留默认字体；关闭 Brotli 的项目必须显式提供受支持的字体。
+Linux 同配置的非 LTO/LTO 模板均出现默认 Label 文字乱码；同一 LTO 模板在项目设置
+`gui/theme/custom_font` 指定导入的 TTF 后显示正常。若需要不配置字体即可使用默认
+Label，必须保留 Brotli。这是平台共用代码的依赖，Windows 同设置也有风险，
+恢复 Brotli 后，Linux full-LTO 实际 C# 导出在未指定自定义 TTF 的窗口测试中
+恢复正常，画面与旧基线逐字节一致；这里只恢复 Windows 配置，未重建或进行
+Windows 字体运行验证。
 
 `disable_physics_3d` / `disable_navigation_3d` 在此 fork 已硬编码为 True，
 相关 3D 源码已移除，不需要重复添加无收益参数。

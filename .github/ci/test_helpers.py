@@ -7,7 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from xml.etree import ElementTree as ET
 
+import pipeline
 from checks import classify, docs_only
 from draft_release import validate_existing_release, validate_tag, verify_assets
 from pipeline import verify_ltcg
@@ -65,6 +67,32 @@ class HelperTests(unittest.TestCase):
         ]:
             with self.assertRaises(RuntimeError):
                 verify_ltcg(text)
+
+    def test_smoke_preparation_creates_exportable_solution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            smoke = root / "isolated-output" / "smoke"
+            fixtures = root / ".github/ci/smoke"
+            fixtures.mkdir(parents=True)
+            (fixtures / "project.godot").write_text("config_version=5\n")
+            versions = root / "modules/mono/SdkPackageVersions.props"
+            versions.parent.mkdir(parents=True)
+            versions.write_text(
+                "<Project><PropertyGroup><PackageVersion_Godot_NET_Sdk>4.7.2-2dtrim.1"
+                "</PackageVersion_Godot_NET_Sdk></PropertyGroup></Project>"
+            )
+            with patch.multiple(pipeline, ROOT=root, SMOKE=smoke), patch("pipeline.run") as run:
+                pipeline.prepare_smoke()
+                pipeline.prepare_smoke()
+            self.assertEqual(run.call_count, 4)
+            expected = [
+                (["dotnet", "new", "sln", "--name", "CiSmoke", "--output", smoke, "--force"], "smoke-solution", 60),
+                (["dotnet", "sln", smoke / "CiSmoke.sln", "add", smoke / "CiSmoke.csproj"], "smoke-solution-add", 60),
+            ]
+            self.assertEqual([call.args for call in run.call_args_list], expected * 2)
+            self.assertEqual(ET.parse(smoke / "CiSmoke.csproj").getroot().get("Sdk"), "Godot.NET.Sdk/4.7.2-2dtrim.1")
+            feed = ET.parse(smoke / "NuGet.Config").find(".//packageSources/add[@key='fork']")
+            self.assertEqual(feed.get("value"), str(root / "bin/GodotSharp/Tools/nupkgs"))
 
     def test_published_and_foreign_releases_are_rejected(self):
         draft = {"draft": True, "target_commitish": "abc", "body": "<!-- ci-source-sha: abc -->"}
