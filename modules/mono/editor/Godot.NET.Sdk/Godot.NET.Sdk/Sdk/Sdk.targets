@@ -1,4 +1,20 @@
 <Project>
+  <!-- Evaluate publish settings after the user project, before the base SDK targets.
+       Project-local PublishTrimmed must select the same trim-safe code as CLI flags. -->
+  <PropertyGroup>
+    <DefineConstants Condition=" '$(PublishAot)' == 'true' ">$(DefineConstants);GODOT_AOT</DefineConstants>
+    <DefineConstants Condition=" '$(PublishTrimmed)' == 'true' ">$(DefineConstants);GODOT_TRIMMED</DefineConstants>
+  </PropertyGroup>
+
+  <!-- NativeAOT emits a loadable component; JIT exports need runtime host configuration. -->
+  <PropertyGroup>
+    <NativeLib Condition=" '$(PublishAot)' == 'true' and '$(NativeLib)' == '' ">Shared</NativeLib>
+    <GenerateRuntimeConfigurationFiles Condition=" '$(PublishAot)' != 'true' ">true</GenerateRuntimeConfigurationFiles>
+    <!-- Desktop hostfxr needs ComponentActivator. Android Mono resolves the precisely
+         rooted game method directly through coreclr_create_delegate instead. -->
+    <_EnableConsumingManagedCodeFromNativeHosting Condition=" '$(PublishTrimmed)' == 'true' and '$(PublishAot)' != 'true' and '$(GodotTargetPlatform)' != 'android' ">true</_EnableConsumingManagedCodeFromNativeHosting>
+  </PropertyGroup>
+
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" Condition="'$(GodotSdkImportsMicrosoftNetSdk)' == 'true'" />
 
   <PropertyGroup>
@@ -70,7 +86,8 @@
 
   <Target Name="ValidateGodotTrimMode" BeforeTargets="PrepareForBuild;Publish">
     <Error Condition=" '$(GodotTargetPlatform)' == 'android' and '$(RuntimeFrameworkVersion)' != '10.0.12' " Text="Android runtime must be 10.0.12 to match the native crypto JAR in this fork’s APK templates." />
-    <Error Condition=" '$(GodotTargetPlatform)' == 'android' and ('$(PublishAot)' == 'true' or '$(PublishTrimmed)' == 'true' or '$(UseMonoRuntime)' != 'true') " Text="Android exports currently require untrimmed .NET 10 Mono. Android CoreCLR, trimming, and NativeAOT are not supported." />
+    <Error Condition=" '$(GodotTargetPlatform)' == 'android' and ('$(PublishAot)' == 'true' or '$(UseMonoRuntime)' != 'true') " Text="Android exports require .NET 10 Mono JIT. Android CoreCLR and NativeAOT are not supported." />
+    <Warning Condition=" '$(GodotTargetPlatform)' == 'android' and '$(PublishTrimmed)' == 'true' and '$(PublishAot)' != 'true' " Text="Android Mono trimming is experimental. Only scripts/plugins known at publish time are supported; validate startup, rendering, lifecycle, JNI and cryptography on a device before shipping." />
     <Error Condition=" ('$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true') and '$(Configuration)' == 'Debug' " Text="Godot editor assemblies require JIT. Use ExportRelease for trimmed or NativeAOT publishing." />
     <Error Condition=" ('$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true') and '$(GodotSupportLegacyNonTrimSafeAPIs)' == 'true' " Text="Trimmed/NativeAOT games require rebuilt script metadata; disable GodotSupportLegacyNonTrimSafeAPIs." />
     <Error Condition=" '$(PublishAot)' == 'true' and '$(NativeLib)' != 'Shared' " Text="Godot NativeAOT exports must be shared libraries (NativeLib=Shared)." />

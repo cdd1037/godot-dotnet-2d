@@ -88,7 +88,7 @@ namespace GodotTools.Export
                         { "name", "dotnet/publish_mode" },
                         { "type", (int)Variant.Type.Int },
                         { "hint", (int)PropertyHint.Enum },
-                        { "hint_string", platform.GetOsName() == "Android" ? "JIT (Mono)" : "JIT (self-contained),Trimmed JIT (known scripts),NativeAOT (known scripts)" }
+                        { "hint_string", platform.GetOsName() == "Android" ? "JIT (Mono),Trimmed JIT (Mono; experimental)" : "JIT (self-contained),Trimmed JIT (known scripts),NativeAOT (known scripts)" }
                     }
                 },
                 { "default_value", 0 }
@@ -218,8 +218,8 @@ namespace GodotTools.Export
 
             var targets = new List<PublishConfig> { publishConfig };
             int publishMode = (int)GetOption("dotnet/publish_mode");
-            if (platform == OS.Platforms.Android && publishMode != 0)
-                throw new NotSupportedException("Android currently supports untrimmed .NET 10 Mono exports only.");
+            if (platform == OS.Platforms.Android && publishMode != 0 && publishMode != 1)
+                throw new NotSupportedException("Android supports .NET 10 Mono JIT and experimental trimmed Mono JIT exports only.");
             var exportedJars = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             bool embedBuildResults = ((bool)GetOption("dotnet/embed_build_outputs") || platform == OS.Platforms.Android) && platform != OS.Platforms.MacOS;

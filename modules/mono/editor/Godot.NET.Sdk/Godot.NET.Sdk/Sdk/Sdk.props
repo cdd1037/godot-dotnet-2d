@@ -103,19 +103,6 @@
     <GodotFloat64 Condition=" '$(GodotFloat64)' == '' ">false</GodotFloat64>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <DefineConstants Condition=" '$(PublishAot)' == 'true' ">$(DefineConstants);GODOT_AOT</DefineConstants>
-    <DefineConstants Condition=" '$(PublishTrimmed)' == 'true' ">$(DefineConstants);GODOT_TRIMMED</DefineConstants>
-  </PropertyGroup>
-
-  <!-- NativeAOT emits a loadable component; JIT exports need runtime host configuration. -->
-  <PropertyGroup>
-    <NativeLib Condition=" '$(PublishAot)' == 'true' and '$(NativeLib)' == '' ">Shared</NativeLib>
-    <GenerateRuntimeConfigurationFiles Condition=" '$(PublishAot)' != 'true' ">true</GenerateRuntimeConfigurationFiles>
-    <!-- Preserve component activation methods required by native hosting in trimmed JIT exports. -->
-    <_EnableConsumingManagedCodeFromNativeHosting Condition=" '$(PublishTrimmed)' == 'true' and '$(PublishAot)' != 'true' ">true</_EnableConsumingManagedCodeFromNativeHosting>
-  </PropertyGroup>
-
   <!-- Godot DefineConstants. -->
   <PropertyGroup>
     <!-- Define constants to identify Godot builds. -->

@@ -603,17 +603,22 @@ godot_plugins_initialize_fn initialize_coreclr_and_godot_plugins(bool &r_runtime
 	void *coreclr_handle = nullptr;
 	unsigned int domain_id = 0;
 	int rc = coreclr_initialize(nullptr, nullptr, 0, nullptr, nullptr, &coreclr_handle, &domain_id);
-	ERR_FAIL_COND_V_MSG(rc != 0, nullptr, ".NET: Failed to initialize CoreCLR.");
+	ERR_FAIL_COND_V_MSG(rc != 0, nullptr, ".NET: Failed to initialize the self-contained runtime.");
 
 	r_runtime_initialized = true;
 
+#ifdef ANDROID_ENABLED
+	print_verbose(".NET: Android Mono JIT initialized");
+#else
 	print_verbose(".NET: CoreCLR initialized");
+#endif
 
-	coreclr_create_delegate(coreclr_handle, domain_id,
+	rc = coreclr_create_delegate(coreclr_handle, domain_id,
 			assembly_name.utf8().get_data(),
 			"GodotPlugins.Game.Main",
 			"InitializeFromGameProject",
 			(void **)&godot_plugins_initialize);
+	ERR_FAIL_COND_V_MSG(rc != 0, nullptr, ".NET: Failed to resolve the rooted game initialization method.");
 	ERR_FAIL_NULL_V_MSG(godot_plugins_initialize, nullptr, ".NET: Failed to get GodotPlugins initialization function pointer");
 
 	return godot_plugins_initialize;
@@ -670,7 +675,7 @@ void GDMono::initialize() {
 			".NET: Invalid publish-mode marker: " + publish_mode);
 
 #ifdef ANDROID_ENABLED
-	ERR_FAIL_COND_MSG(publish_mode != "jit", ".NET: Android requires an explicit untrimmed Mono JIT export.");
+	ERR_FAIL_COND_MSG(publish_mode != "jit" && publish_mode != "trimmed-jit", ".NET: Android requires an explicit Mono JIT or trimmed Mono JIT export.");
 #endif
 	if (publish_mode == "aot") {
 		// Never let stale JIT files or an installed runtime change an AOT export's mode.
