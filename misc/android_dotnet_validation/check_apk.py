@@ -11,6 +11,7 @@ from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument("apk", type=Path)
 p.add_argument("--template", action="store_true", help="No game Mono runtime payload is expected")
+p.add_argument("--publish-mode", choices=["jit", "trimmed-jit"], default="jit")
 p.add_argument("--fixture", action="store_true", help="Also check the ETC2 validation texture")
 a = p.parse_args()
 with zipfile.ZipFile(a.apk) as z:
@@ -37,10 +38,24 @@ with zipfile.ZipFile(a.apk) as z:
             assert options["tfm"] == "net10.0", n
             assert options["includedFrameworks"][0]["version"] == "10.0.12", n
         markers = [n for n in names if n.endswith(".godot-dotnet-publish-mode")]
-        assert len(markers) == 1 and z.read(markers[0]).strip() == b"jit", "Invalid publish marker"
+        assert len(markers) == 1 and z.read(markers[0]).strip() == a.publish_mode.encode(), "Invalid publish marker"
         if a.fixture:
             assert any(n.endswith(".etc2.ctex") for n in names), "ETC2 validation texture missing"
             assert not any(n.endswith(".s3tc.ctex") for n in names), "Desktop texture included in Android APK"
+    sections = {
+        name: {"stored_bytes": 0, "uncompressed_bytes": 0}
+        for name in ("native_engine", "native_runtime", "other_apk_entries")
+    }
+    for entry in z.infolist():
+        category = (
+            "native_engine"
+            if entry.filename == "lib/arm64-v8a/libgodot_android.so"
+            else "native_runtime"
+            if entry.filename in libs
+            else "other_apk_entries"
+        )
+        sections[category]["stored_bytes"] += entry.compress_size
+        sections[category]["uncompressed_bytes"] += entry.file_size
     records = []
     for n in libs:
         b = z.read(n)
@@ -62,7 +77,9 @@ print(
             "bytes": a.apk.stat().st_size,
             "sha256": hashlib.sha256(a.apk.read_bytes()).hexdigest(),
             "libraries": records,
+            "apk_sections": sections,
             "device_runtime_test": False,
+            "publish_mode": None if a.template else a.publish_mode,
         },
         indent=2,
     )

@@ -1,0 +1,55 @@
+{
+  "native_build_source_commit": "6f49a280b9846e93f69627c010744527ab2b16ae",
+  "linux_editor_build_source_commit": "be5c554b8f9922e167d2f58ce22f18853a1a36dd",
+  "managed_package_version": "4.7.2-2dtrim.3",
+  "managed_sources_unchanged_after_initial_trim_build": true,
+  "sdk": "10.0.401",
+  "runtime": "10.0.12",
+  "rid": "android-arm64",
+  "release_profile": "misc/build_profiles/android_release_2d.py",
+  "lto": "ThinLTO, 4 link threads/backend jobs",
+  "apk_export": "actual Godot precompiled-template APK export; Gradle disabled for game export",
+  "signed": false,
+  "min_sdk": 29,
+  "target_sdk": 36,
+  "sparse_pck_entries": 186,
+  "template_native_matches_game_and_gradle_stripped_output": true,
+  "runtime_native_jar_dex_matches_official_publish": true,
+  "checks": {
+    "source_generator_tests": 66,
+    "sdk_guard_tests": 10,
+    "python_apk_repack_tests": 13,
+    "ci_helper_tests": 12,
+    "postmerge_focused_native_tests": 10,
+    "postmerge_focused_native_assertions": 55,
+    "postmerge_linux_fixture_runtime": true,
+    "apk_structural_checks": true,
+    "zipalign_16k": true,
+    "zip_crc": true,
+    "sparse_index_hashes": true
+  },
+  "not_verified": [
+    "Local ILLink: TaskHostFactory Unix socket denied, MSB4216/MSB4027",
+    "Trimmed managed output and size: awaiting permitted full CI",
+    "Automatic trimmed APK export",
+    "Android device/emulator runtime, Vulkan, crypto/JNI, lifecycle, SAF grants"
+  ],
+  "artifacts": {
+    "android_monoRelease.postmerge.apk": {
+      "bytes": 17594966,
+      "sha256": "5eb8bf24ba6730dba1745fb90121406fa22a64f7bf302ffca9de0453a66dd661"
+    },
+    "postmerge-jit-game.apk": {
+      "bytes": 33263019,
+      "sha256": "2c1f199e925312f6ef15b46ab9c96844e2bbd77a057fb6152704c136eb1826b5"
+    },
+    "scons_libgodot_android.so": {
+      "bytes": 33664008,
+      "sha256": "5c0efc15a3d9762ae672038df65a3b8ea86c7ee43930c444472ff7211d69cf5b"
+    },
+    "gradle_stripped_libgodot_android.so": {
+      "bytes": 33664000,
+      "sha256": "9d948af28aeb3904e055378da96476ca0c2ccde7198e75278eca7130179643d0"
+    }
+  }
+}

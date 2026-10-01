@@ -1,0 +1,17 @@
+config_version=5
+
+[application]
+config/name="Android Mono trimming validation"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.7", "C#")
+
+[dotnet]
+project/assembly_name="AndroidMonoSmoke"
+
+[rendering]
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+textures/vram_compression/import_s3tc_bptc=false
+
+[threading]
+worker_pool/max_threads=4

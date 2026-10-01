@@ -1,0 +1,14 @@
+[remap]
+importer="texture"
+type="CompressedTexture2D"
+path.etc2="res://.godot/imported/probe.png-02a0e72c2d09fc96ac1e7dcd09538e11.etc2.ctex"
+metadata={"vram_texture": true}
+
+[deps]
+source_file="res://probe.png"
+dest_files=["res://.godot/imported/probe.png-02a0e72c2d09fc96ac1e7dcd09538e11.etc2.ctex"]
+
+[params]
+compress/mode=2
+compress/high_quality=false
+mipmaps/generate=false
