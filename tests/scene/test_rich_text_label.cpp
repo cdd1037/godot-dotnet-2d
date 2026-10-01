@@ -37,8 +37,30 @@ TEST_FORCE_LINK(test_rich_text_label)
 #include "scene/gui/rich_text_label.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/window.h"
+#include "scene/resources/image_texture.h"
 
 namespace TestRichTextLabel {
+
+TEST_CASE("[SceneTree][RichTextLabel][Phase3] BBCode image height percentages match the image API") {
+	Ref<Image> image = Image::create_empty(16, 16, false, Image::FORMAT_RGBA8);
+	Ref<ImageTexture> texture = ImageTexture::create_from_image(image);
+	texture->set_path("res://phase3_percent_image.png");
+	RichTextLabel *parsed = memnew(RichTextLabel);
+	RichTextLabel *direct = memnew(RichTextLabel);
+	Window *root = SceneTree::get_singleton()->get_root();
+	root->add_child(parsed);
+	root->add_child(direct);
+	parsed->set_size(Size2(200, 200));
+	direct->set_size(Size2(200, 200));
+	parsed->set_use_bbcode(true);
+	parsed->set_text("[img=10x50%]res://phase3_percent_image.png[/img]");
+	direct->add_image(texture, 10, 50, Color(1, 1, 1), INLINE_ALIGNMENT_CENTER, Rect2(), Variant(), false, String(), RichTextLabel::IMAGE_UNIT_PIXEL, RichTextLabel::IMAGE_UNIT_PERCENT);
+	SceneTree::get_singleton()->process(0);
+	CHECK(parsed->get_content_height() == direct->get_content_height());
+	CHECK(parsed->get_content_width() == direct->get_content_width());
+	memdelete(parsed);
+	memdelete(direct);
+}
 
 TEST_CASE("[SceneTree][RichTextLabel] Custom minimum size with fit content") {
 	// This is an anti-regression test case introduced in GH-116640. When the old minimum size behavior is removed, this test case should be removed too.
@@ -133,6 +155,26 @@ TEST_CASE("[SceneTree][RichTextLabel] Sizing with fit content") {
 	CHECK_MESSAGE(
 			test_label->get_size().width > min_width,
 			"Label width will increase beyond the custom minimum width with AUTOWRAP_WORD_SMART.");
+
+	memdelete(test_label);
+}
+
+TEST_CASE("[SceneTree][RichTextLabel] Font size wrapping paragraph does not add empty first line") {
+	RichTextLabel *test_label = memnew(RichTextLabel);
+	Window *root = SceneTree::get_singleton()->get_root();
+	root->add_child(test_label);
+
+	test_label->set_use_bbcode(true);
+
+	test_label->set_text("[p][font_size=22]aaa[/font_size][/p]");
+	SceneTree::get_singleton()->process(0);
+	CHECK(test_label->get_paragraph_count() == 1);
+	CHECK(test_label->get_character_line(0) == 0);
+
+	test_label->set_text("[font_size=22][p]aaa[/p][/font_size]");
+	SceneTree::get_singleton()->process(0);
+	CHECK(test_label->get_paragraph_count() == 1);
+	CHECK(test_label->get_character_line(0) == 0);
 
 	memdelete(test_label);
 }
