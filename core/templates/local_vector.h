@@ -70,6 +70,16 @@ private:
 		}
 	}
 
+	// Clearing must not instantiate a default constructor through resize().
+	void _clear() {
+		if constexpr (!std::is_trivially_destructible_v<T>) {
+			for (U i = 0; i < count; i++) {
+				data[i].~T();
+			}
+		}
+		count = 0;
+	}
+
 public:
 	_FORCE_INLINE_ T *ptr() { return data; }
 	_FORCE_INLINE_ const T *ptr() const { return data; }
@@ -99,7 +109,7 @@ public:
 	/// Removes the item copying the last value into the position of the one to
 	/// remove. It's generally faster than `remove_at`.
 	void remove_at_unordered(U p_index) {
-		ERR_FAIL_INDEX(p_index, count);
+		ERR_FAIL_UNSIGNED_INDEX(p_index, count);
 		count--;
 		if (count > p_index) {
 			data[p_index] = std::move(data[count]);
@@ -150,7 +160,7 @@ public:
 	[[deprecated("Use reverse() instead")]] void invert() { reverse(); }
 #endif
 
-	_FORCE_INLINE_ void clear() { resize(0); }
+	_FORCE_INLINE_ void clear() { _clear(); }
 	_FORCE_INLINE_ void reset() {
 		clear();
 		if (data) {

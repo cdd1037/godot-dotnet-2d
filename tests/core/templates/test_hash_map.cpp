@@ -36,6 +36,17 @@ TEST_FORCE_LINK(test_hash_map)
 
 namespace TestHashMap {
 
+TEST_CASE("[HashMap][Phase3] Const character pointers hash their string contents") {
+	char first[] = "same contents";
+	char second[] = "same contents";
+	const char *a = first;
+	const char *b = second;
+	CHECK(a != b);
+	CHECK(HashMapHasherDefault::hash(a) == HashMapHasherDefault::hash(b));
+	CHECK(HashMapHasherDefault::hash(a) == hash_djb2(first));
+	CHECK(HashMapHasherDefault::hash(a) == HashMapHasherDefault::hash(first));
+}
+
 TEST_CASE("[HashMap] List initialization") {
 	HashMap<int, String> map{ { 0, "A" }, { 1, "B" }, { 2, "C" }, { 3, "D" }, { 4, "E" } };
 

@@ -36,6 +36,47 @@ TEST_FORCE_LINK(test_local_vector)
 
 namespace TestLocalVector {
 
+struct NoDefaultConstructor {
+	int *live;
+	NoDefaultConstructor() = delete;
+	explicit NoDefaultConstructor(int *p_live) : live(p_live) { ++*live; }
+	NoDefaultConstructor(const NoDefaultConstructor &p_other) : live(p_other.live) { ++*live; }
+	~NoDefaultConstructor() { --*live; }
+};
+
+TEST_CASE("[LocalVector][Phase3] Clear without a default constructor") {
+	int live = 0;
+	LocalVector<NoDefaultConstructor> values;
+	values.push_back(NoDefaultConstructor(&live));
+	values.push_back(NoDefaultConstructor(&live));
+	CHECK(live == 2);
+	const uint32_t capacity = values.get_capacity();
+	values.clear();
+	CHECK(live == 0);
+	CHECK(values.is_empty());
+	CHECK(values.get_capacity() == capacity);
+	values.clear();
+	CHECK(live == 0);
+	values.push_back(NoDefaultConstructor(&live));
+	CHECK(live == 1);
+	values.reset();
+	CHECK(live == 0);
+	CHECK(values.get_capacity() == 0);
+}
+
+TEST_CASE("[LocalVector][Phase3] Unordered removal rejects unsigned out-of-range indices") {
+	LocalVector<int> values{ 1, 2, 3 };
+	ERR_PRINT_OFF;
+	values.remove_at_unordered(UINT32_MAX);
+	values.remove_at_unordered(values.size());
+	ERR_PRINT_ON;
+	REQUIRE(values.size() == 3);
+	CHECK(values[0] == 1);
+	values.remove_at_unordered(0);
+	REQUIRE(values.size() == 2);
+	CHECK(values[0] == 3);
+}
+
 TEST_CASE("[LocalVector] List Initialization.") {
 	LocalVector<int> vector{ 0, 1, 2, 3, 4 };
 
