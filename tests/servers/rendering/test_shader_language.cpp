@@ -32,10 +32,49 @@
 
 TEST_FORCE_LINK(test_shader_language)
 
+#include "servers/rendering/shader_compiler.h"
 #include "servers/rendering/shader_language.h"
 
 namespace TestShaderLanguage {
 
+
+TEST_CASE("[ShaderLanguage][Phase3] Compiler uses scientific float formatting") {
+	ShaderCompiler compiler;
+	compiler.initialize(ShaderCompiler::DefaultIdentifierActions());
+	ShaderCompiler::IdentifierActions actions;
+	ShaderCompiler::GeneratedCode generated;
+	const String source = "shader_type canvas_item; const float fractional = 0.123456789; const float whole = 2.0;";
+	REQUIRE(compiler.compile(RSE::SHADER_CANVAS_ITEM, source, &actions, "phase3", generated) == OK);
+	String output;
+	for (int stage = 0; stage < ShaderCompiler::STAGE_MAX; stage++) {
+		output += generated.stage_globals[stage];
+	}
+	CHECK(output.contains(String::num_scientific(float(0.123456789))));
+	CHECK(output.contains("2.0"));
+}
+
+TEST_CASE("[ShaderLanguage][Phase3] Unbracketed unary expressions in uniform ranges") {
+	ShaderLanguage::ShaderCompileInfo info;
+	info.shader_types.insert("canvas_item");
+	for (const char *range : { "-2.0 * 3.0, 2.0 * 3.0", "(-2.0) * 3.0, 2.0 * 3.0" }) {
+		ShaderLanguage language;
+		const String code = String("shader_type canvas_item; uniform float value : hint_range(") + range + ", 0.1) = 0.0;";
+		REQUIRE_MESSAGE(language.compile(code, info) == OK, language.get_error_text());
+		const auto *uniform = language.get_shader()->uniforms.getptr("value");
+		REQUIRE(uniform != nullptr);
+		CHECK(uniform->hint_range[0] == doctest::Approx(-6.0));
+		CHECK(uniform->hint_range[1] == doctest::Approx(6.0));
+	}
+}
+
+TEST_CASE("[ShaderLanguage][Phase3] Struct names cannot reuse functions") {
+	ShaderLanguage::ShaderCompileInfo info;
+	info.shader_types.insert("canvas_item");
+	ShaderLanguage invalid;
+	CHECK(invalid.compile("shader_type canvas_item; void foo() {} struct foo { int value; };", info) != OK);
+	ShaderLanguage valid;
+	CHECK_MESSAGE(valid.compile("shader_type canvas_item; void foo() {} struct bar { int value; };", info) == OK, valid.get_error_text());
+}
 
 TEST_CASE("[ShaderLanguage][FourthFixBatch] Struct comparisons avoid scalar constant evaluation") {
 	ShaderLanguage::ShaderCompileInfo info;

@@ -7759,6 +7759,7 @@ ShaderLanguage::Node *ShaderLanguage::_parse_expression(BlockNode *p_block, cons
 					_set_error(vformat(RTR("Invalid arguments to unary operator '%s': %s."), get_operator_text(op->op), at));
 					return nullptr;
 				}
+				expression.write[i].node = _reduce_expression(p_block, expression.write[i].node);
 				expression.remove_at(i + 1);
 			}
 
@@ -9377,7 +9378,7 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 				tk = _get_token();
 				if (tk.type == TK_IDENTIFIER) {
 					st.name = tk.text;
-					if (shader->constants.has(st.name) || shader->structs.has(st.name)) {
+					if (shader->functions.has(st.name) || shader->constants.has(st.name) || shader->structs.has(st.name)) {
 						_set_redefinition_error(String(st.name));
 						return ERR_PARSE_ERROR;
 					}
