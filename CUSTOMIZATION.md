@@ -1261,6 +1261,47 @@ Gradle 保留 AGP 8.6.1 对 compileSdk 36 的兼容性提示及既有 Java/Kotli
 工作区交付目录为 `../godot-net10-android-delivery/`，包含模板、未签名 fixture、匹配 NuGet 包、可复现项目、
 许可证、manifest 和关键日志；完整调查及失败尝试保留在 `../godot-net10-android-validation/`。
 
+### 10.4 Android Mono trimming 实验性适配（当前工作）
+
+本节优先于第二阶段的“Android trimming 暂缓”限制。恢复已发布的 `0630831` 源码后单独适配，
+不把旧工作区 APK 体积当成本轮 baseline。SDK/API 包版本更新为 `4.7.2-2dtrim.3`，避免缓存中旧 SDK
+继续拒绝 trimming；runtime 与模板内 crypto JAR 仍严格配对 `10.0.12`。
+
+- `dotnet/publish_mode=1` 现在选择实验性 **Mono trimmed JIT**，`0` 保持原 untrimmed Mono；
+  Android CoreCLR / NativeAOT 继续拒绝。导出类型仍可选 **APK**，预编译模板与关闭 Gradle 的导出路径保留
+- 继续精确保留 `InitializeFromGameProject`，不保留整个 game assembly；静态脚本/泛型闭包注册和
+  trim-safe callbacks 从该入口直接可达。Mono 自身的 descriptor 保留运行时内部 native-to-managed 入口
+- 修正一个现存 SDK 时序问题：项目正文设置 `PublishTrimmed=true` 时，旧 props 在该值出现前便计算
+  `GODOT_TRIMMED`，可能留下反射 JIT fallback。现在在 targets 中计算；已用旧 SDK 负对照确认旧常量缺失
+- Android 直接调用 Mono `coreclr_create_delegate`，不需要桌面 hostfxr 的 ComponentActivator 保留开关；
+  该开关仅用于非 Android trimmed JIT。保留 crypto `.so`、Java preload/JNI 与匹配 JAR，不屏蔽 trim 警告
+- native loader 接受显式 `jit` / `trimmed-jit` marker，并检查 native entrypoint resolution 返回码；
+  旧模板仍拒绝新 marker，因此必须使用匹配重建模板
+
+当前本地通过：Linux editor + .NET API/tools/SDK 构建、source-generator **66/66**、SDK 正反配置
+**10/10**、APK 检查器/重打包合成负对照 **13/13**、CI helper **12/12**、SAF/JNI native **3 tests / 24 assertions**。
+新的 fixture 已完成 untrimmed Android Mono publish 和 IL/runtime inventory 检查；同 fixture 在 Linux
+editor 执行了脚本/属性/方法/信号/泛型、ETC2 texture load、异步 signal、正常 globalization、主线程和线程池
+crypto 检查。**这些 Linux 执行结果不是 Android 设备验证，也不是 trimming 后的执行结果。**
+
+真实 trimmed Android fixture 编译后仍停在本地禁止 Unix socket 的 ILLink TaskHostFactory 阶段
+（MSB4216 / MSB4027）；没有禁用 task host 或削弱分析器。Windows full CI 中新增同项目、同 RID、同
+runtime、同 symbol/globalization 配置的两模式 publish/metadata 检查与 payload artifact；未运行的 CI
+不能算作通过。当前尚无经过验证的 trimmed APK、体积节省百分比或 Android 真机结果。
+
+合并已发布的 13 项修复后，重新构建 Linux editor 与 Android arm64 ThinLTO Release，
+聚焦 native **10/10 tests、55 assertions** 和同一 Linux fixture 再次通过。已用生产导出器执行
+**关闭 Gradle 的预编译模板 APK 导出**（untrimmed Mono）：模板 **17,594,966 B**，未签名游戏
+**33,263,019 B**；这两项不是 trimming 收益。最终 APK 的 186 项 sparse-PCK size/MD5、ZIP CRC、
+16 KiB ELF/ZIP alignment、API 29/36、ARM64、crypto JNI Java 类和 ETC2 资源检查通过。
+Gradle 对原生库又 strip 了 8 字节，记录了 SCons 原件与最终打包件的分别 hashes；模板和游戏内
+engine native bytes 完全相同，11 项 Mono native/JAR/DEX 与真实 publish payload 匹配。
+当前 ADB 没有连接设备；本地 headless 工具的 fontconfig/ADB 和 Gradle metrics 诊断不被称为设备验收。
+精确源版本与各项边界：[trim_local_results.json](misc/android_dotnet_validation/trim_local_results.json)。
+
+详见 [Android trimming 验证说明](misc/android_dotnet_validation/README.md)。真实设备上的 Mono 启动、
+Vulkan、JNI/crypto、生命周期与 SAF grants 仍是发布前验收要求；不推广到其它 ABI 或 AAB。
+
 <a id="upstream-medium-batch"></a>
 ## 24. 后续 13 项中低优先级回移（2026-10-01）
 
@@ -1303,3 +1344,10 @@ GitHub 通过树等价的分组提交发布，connector 生成的提交哈希可
 预览交互延迟与 RenderingDevice 调试名称没有真实 GUI/GPU 验收，
 相关补丁采用上游代码核对和编辑器编译验证；其余可执行回归覆盖容器生命周期、哈希、URI、
 shader parser/compiler 以及 TextEdit / RichTextLabel。按批量风险验证，不重跑 LTO、Android 或三发布模式矩阵。
+
+### 24.2 后续音频启动延迟调查（暂缓优化）
+
+用户已选择等待 PC 实机数据，再决定是否优化 `AudioStreamPlayer2D` 的启动调度。
+当前内部测量提示与物理帧相关的等待；60 Hz 的一帧约 16.7 ms，但这不是声卡/扬声器实际出声延迟。
+后续先在用户实机对比普通 `AudioStreamPlayer` 与 `AudioStreamPlayer2D`，再据数据选择窄改动，
+保留位置、距离衰减和 bus 路由语义。本轮不改音频生产代码，也不把这项调查加入 CI 矩阵。

@@ -47,7 +47,9 @@ jobs:
       - name: Lint workflow
         run: python .github/ci/install_tool.py actionlint
       - name: Check CI helper tests
-        run: python -m unittest discover -s .github/ci -p 'test_*.py' -v
+        run: |
+          python -m unittest discover -s .github/ci -p 'test_*.py' -v
+          python -m unittest discover -s misc/android_dotnet_validation -p 'test_*.py' -v
 
   build:
     name: Windows x64 MSVC editor and .NET
@@ -103,6 +105,30 @@ jobs:
       - name: Export and run JIT, trimmed JIT and NativeAOT with the same LTO template
         if: env.PACKAGE_BUILD == 'true'
         run: python .github/ci/pipeline.py export
+      - name: Validate experimental Android Mono trimmed managed payload
+        if: env.PACKAGE_BUILD == 'true'
+        run: |
+          python misc/android_dotnet_validation/check_sdk_guards.py bin/ci-logs/android-sdk-guards
+          python misc/android_dotnet_validation/run_publish_validation.py bin/ci-android-mono
+      - name: Upload Android Mono publish evidence (not a device test or APK)
+        if: always() && env.PACKAGE_BUILD == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-mono-publish-${{ github.sha }}
+          path: |
+            bin/ci-android-mono/*.json
+            bin/ci-android-mono/*.log
+            bin/ci-android-mono/*/publish/
+            bin/ci-android-mono/*/project/*.cs
+            bin/ci-android-mono/*/project/*.csproj
+            bin/ci-android-mono/*/project/*.godot
+            bin/ci-android-mono/*/project/*.tscn
+            bin/ci-android-mono/*/project/*.png
+            bin/ci-android-mono/*/project/*.import
+            bin/ci-android-mono/*/project/global.json
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 14
       - name: Save LTO template cache after a successful full build
         if: env.PACKAGE_BUILD == 'true'
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0

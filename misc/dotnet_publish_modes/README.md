@@ -41,8 +41,9 @@ Current development: Linux x86_64 / .NET SDK 8.0.425. Windows and macOS source i
 ## .NET 10 migration
 
 The current source targets .NET SDK 10.0.401 / runtime 10.0.12 and custom SDK
-`4.7.2-2dtrim.2`. The .NET 8 results above are historical. The native-host trim
-property is retained and rechecked as part of the migration. Android is explicitly
-limited to untrimmed .NET 10 Mono with the matching 10.0.12 crypto JAR; desktop
-trimmed-JIT/NativeAOT settings must not be applied to Android. See CUSTOMIZATION.md
-section 10 for the current validation matrix and limits.
+`4.7.2-2dtrim.3`. The .NET 8 results above are historical. The native-host trim
+property is retained and rechecked as part of the migration. Android supports untrimmed Mono JIT and experimental trimmed Mono JIT with the
+matching 10.0.12 crypto JAR. Android CoreCLR and NativeAOT remain rejected. The
+Android direct Mono host does not require desktop ComponentActivator preservation.
+See [Android validation](../android_dotnet_validation/README.md) for current
+checks, the local ILLink IPC blocker, and device acceptance requirements.

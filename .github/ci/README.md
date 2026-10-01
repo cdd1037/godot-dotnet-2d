@@ -97,7 +97,7 @@ the three exported modes run only in the existing full-build pipeline.
 ## Tag and package-version policy
 
 A tag names a tested source commit; it does **not** rewrite `version.py` or change
-the generated NuGet version. The current `4.7.2-2dtrim.2` package version is included
+the generated NuGet version. The current `4.7.2-2dtrim.3` package version is included
 in the manifest and draft notes. Before distributing different source versions
 through a shared feed, give them unique package versions in a reviewed version
 change. Never overwrite a published NuGet version or move a published tag.
@@ -138,3 +138,19 @@ Commit-body mentions and pull-request titles/messages do not enable it. Ordinary
 pushes and PRs keep the lightweight path. The opt-in runs the one LTO template,
 three managed publishing modes and Actions artifact upload; release creation
 remains restricted to the existing validated tag push job.
+
+
+## Experimental Android Mono publish checks
+
+Full CI also publishes the same Android Mono fixture as untrimmed and trimmed
+JIT on the Windows host, using the plain `net10.0` framework, `android-arm64` RID,
+SDK `10.0.401`, and paired Mono runtime/crypto JAR `10.0.12`. The inspector checks
+the native-host entrypoint, removal of an unused type and JIT constructor fallback,
+native payload equality, and managed-byte totals. Both payload inventories and
+payloads are uploaded as `android-mono-publish-<commit>` for reproducible packaging.
+
+This step does not build an Android native template, invoke MAUI/Gradle, run an
+Android device, or claim automatic trimmed APK export success. Ordinary pushes
+still use the existing lighter path. APK and sparse-index negative controls run
+in the fast check job. See `misc/android_dotnet_validation/README.md` for the
+separate experimental repack procedure and its limits.

@@ -7,10 +7,10 @@ continues to use the fork's POSIX implementation.
 
 ## Paired toolchain and managed runtime
 
-- Build SDK: .NET 10.0.401; Godot SDK/API package: `4.7.2-2dtrim.2`
+- Build SDK: .NET 10.0.401; Godot SDK/API package: `4.7.2-2dtrim.3`
 - Android game target: `net10.0`, Mono runtime `10.0.12`, standard Android RID
 - The native crypto JAR is taken from the same Microsoft Mono runtime package
-- SDK/export guards reject Android CoreCLR, trimmed publishing and NativeAOT
+- SDK/export guards reject Android CoreCLR and NativeAOT; trimmed Mono JIT is experimental
 - Desktop JIT, trimmed JIT and NativeAOT remain separate supported build paths
 - JDK 17; Gradle 8.11.1; Android API 36; build tools 36.1.0; NDK 29.0.14206865
 
@@ -30,7 +30,12 @@ Then run the Gradle `generateGodotMonoTemplates` task, or the equivalent SCons
 `generate_android_binaries=yes` option. Build the desktop editor, regenerate its
 Mono glue, and build matching managed assemblies before exporting a game.
 
-Use an Android export preset with arm64, Vulkan, and `dotnet/publish_mode=0`.
+Use an Android export preset with arm64 and Vulkan. `dotnet/publish_mode=0` keeps
+untrimmed Mono JIT; `1` enables experimental trimmed Mono JIT for known scripts.
+Both retain ordinary APK export with a precompiled template and Gradle disabled.
+Use the matching rebuilt template and SDK; older templates reject the trimmed marker.
+See [trimming validation](../../misc/android_dotnet_validation/README.md) for
+rooting policy, reproducible checks, and device-verification limits.
 Enable `rendering/textures/vram_compression/import_etc2_astc` and reimport assets.
 ETC2 is the conservative baseline; ASTC is optional and should be selected only
 for a known supporting device set. Windows/Linux desktop texture imports are
