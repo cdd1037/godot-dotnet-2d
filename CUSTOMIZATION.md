@@ -1,11 +1,11 @@
 # 2D / .NET 定制说明与维护计划
 
-更新：2026-09-30。本文是本 fork 的统一维护入口，记录引擎修改、构建配对、已验证产物和分级待办。
+更新：2026-10-01。本文是本 fork 的统一维护入口，记录引擎修改、构建配对、已验证产物和分级待办。
 
 - **冻结包实现检查点**：`36914aeaa5d291f417afc83c70eb3d03feea19b3`；当前开发源码另包含 [第 9 节首批上游正确性回移](#upstream-first-batch)，冻结包未覆盖
-- **当前开发目标**：全平台 .NET 10 工具链与 Android arm64 / Mono APK 导出；本轮恢复 2D、UI、C# 与 SAF，Android CoreCLR / NativeAOT 继续暂缓。当前实现与验收见第 10 节
+- **当前开发目标**：全平台 .NET 10 工具链与 Android arm64 / Mono APK 导出；本轮恢复 2D、UI、C# 与 SAF，Android CoreCLR / NativeAOT 继续暂缓。当前实现与验收见第 23 节
 - **迁移状态**：当前源码、Windows CI 与新配套 SDK 已迁移至 .NET 10；旧 .NET 8 冻结交付及历史验证不变，不能作为新版本的通过证据
-- **验证状态**：旧包验证按各节历史检查点理解；本轮 .NET 10 / Android 的验证、产物和限制单独记录在第 10 节
+- **验证状态**：旧包验证按各节历史检查点理解；本轮 .NET 10 / Android 的验证、产物和限制单独记录在第 23 节
 - **交付状态**：第一阶段修复已单独同步；第二阶段 .NET 10 / Android 的提交与验证另行记录。旧冻结包不覆盖
 - **规划归并**：原独立 `long-term-planning/LONG_TERM_PLAN.md` 的全部技术规划已并入本文；旧文件保留为历史快照，后续只维护这里
 
@@ -23,6 +23,8 @@
 7. [分级待办与验收](#roadmap)
 8. [长期研究细节与参考](#research)
 9. [首批上游正确性回移](#upstream-first-batch)
+23. [.NET 10 与 Android Mono / SAF](#net10-android)
+24. [后续 13 项回移与上游覆盖范围](#upstream-medium-batch)
 
 <a id="versions"></a>
 ## 1. 版本与项目布局
@@ -147,7 +149,7 @@ PR #116300 的 `_Set` / `_Get` 来源已逐字对比官方合并函数，且在�
 
 ### 3.5 三种真正的导出模式
 
-本节记录桌面发布协议及其验证边界。当前 Android 使用 .NET 10（`net10.0`）/Mono 普通 JIT 预编译 APK 模板，不继承桌面 trimmed JIT / NativeAOT 支持声明；早期 A3 CoreCLR 方案已由第 10 节的新决定取代。
+本节记录桌面发布协议及其验证边界。当前 Android 使用 .NET 10（`net10.0`）/Mono 普通 JIT 预编译 APK 模板，不继承桌面 trimmed JIT / NativeAOT 支持声明；早期 A3 CoreCLR 方案已由第 23 节的新决定取代。
 
 | `dotnet/publish_mode` | 发布物与执行方式 | 脚本/插件边界 |
 |---|---|---|
@@ -1180,13 +1182,13 @@ bin/godot.linuxbsd.editor.x86_64.mono --headless --test --test-case='*RenderingD
 
 
 <a id="net10-android"></a>
-## 10. 第二阶段：.NET 10 与 Android Mono / SAF
+## 23. 第二阶段：.NET 10 与 Android Mono / SAF
 
 本节优先于前面历史规划中的“.NET 10 暂缓”或“Android CoreCLR”描述。最新范围是升级桌面工具、
 GodotSharp、游戏项目与 Windows CI，并恢复 Android 2D/UI/C#、SAF 和普通预编译 APK 导出。
 Android CoreCLR、trimmed JIT 与 NativeAOT 暂缓，SDK 与导出器明确拒绝这些组合。
 
-### 10.1 配对与归因
+### 23.1 配对与归因
 
 - 构建 SDK `10.0.401`、运行时 `10.0.12`；新生成的 API/SDK/SourceGenerators 包为 `4.7.2-2dtrim.2`
 - 官方迁移来源：[123738](https://github.com/godotengine/godot/pull/123738)，并包含
@@ -1202,7 +1204,7 @@ Android CoreCLR、trimmed JIT 与 NativeAOT 暂缓，SDK 与导出器明确拒�
 - [122774](https://github.com/godotengine/godot/pull/122774) 的 Android `.a` 排除规则已纳入打包；
   `.so` 放入 ABI 目录、托管程序集放入资源包，JAR 去重
 
-### 10.2 保留边界与纹理
+### 23.2 保留边界与纹理
 
 默认交付 arm64-v8a、Release APK，并提供匹配的 Debug/Release 模板。其它 ABI 仍有源码导出选项，
 但必须单独构建、配对和验证，不能把 arm64 的结果推广到它们。
@@ -1219,7 +1221,7 @@ ASTC 仅作为已知设备支持时的可选格式，不强迫桌面项目更改
 官方工具版本与下载校验保留在工作区 `../godot-android-toolchain/sdk-provenance.json`，
 本轮日志、源码验证项目和包校验位于 `../godot-net10-android-validation/`。
 
-### 10.3 验证结果与限制
+### 23.3 验证结果与限制
 
 生产源码冻结于 `93e8bff77c1b041fb9c2f2f1c0fcbbb70184d138`，tree 为
 `dab90df3f611f967d2f690fad2acf4ce012bd786`；之后的结果文档不冒充二进制源码版本。
@@ -1244,7 +1246,12 @@ Android full LTO 在 9.7 GiB 环境中，即使限制 linker threads/partition�
 **本地 trimmed JIT 与 NativeAOT 未通过运行验收**：.NET 10 ILLink 的 `TaskHostFactory` 要求 Unix-domain
 socket，而本环境禁止创建该 IPC；两种模式均停在 MSBuild task-host 阶段，没有绕过 task host 或削弱 trim/AOT 检查。
 现有 Windows full/manual CI 已在同一个真实 LTO 模板上增加 JIT / trimmed JIT / NativeAOT 三模式验证，
-普通 push 仍只跑 editor / generator / headless，不增加矩阵；第二阶段同步后须以该 CI 的真实结果为准。
+普通 push 仍只跑 editor / generator / headless，不增加矩阵；第二阶段同步后以该 CI 的真实结果为准。
+
+后续 Windows 验证已完成：提交 `0630831d5de0f98662cfc6bc23815330de12ba04` 的
+[full CI 36795328988](https://github.com/cdd1037/godot-dotnet-2d/actions/runs/36795328988) 通过，
+包括 66 个 generator tests、实际 MSVC full LTO，以及 JIT / trimmed JIT / NativeAOT 三种导出和运行 smoke。
+该结果属于 Windows，不替代 Android 设备验收，也不表示后续未发布源码已通过同一运行。
 
 无 Android 真机/可用硬件虚拟化环境；APK 静态检查与 JVM/provider 测试不等于设备上的 Mono 启动、
 Vulkan 渲染、生命周期、SAF picker 权限或 crypto 验收。其它 ABI 未构建，macOS 仅迁移源码。
@@ -1253,3 +1260,46 @@ Gradle 保留 AGP 8.6.1 对 compileSdk 36 的兼容性提示及既有 Java/Kotli
 结果摘要与 APK hashes：[misc/android_dotnet_validation/results.json](misc/android_dotnet_validation/results.json)。
 工作区交付目录为 `../godot-net10-android-delivery/`，包含模板、未签名 fixture、匹配 NuGet 包、可复现项目、
 许可证、manifest 和关键日志；完整调查及失败尝试保留在 `../godot-net10-android-validation/`。
+
+<a id="upstream-medium-batch"></a>
+## 24. 后续 13 项中低优先级回移（2026-10-01）
+
+审计基线是官方 `4.7.2-stable` 的 `ed1daf0bf001b61586d9930840f2f1394092c079`，
+审计固定上游 master 为 `2490bf30ec229ef3eeda24befb9d80d2226c8d29`。
+**1,362 个 PR 是适用性扫描范围，不是全部合并完成，也不是本 fork 跟随当前 master。**
+原 high 清单仍为 38 完整、1 部分、4 有依据延期；本批另增加 13 项已选择修复（12 medium、1 low；low 为 #122998 调试名称转发）。
+按 PR 记录的来源 merge SHA、集成状态和本地 checkpoint 见
+[misc/upstream_sync/status.json](misc/upstream_sync/status.json)。审计快照不随集成台账改写。
+
+本批只恢复此前已选定的 13 个上游已合并修复，基于远程 `0630831` 重建；
+不混入并行开发的 Android Mono trimming，也不重新启用已删除的 3D/GDScript/渲染后端。
+此前临时工作区的源码与测试产物不可用，因此本节使用重新取回的官方补丁和本次新验证；
+历史的 143 tests / 5912 assertions 不作为本次结果。
+
+| 分组 | 官方来源 | 保留的修复 |
+|---|---|---|
+| 核心容器/字符串 | [121628](https://github.com/godotengine/godot/pull/121628)、[123581](https://github.com/godotengine/godot/pull/123581)、[122089](https://github.com/godotengine/godot/pull/122089)、[123431](https://github.com/godotengine/godot/pull/123431) | 无序删除使用 unsigned 边界检查；clear 不要求元素默认构造；const char 指针按内容哈希；URI 大小写十六进制解码 |
+| Shader / RenderingDevice | [119604](https://github.com/godotengine/godot/pull/119604)、[120968](https://github.com/godotengine/godot/pull/120968)、[121661](https://github.com/godotengine/godot/pull/121661)、[122998](https://github.com/godotengine/godot/pull/122998) | 一元表达式及时折叠；浮点常量确定性格式；struct/function 重名拒绝；SPIR-V 包装传递 shader name |
+| 编辑器预览 | [121459](https://github.com/godotengine/godot/pull/121459)、[123012](https://github.com/godotengine/godot/pull/123012) | 资源预览预算按 process frame 累积；音频预览进度通知约 60Hz 限流且保留完成通知 |
+| 文本控件 | [121226](https://github.com/godotengine/godot/pull/121226)、[121988](https://github.com/godotengine/godot/pull/121988)、[121588](https://github.com/godotengine/godot/pull/121588) | BBCode 图片高度百分比；TextEdit clear 的末行下标；font_size 包裹段落不产生空首行 |
+
+LocalVector 和音频预览仅按此 fork 的头文件/类上下文适配，其余生产补丁直接应用。
+浮点常量格式改变会使既有 shader cache hash 更新一次；没有声称本轮进行了跨平台缓存一致性测量。
+URI 测试覆盖合法的大写、小写和混合十六进制，以及两种 URI API 对 `+` 的既有区别，
+不引入对畸形 `%0G` 等输入的新契约。
+
+### 24.1 本轮验证
+
+本次重新构建 Linux x86_64 editor（tests=yes、optimize=none、lto=none，headless 平台配置）通过。
+- 受影响集合：**187/187 tests、24,303 assertions** 通过，覆盖 LocalVector、HashMap、String、ShaderLanguage、TextEdit、RichTextLabel
+- 其中新增 `[Phase3]` 回归：**7/7 tests、31 assertions** 通过；另外保留上游 URI、TextEdit 与段落嵌套测试
+- CI helper tests：**12/12**；Ruff **0.15.8**、4 个保留 shader generator fixtures、tracked Python/SCons 语法及空白检查通过
+- 测试使用独立可写 HOME/XDG 目录；首次默认用户目录不可写，测试初始化未执行用例，未将该次退出码当作通过
+
+生产分组 checkpoint：core `def819818290351726718d1af20fc7d449972989`，shader `9cb81befe33cbd059be83912a288978c528b0f9a`，
+preview `5c9395ea95c21eb82df7d14198d90435e465e6c1`，text `dfa348c2fe7b3dbc6a99ff83ac429d7c1da839f1`。
+GitHub 通过树等价的分组提交发布，connector 生成的提交哈希可能不同。
+
+预览交互延迟与 RenderingDevice 调试名称没有真实 GUI/GPU 验收，
+相关补丁采用上游代码核对和编辑器编译验证；其余可执行回归覆盖容器生命周期、哈希、URI、
+shader parser/compiler 以及 TextEdit / RichTextLabel。按批量风险验证，不重跑 LTO、Android 或三发布模式矩阵。

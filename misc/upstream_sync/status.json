@@ -1,7 +1,7 @@
 {
-  "updated": "2026-09-30",
+  "updated": "2026-10-01",
   "source_audit_master": "2490bf30ec229ef3eeda24befb9d80d2226c8d29",
-  "publication": "Local stage-1 work; parent coordinates one stage-boundary push after validation. No intermediate GitHub writes. Frozen artifacts unchanged.",
+  "publication": "Published stage 1 and .NET 10/Android base through remote 0630831d5de0f98662cfc6bc23815330de12ba04. This selected 13-PR batch is reconstructed and validated separately; Android Mono trimming is excluded.",
   "scope": "Integration ledger; the original 1362-PR applicability audit remains an immutable snapshot. Ported means source integrated with risk-based verification documented in CUSTOMIZATION.md, not full platform runtime coverage.",
   "original_high_totals": {
     "ported": 38,
@@ -526,9 +526,172 @@
       "status": "ported",
       "batch": "ninth",
       "checkpoint": "72427fff"
+    },
+    {
+      "number": 119604,
+      "title": "Fix shader parsing of unary minus inside unbracketed math expressions",
+      "url": "https://github.com/godotengine/godot/pull/119604",
+      "upstream_merge_sha": "16556607c7ed7f1c750cbdd796e69c90ad0b1007",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-shader",
+      "checkpoint": "9cb81befe33cbd059be83912a288978c528b0f9a",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 120968,
+      "title": "Make shader compiler float constant formatting deterministic",
+      "url": "https://github.com/godotengine/godot/pull/120968",
+      "upstream_merge_sha": "3be35b33515a5a86417303168faf168180abaf6a",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-shader",
+      "checkpoint": "9cb81befe33cbd059be83912a288978c528b0f9a",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 121661,
+      "title": "Prevent using struct with name of an existed function in shaders",
+      "url": "https://github.com/godotengine/godot/pull/121661",
+      "upstream_merge_sha": "2f0dbac72b6c3750416c868f03abcf78c30e7e9a",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-shader",
+      "checkpoint": "9cb81befe33cbd059be83912a288978c528b0f9a",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 122998,
+      "title": "RenderingDevice: Fix the optional second argument in `_shader_create_from_spirv()` not being passed to `shader_create_from_spirv()`",
+      "url": "https://github.com/godotengine/godot/pull/122998",
+      "upstream_merge_sha": "50e97d694dadeb528fd799374e0229cc4041c2d9",
+      "audit_priority": "low",
+      "status": "ported",
+      "batch": "phase3-shader",
+      "checkpoint": "9cb81befe33cbd059be83912a288978c528b0f9a",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 121628,
+      "title": "Check unsigned index in `LocalVector::remove_unordered`",
+      "url": "https://github.com/godotengine/godot/pull/121628",
+      "upstream_merge_sha": "e00ed9d02133d2d0bf7fe657cd23a81d9ca06484",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-core",
+      "checkpoint": "def819818290351726718d1af20fc7d449972989",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 123581,
+      "title": "Fix `LocalVector<T>::clear` when `T` has no default constructor",
+      "url": "https://github.com/godotengine/godot/pull/123581",
+      "upstream_merge_sha": "2d6032814019dcd1d2fa0ed6d4fb3df9ee04c55c",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-core",
+      "checkpoint": "def819818290351726718d1af20fc7d449972989",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 122089,
+      "title": "Fix hash function for `const char *` producing a pointer-based hash instead of a string-based hash",
+      "url": "https://github.com/godotengine/godot/pull/122089",
+      "upstream_merge_sha": "baf56e71f415bcda29a882e823f7f97934fe9a8c",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-core",
+      "checkpoint": "def819818290351726718d1af20fc7d449972989",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 123431,
+      "title": "Fix uri decoding with lower case digits",
+      "url": "https://github.com/godotengine/godot/pull/123431",
+      "upstream_merge_sha": "49e6cc74d51cd2469676545a18e374a13469b1aa",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-core",
+      "checkpoint": "def819818290351726718d1af20fc7d449972989",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 121459,
+      "title": "Fix time limit in `EditorResourcePreview::_idle_callback`",
+      "url": "https://github.com/godotengine/godot/pull/121459",
+      "upstream_merge_sha": "d488d11119b4e0c67619b0c720d7c335ad2d0565",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-preview",
+      "checkpoint": "5c9395ea95c21eb82df7d14198d90435e465e6c1",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 123012,
+      "title": "Don't freeze window until Preview is generated in `AudioStreamImportSettingsDialog`",
+      "url": "https://github.com/godotengine/godot/pull/123012",
+      "upstream_merge_sha": "b9f85e67fda0786aebb6e55ed32b556c2041653e",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-preview",
+      "checkpoint": "5c9395ea95c21eb82df7d14198d90435e465e6c1",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 121226,
+      "title": "Fix RichTextLabel BBCode img height percent",
+      "url": "https://github.com/godotengine/godot/pull/121226",
+      "upstream_merge_sha": "90d901b62d5c4878229850df31b9e43f3564697a",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-text",
+      "checkpoint": "dfa348c2fe7b3dbc6a99ff83ac429d7c1da839f1",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 121988,
+      "title": "[TextEdit] Fix `lines_edited_from` signal in `clear()`",
+      "url": "https://github.com/godotengine/godot/pull/121988",
+      "upstream_merge_sha": "09d8453627161bf0711d6b35a6bf14dc4fe0b3a5",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-text",
+      "checkpoint": "dfa348c2fe7b3dbc6a99ff83ac429d7c1da839f1",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
+    },
+    {
+      "number": 121588,
+      "title": "Fix `RichTextLabel` nesting with `[font_size][p]`",
+      "url": "https://github.com/godotengine/godot/pull/121588",
+      "upstream_merge_sha": "b4559ec82eec2c211847a48a74133143c5379eea",
+      "audit_priority": "medium",
+      "status": "ported",
+      "batch": "phase3-text",
+      "checkpoint": "dfa348c2fe7b3dbc6a99ff83ac429d7c1da839f1",
+      "verification": "CUSTOMIZATION.md section 24; fresh reconstruction, not historical lost-workspace results"
     }
   ],
-  "stage_1_status": "Complete: source frozen at dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7; matched full-LTO A/B and native smoke passed; parent-coordinated stage-boundary publication pending.",
+  "stage_1_status": "Complete and published at a977db90aea43e9d842a47964f094eba96c35e66; matched full-LTO A/B and native smoke passed.",
   "stage_1_source_commit": "dbdaa6e80e37e77447bbb85a3ddbb0d0af52d1b7",
-  "stage_1_measurement": "misc/upstream_sync/stage1_lto_comparison.json"
+  "stage_1_measurement": "misc/upstream_sync/stage1_lto_comparison.json",
+  "phase_3_base_commit": "0630831d5de0f98662cfc6bc23815330de12ba04",
+  "phase_3_selection": {
+    "medium": 12,
+    "low": 1,
+    "scope": "Only these 13 previously selected PRs; 1362 is the audit inventory, not an integration count."
+  },
+  "phase_3_validation": {
+    "native_editor_build": "passed; Linux x86_64, tests=yes, optimize=none, lto=none, headless-only platform options",
+    "affected_tests": 187,
+    "affected_assertions": 24303,
+    "new_regression_tests": 7,
+    "new_regression_assertions": 31,
+    "ci_helper_tests": 12,
+    "static_checks": "Ruff 0.15.8, retained shader fixtures, tracked Python/SCons syntax and whitespace passed",
+    "limits": [
+      "No GUI preview latency measurement",
+      "No real GPU shader debug-name validation",
+      "No LTO or Android or three-mode export rerun for this batch"
+    ]
+  }
 }
