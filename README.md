@@ -1,86 +1,26 @@
-# Godot Engine
+# Godot 2D / .NET fork
 
-## 本 fork：2D / .NET 定制
+基于 Godot 4.7.2 的 2D、UI、C# 定制引擎，当前使用 .NET 10。
+保留桌面工具链与 Android arm64 / Mono、Vulkan、SAF、预编译模板 APK 导出；
+已移除 3D、GDScript、高层多人同步、视频播放等功能。上游通用介绍不代表本 fork 的支持范围。
 
-当前状态、产物与待办从 **[PROJECT_RESULTS.md](PROJECT_RESULTS.md)** 开始；完整改动与历史检查点见
-**[CUSTOMIZATION.md](CUSTOMIZATION.md)**。本 fork 保留 2D/UI/C#，已迁移 .NET 10，并恢复
-Android arm64 / Mono、SAF 和预编译模板 APK 导出；3D、GDScript、iOS/Web 等未恢复。
+## 从这里开始
 
-Android 默认仍为普通 JIT。实验性 Mono trimmed JIT 已完成匹配 CI payload 与测试重打包体积验证：
-**31.7218 → 22.4862 MiB（减少 29.1143%）**。这对 APK 未签名，不代表自动 trimmed 导出或 Android
-真机验收通过。下方原上游介绍不代表本 fork 的全部可用功能。
+- [构建与导出](BUILDING.md)：工具链、配套 SDK/模板、桌面三模式、Android APK
+- [定制与兼容边界](CUSTOMIZATION.md)：保留/删除功能、托管接口、profile 限制、上游来源
+- [当前结果与后续计划](PROJECT_RESULTS.md)：精确源码、CI、交付物、验证缺口和暂缓事项
+- [历史实验与来源附录](PROJECT_HISTORY.md)：旧检查点、测量、失败尝试与详细研究
 
-<p align="center">
-  <a href="https://godotengine.org">
-    <img src="misc/logo/logo_outlined.svg" width="400" alt="Godot Engine logo">
-  </a>
-</p>
+Android 默认是普通 Mono JIT。实验性 trimmed JIT 的匹配未签名测试重打包
+从 **31.7218 降到 22.4862 MiB（29.1143%）**；这不代表自动 trimmed APK 导出或真机验收通过。
+桌面历史包与当前 .NET 10 包不能混用；请先核对结果页中的平台、提交和验证范围。
 
-## 2D and 3D cross-platform game engine
+## 上游与许可
 
-**[Godot Engine](https://godotengine.org) is a feature-packed, cross-platform
-game engine to create 2D and 3D games from a unified interface.** It provides a
-comprehensive set of [common tools](https://godotengine.org/features), so that
-users can focus on making games without having to reinvent the wheel. Games can
-be exported with one click to a number of platforms, including the major desktop
-platforms (Linux, macOS, Windows), mobile platforms (Android, iOS), as well as
-Web-based platforms and [consoles](https://godotengine.org/consoles).
+Godot 是自由开源引擎。本 fork 保留 [MIT 许可](LICENSE.txt)、[第三方版权](COPYRIGHT.txt)、
+[贡献者](AUTHORS.md)和[贡献指南](CONTRIBUTING.md)。分发时同时保留实际随包第三方及 .NET runtime notices。
 
-## Free, open source and community-driven
+[上游官网](https://godotengine.org) · [官方文档](https://docs.godotengine.org) ·
+[上游源码](https://github.com/godotengine/godot) · [社区](https://godotengine.org/community)
 
-Godot is completely free and open source under the very permissive [MIT license](https://godotengine.org/license).
-No strings attached, no royalties, nothing. The users' games are theirs, down
-to the last line of engine code. Godot's development is fully independent and
-community-driven, empowering users to help shape their engine to match their
-expectations. It is supported by the [Godot Foundation](https://godot.foundation/)
-not-for-profit.
-
-Before being open sourced in [February 2014](https://github.com/godotengine/godot/commit/0b806ee0fc9097fa7bda7ac0109191c9c5e0a1ac),
-Godot had been developed by [Juan Linietsky](https://github.com/reduz) and
-[Ariel Manzur](https://github.com/punto-) for several years as an in-house
-engine, used to publish several work-for-hire titles.
-
-![Screenshot of a 3D scene in the Godot Engine editor](https://raw.githubusercontent.com/godotengine/godot-design/master/screenshots/editor_tps_demo_1920x1080.jpg)
-
-## Getting the engine
-
-### Binary downloads
-
-Official binaries for the Godot editor and the export templates can be found
-[on the Godot website](https://godotengine.org/download).
-
-### Compiling from source
-
-[See the official docs](https://docs.godotengine.org/en/latest/engine_details/development/compiling)
-for compilation instructions for every supported platform.
-
-## Community and contributing
-
-Godot is not only an engine but an ever-growing community of users and engine
-developers. The main community channels are listed [on the homepage](https://godotengine.org/community).
-
-The best way to get in touch with the core engine developers is to join the
-[Godot Contributors Chat](https://chat.godotengine.org).
-
-To get started contributing to the project, see the [contributing guide](CONTRIBUTING.md).
-This document also includes guidelines for reporting bugs.
-
-## Documentation and demos
-
-The official documentation is hosted on [Read the Docs](https://docs.godotengine.org).
-It is maintained by the Godot community in its own [GitHub repository](https://github.com/godotengine/godot-docs).
-
-The [class reference](https://docs.godotengine.org/en/latest/classes/)
-is also accessible from the Godot editor.
-
-We also maintain official demos in their own [GitHub repository](https://github.com/godotengine/godot-demo-projects)
-as well as a list of [awesome Godot community resources](https://github.com/godotengine/awesome-godot).
-
-There are also a number of other
-[learning resources](https://docs.godotengine.org/en/latest/community/tutorials.html)
-provided by the community, such as text and video tutorials, demos, etc.
-Consult the [community channels](https://godotengine.org/community)
-for more information.
-
-[![Code Triagers Badge](https://www.codetriage.com/godotengine/godot/badges/users.svg)](https://www.codetriage.com/godotengine/godot)
-[![Translate on Weblate](https://hosted.weblate.org/widgets/godot-engine/-/godot/svg-badge.svg)](https://hosted.weblate.org/engage/godot-engine/?utm_source=widget)
+官方二进制、模板及 NuGet 包不包含本 fork 的定制，不能替代匹配的本地构建和交付物。

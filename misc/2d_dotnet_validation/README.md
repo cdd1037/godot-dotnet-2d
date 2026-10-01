@@ -7,8 +7,11 @@ Vulkan session it also checks real compute dispatch/readback, GPU particle pixel
 
 Build the fork's editor, generate its Mono glue, and build its managed assemblies
 before building this project. Use an isolated NuGet cache and the fork's local
-`bin/GodotSharp/Tools/nupkgs` feed. The current .NET 10 fork package version is
-`4.7.2-2dtrim.2`; older fork, upstream, editor and template artifacts must not be mixed.
+`bin/GodotSharp/Tools/nupkgs` feed. This fixture remains pinned to the .NET 10 checkpoint package
+`4.7.2-2dtrim.2`; current source generates `.3`. Use matching checkpoint artifacts
+for this fixture. Do not treat it as an unchanged current-package regression entrypoint
+or mix upstream, older fork, editor and template artifacts. Current build and
+validation entrypoints are in [BUILDING.md](../../BUILDING.md).
 
 Run `./build.sh /absolute/path/to/fork/bin`. It writes a local ignored NuGet config.
 Then run the matching editor:

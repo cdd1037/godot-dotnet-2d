@@ -2,7 +2,8 @@
 
 This replaces the upstream multi-platform workflow matrix. It changes CI only;
 Linux/macOS source support and the historical MinGW comparison packages remain.
-The Android work is separate and is not built here.
+Android native templates and device execution are not built/tested here. The full
+path also runs the bounded Android Mono publish/IL comparison documented below.
 
 ## Triggers and outputs
 

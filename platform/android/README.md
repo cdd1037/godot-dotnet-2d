@@ -22,13 +22,8 @@ both enter this fork's 2D canvas renderer; neither restores a 3D pipeline.
 
 ## Build and export
 
-From the repository root, with `ANDROID_HOME`, `JAVA_HOME`, .NET, SCons and Gradle
-available, run `misc/build_profiles/build_android_2d.sh`. It builds a normal Debug template and a bounded-ThinLTO Release template, then packages
-the Mono APK templates. Both SCons jobs and LLD backend threads are bounded. For iteration,
-use `scons profile=misc/build_profiles/android_release_2d.py target=template_release lto=none -j8`.
-Then run the Gradle `generateGodotMonoTemplates` task, or the equivalent SCons
-`generate_android_binaries=yes` option. Build the desktop editor, regenerate its
-Mono glue, and build matching managed assemblies before exporting a game.
+Build commands and template outputs are maintained in the root
+[build/export guide](../../BUILDING.md#4-android-模板与普通-apk).
 
 Use an Android export preset with arm64 and Vulkan. `dotnet/publish_mode=0` keeps
 untrimmed Mono JIT; `1` enables experimental trimmed Mono JIT for known scripts.
@@ -44,8 +39,8 @@ the PCK, duplicate JARs are deduplicated, and static `.a` linker inputs are excl
 
 SAF access requires the app to obtain a valid Android content/tree URI and the
 corresponding permission grant from the system picker. Ordinary filesystem
-paths retain their prior behavior. See the project-root CUSTOMIZATION.md for
-source attribution, build evidence and device-verification limits.
+paths retain their prior behavior. See [current customization](../../CUSTOMIZATION.md#android-专属边界) for
+source attribution and [results](../../PROJECT_RESULTS.md) for verification limits.
 
 Full LTO exceeded the validation machine’s RAM budget even with bounded threads.
 This is a build-environment limit, not a claim that Android cannot use full LTO.

@@ -7,10 +7,7 @@ and the navigation API (without the optional navigation backend).
 
 The maintained profile uses `optimize=size`, no debug symbols, and full LTO:
 
-```sh
-scons profile=misc/build_profiles/linux_release_minimal_extra.py \
-    use_llvm=no -j4
-```
+The maintained command is in [BUILDING.md](../../BUILDING.md#2-桌面-release-模板).
 
 Use the resulting
 `bin/godot.linuxbsd.template_release.x86_64.minimal_extra.mono` as a custom release
@@ -50,7 +47,7 @@ Windows was not rebuilt or runtime-tested.
 
 - This adds no Linux CI or automatic release job. Both minimal-extra profiles
   retain Brotli for the default font.
-- The measurements above belong to the .NET 8 checkpoint. Current source targets .NET 10; see CUSTOMIZATION.md section 10. This historical profile report does not itself validate the
+- The measurements above belong to the .NET 8 checkpoint. Current source targets .NET 10; see [current results](../../PROJECT_RESULTS.md). This historical profile report does not itself validate the
   .NET 10 or Android migration.
 - The output is a native template, not a complete export with GodotSharp,
   application assemblies or the .NET runtime. Use the matching fork's SDK and

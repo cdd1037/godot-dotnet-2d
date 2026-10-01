@@ -1,4 +1,4 @@
-# .NET publishing modes (experimental Linux validation)
+# .NET publishing mode contract
 
 The export preset option `dotnet/publish_mode` selects:
 
@@ -14,7 +14,7 @@ The standard editor remains JIT. AOT does not contain a fallback JIT and cannot 
 
 Godot loads `GodotPlugins.Game.Main.InitializeFromGameProject`. The SDK roots this precise method for ILLink rather than adding a console `Main` or retaining every game method. NativeAOT exports `godotsharp_game_main_init` in the game shared library.
 
-Trimmed JIT additionally needs .NET native-host component activation. The SDK sets `_EnableConsumingManagedCodeFromNativeHosting` for this mode. This is a **.NET 8 SDK internal, version-sensitive property**; retest it when upgrading the SDK. .NET emits an IL2026 native-hosting warning, which is intentionally not suppressed. Only the known Godot entrypoint and explicit script registrations are tested; arbitrary native-host activation targets are not promised.
+Desktop trimmed JIT additionally needs .NET native-host component activation. The SDK sets `_EnableConsumingManagedCodeFromNativeHosting` for this mode. This is an **SDK-internal, version-sensitive property**, introduced here during .NET 8 work and rechecked for .NET 10; retest it when upgrading the SDK. Android direct Mono hosting does not use this property. .NET emits an IL2026 native-hosting warning, which is intentionally not suppressed. Only the known Godot entrypoint and explicit script registrations are tested; arbitrary native-host activation targets are not promised.
 
 ## Known script metadata and libraries
 
@@ -36,7 +36,7 @@ Compare the same scene, native template, RID, configuration, globalization setti
 
 The SDK does not force invariant globalization. Tests of Godot's Chinese text rendering do not validate .NET culture APIs. A normal-globalization comparison must exercise those APIs independently.
 
-Current development: Linux x86_64 / .NET SDK 8.0.425. Windows and macOS source is retained but these publishing modes have not been validated on those systems.
+Historical initial validation used Linux x86_64 / .NET SDK 8.0.425. Current .NET 10 Windows full CI has exported and run all three modes; this does not validate hardware Vulkan or macOS. Exact source revisions and CI evidence are maintained in [project results](../../PROJECT_RESULTS.md).
 
 ## .NET 10 migration
 
