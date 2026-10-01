@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import configparser
 import hashlib
 import json
 import os
@@ -170,8 +171,32 @@ class HelperTests(unittest.TestCase):
             root = Path(temp)
             smoke = root / "smoke"
             smoke.mkdir()
-            with patch.multiple(pipeline, ROOT=root, SMOKE=smoke), patch("pipeline.run", return_value="") as run:
+            export_names = ["smoke-export", "smoke-export-trimmed-jit", "smoke-export-aot"]
+            modes = []
+
+            def inspect_preset(args, name, *unused):
+                if name in export_names:
+                    config = configparser.ConfigParser(interpolation=None)
+                    config.read(smoke / "export_presets.cfg", encoding="utf-8")
+                    preset = config["preset.0"]
+                    # These keys are read without defaults by EditorExport.
+                    for key, value in {
+                        "name": '"CI Windows"',
+                        "platform": '"Windows Desktop"',
+                        "export_filter": '"all_resources"',
+                        "include_filter": '""',
+                        "exclude_filter": '""',
+                    }.items():
+                        self.assertEqual(preset[key], value)
+                    modes.append(config.getint("preset.0.options", "dotnet/publish_mode"))
+                return ""
+
+            with (
+                patch.multiple(pipeline, ROOT=root, SMOKE=smoke),
+                patch("pipeline.run", side_effect=inspect_preset) as run,
+            ):
                 pipeline.export()
+            self.assertEqual(modes, [0, 1, 2])
             self.assertEqual(run.call_count, 6)
             calls = [call.args for call in run.call_args_list]
             self.assertEqual(

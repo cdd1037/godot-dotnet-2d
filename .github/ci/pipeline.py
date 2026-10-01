@@ -217,7 +217,8 @@ def export() -> None:
         suffix = "" if mode == 0 else f"-{name}"
         (SMOKE / "export_presets.cfg").write_text(
             '[preset.0]\nname="CI Windows"\nplatform="Windows Desktop"\nrunnable=true\n'
-            'export_filter="all_resources"\nscript_export_mode=2\n\n[preset.0.options]\n'
+            'export_filter="all_resources"\ninclude_filter=""\nexclude_filter=""\n'
+            "script_export_mode=2\n\n[preset.0.options]\n"
             f'custom_template/release="{TEMPLATE.as_posix()}"\n'
             'binary_format/architecture="x86_64"\nbinary_format/embed_pck=false\n'
             f"dotnet/publish_mode={mode}\ndotnet/include_debug_symbols=false\n"
