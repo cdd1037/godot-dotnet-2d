@@ -1,7 +1,7 @@
 {
   "updated": "2026-10-01",
   "source_audit_master": "2490bf30ec229ef3eeda24befb9d80d2226c8d29",
-  "publication": "Published stage 1 and .NET 10/Android base through remote 0630831d5de0f98662cfc6bc23815330de12ba04. This selected 13-PR batch is reconstructed and validated separately; Android Mono trimming is excluded.",
+  "publication": "Stage 1 and .NET 10/Android base published through 0630831d5de0f98662cfc6bc23815330de12ba04; selected 13-PR batch published at 4060b758fa3d613ae1a66f19b00ca61de3c0a12e and integrated into Android trimming source 1ffed16b32f0ca41b8fe3dc09144ce861fdbb0fa. Android trimming results are separate in misc/android_dotnet_validation/trim_ci_apk_results.json and do not change this selective upstream audit scope.",
   "scope": "Integration ledger; the original 1362-PR applicability audit remains an immutable snapshot. Ported means source integrated with risk-based verification documented in CUSTOMIZATION.md, not full platform runtime coverage.",
   "original_high_totals": {
     "ported": 38,

@@ -117,3 +117,24 @@ all 186 sparse-PCK records were checked. Gradle's extra strip pass removes eight
 bytes from the SCons engine input; both hashes are recorded rather than falsely
 claiming those two intermediate files are byte-identical. Device execution and
 automatic trimmed export remain unverified.
+
+
+## Completed full-CI and matched APK comparison (2026-10-01)
+
+[Full CI 36810309486](https://github.com/cdd1037/godot-dotnet-2d/actions/runs/36810309486)
+passed for source `1ffed16b32f0ca41b8fe3dc09144ce861fdbb0fa`. This supersedes only the
+pending-CI status in the historical local checkpoint; local ILLink IPC remains restricted.
+See [trim_ci_apk_results.json](trim_ci_apk_results.json) for exact provenance and hashes.
+
+Matched unsigned test repacks measure **33,262,746 → 23,578,521 bytes**, saving
+**9,684,225 bytes (29.1143%)**. Managed assemblies measure 28,017,248 → 2,989,056 bytes;
+Mono native runtime is unchanged at 4,789,424 bytes. Native-host initialization stays rooted;
+the unused sentinel and reflection-construction fallback disappear in trimmed IL.
+Native/JAR/DEX/non-managed resources, sparse-PCK size/MD5, SHA512 publish manifests,
+ZIP CRC, identical APK badging, and 16 KiB ELF/ZIP alignment were checked.
+
+These are static/size results from verified CI payloads in a genuine no-Gradle export,
+not an automatic trimmed-export test or Android device run. Ordinary JIT remains the default.
+Historical `trim_local_results.json` stays unchanged. The compact evidence ZIP contains
+reports and reproduction scripts, not the APKs or large CI payloads. See the root
+[project results index](../../PROJECT_RESULTS.md) for retained artifacts and open acceptance work.

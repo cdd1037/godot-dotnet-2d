@@ -1,0 +1,66 @@
+{
+  "source_commit": "1ffed16b32f0ca41b8fe3dc09144ce861fdbb0fa",
+  "source_tree": "8fb4f8106ceb45231baaf4ce13165afdf36043d1",
+  "ci_run": 36810309486,
+  "ci_artifact_id": 11141170094,
+  "ci_artifact_sha256": "4c64f9aa966a974fcce8d1c9c72b4ed4c632f94b2859232589c16864fc116b82",
+  "method": "Matched test-only repacks of verified CI payloads into one genuine untrimmed APK",
+  "apks": {
+    "jit": {
+      "bytes": 33262746,
+      "sha256": "4caf047d73c90efe3de786b18b41972dbeef5ada70a1b1a995ff9e6963126dfc",
+      "managed_asset_count": 177,
+      "unchanged_native_and_resources": true,
+      "sha512_manifest_verified": true
+    },
+    "trimmed-jit": {
+      "bytes": 23578521,
+      "sha256": "b1406a20778c3ef02bee0757adfcdcbf5b3167c6bce08298e97d64668a8a9920",
+      "managed_asset_count": 13,
+      "unchanged_native_and_resources": true,
+      "sha512_manifest_verified": true
+    }
+  },
+  "saved_bytes": 9684225,
+  "saved_mib": 9.235596656799316,
+  "reduction_percent": 29.114328083436046,
+  "jit_mib": 31.721826553344727,
+  "trimmed_jit_mib": 22.48622989654541,
+  "signed": false,
+  "automatic_trimmed_export_test": false,
+  "android_device_runtime_test": false,
+  "apk_badging_identical": true,
+  "zipalign_16k": true,
+  "native_library_count": 11,
+  "native_elf_inventory_identical": true,
+  "apk_sections": {
+    "jit": {
+      "native_engine": {
+        "stored_bytes": 11881784,
+        "uncompressed_bytes": 33664000
+      },
+      "native_runtime": {
+        "stored_bytes": 5244274,
+        "uncompressed_bytes": 6163760
+      },
+      "other_apk_entries": {
+        "stored_bytes": 15992977,
+        "uncompressed_bytes": 33392486
+      }
+    },
+    "trimmed_jit": {
+      "native_engine": {
+        "stored_bytes": 11881784,
+        "uncompressed_bytes": 33664000
+      },
+      "native_runtime": {
+        "stored_bytes": 5244274,
+        "uncompressed_bytes": 6163760
+      },
+      "other_apk_entries": {
+        "stored_bytes": 6339960,
+        "uncompressed_bytes": 8305910
+      }
+    }
+  }
+}

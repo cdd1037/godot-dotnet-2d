@@ -1,6 +1,6 @@
 # 2D / .NET 定制说明与维护计划
 
-更新：2026-10-01。本文是本 fork 的统一维护入口，记录引擎修改、构建配对、已验证产物和分级待办。
+更新：2026-10-01。本文记录引擎修改、构建配对、已验证产物和分级待办。最新交付与待办摘要见 [PROJECT_RESULTS.md](PROJECT_RESULTS.md)；旧检查点不覆盖后续结果。
 
 - **冻结包实现检查点**：`36914aeaa5d291f417afc83c70eb3d03feea19b3`；当前开发源码另包含 [第 9 节首批上游正确性回移](#upstream-first-batch)，冻结包未覆盖
 - **当前开发目标**：全平台 .NET 10 工具链与 Android arm64 / Mono APK 导出；本轮恢复 2D、UI、C# 与 SAF，Android CoreCLR / NativeAOT 继续暂缓。当前实现与验收见第 23 节
@@ -25,6 +25,7 @@
 9. [首批上游正确性回移](#upstream-first-batch)
 23. [.NET 10 与 Android Mono / SAF](#net10-android)
 24. [后续 13 项回移与上游覆盖范围](#upstream-medium-batch)
+25. [Android trimming 最终 CI 与匹配 APK 结果](#android-trim-final)
 
 <a id="versions"></a>
 ## 1. 版本与项目布局
@@ -51,7 +52,7 @@
 - 其余 `godot-*-validation`、`godot-*-probe`、`godot-build-logs`、`godot-metrics`：保留验证源码、报告、日志、结果与截图；旧运行目录、发布物、托管缓存及大工具下载已回收，不能直接当作现成可运行安装
 
 2026-09-30 按“只保留当前版本”完成旧资料清理。最新 Linux/Windows 冻结交付及 Android 最终补丁不变；历史证据与恢复入口见 [清理记录](../cleanup-records/current-only-20260930/README.md)。
-`../godot-2d-dotnet/` 现在是持有共享 `.git/` 的小型 sparse-checkout 壳，**不可删除此目录或其中 `.git/`**，否则当前主树及完整 Git 历史都会损坏。
+上述是旧工作区的历史布局，不能据此操作当前目录。2026-10-01 恢复工作区实际共享 Git 位于 `godot-dotnet-opt/.git/`；`godot-phase3-recovery/` 为关联工作树。两者及 Git 元数据均保留；清理前以 `git worktree list` 和 `git rev-parse --git-common-dir` 核验。旧路径不存在时不代表对应历史检查点被重新验证。
 
 <a id="engine"></a>
 ## 2. 引擎裁剪与保留能力
@@ -1261,9 +1262,9 @@ Gradle 保留 AGP 8.6.1 对 compileSdk 36 的兼容性提示及既有 Java/Kotli
 工作区交付目录为 `../godot-net10-android-delivery/`，包含模板、未签名 fixture、匹配 NuGet 包、可复现项目、
 许可证、manifest 和关键日志；完整调查及失败尝试保留在 `../godot-net10-android-validation/`。
 
-### 10.4 Android Mono trimming 实验性适配（当前工作）
+### 23.4 Android Mono trimming 实验性适配（本地 CI 前检查点）
 
-本节优先于第二阶段的“Android trimming 暂缓”限制。恢复已发布的 `0630831` 源码后单独适配，
+本节优先于第二阶段的“Android trimming 暂缓”限制；其中“等待 CI”的状态已由第 25 节补充。恢复已发布的 `0630831` 源码后单独适配，
 不把旧工作区 APK 体积当成本轮 baseline。SDK/API 包版本更新为 `4.7.2-2dtrim.3`，避免缓存中旧 SDK
 继续拒绝 trimming；runtime 与模板内 crypto JAR 仍严格配对 `10.0.12`。
 
@@ -1351,3 +1352,44 @@ shader parser/compiler 以及 TextEdit / RichTextLabel。按批量风险验证�
 当前内部测量提示与物理帧相关的等待；60 Hz 的一帧约 16.7 ms，但这不是声卡/扬声器实际出声延迟。
 后续先在用户实机对比普通 `AudioStreamPlayer` 与 `AudioStreamPlayer2D`，再据数据选择窄改动，
 保留位置、距离衰减和 bus 路由语义。本轮不改音频生产代码，也不把这项调查加入 CI 矩阵。
+
+
+<a id="android-trim-final"></a>
+## 25. Android trimming 最终 CI 与匹配 APK 结果
+
+### 25.1 源码与验证来源
+
+- 发布源码：`1ffed16b32f0ca41b8fe3dc09144ce861fdbb0fa`；与本地冻结提交 `a4e385baa2ef83b4dd3f369123faaa2e1dbe2239` 的 tree `8fb4f8106ceb45231baaf4ce13165afdf36043d1` 一致
+- [full CI 36810309486](https://github.com/cdd1037/godot-dotnet-2d/actions/runs/36810309486) 已通过；Android 两模式 publish/IL 验证与 payload artifact 来自这次运行
+- Android native 构建源码 `6f49a280b9846e93f69627c010744527ab2b16ae`；Linux editor 构建源码 `be5c554b8f9922e167d2f58ce22f18853a1a36dd`；之后的文档提交不是新二进制构建
+- .NET SDK `10.0.401`、Mono runtime `10.0.12`、Godot SDK `4.7.2-2dtrim.3`；artifact `11141170094` 的 SHA-256 为 `4c64f9aa966a974fcce8d1c9c72b4ed4c632f94b2859232589c16864fc116b82`
+
+### 25.2 匹配比较结果
+
+使用同一份真实 Godot 无 Gradle 导出的未签名 baseline APK，分别装入经 hash/IL 核验的 CI JIT 与 trimmed-JIT payload；两侧使用相同测试重打包与 ZIP/对齐规则。
+
+| 项目 | 普通 Mono JIT | 实验性 Mono trimmed JIT |
+|---|---:|---:|
+| 完整匹配 APK | 33,262,746 B / 31.7218 MiB | 23,578,521 B / 22.4862 MiB |
+| 托管程序集原始大小 | 28,017,248 B | 2,989,056 B |
+| CI payload 中 Mono native runtime | 4,789,424 B | 4,789,424 B |
+
+完整 APK 减少 **9,684,225 B / 9.2356 MiB / 29.1143%**。真实 baseline 原始 APK 为 33,263,019 B；匹配 JIT 重打包为 33,262,746 B，必须以匹配两侧比较，不能混用 baseline 数字计算收益。
+
+- native-host 初始化入口保留；trim 后 unused sentinel 与 JIT 反射构造 fallback 均消失
+- native/JAR/DEX 和非托管资源逐字节相同；托管 inventory、sparse-PCK size/MD5、SHA512 manifest、ZIP CRC 均通过
+- 11 项 native ELF inventory 相同，ELF 与 ZIP 16 KiB 对齐通过；两侧 APK badging 相同：ARM64、minSdk 29 / targetSdk 36
+- crypto JNI Java 类和 ETC2 资源检查通过；Mono native payload 数字不包含 APK 分类中的独立 C++ runtime，不混用统计口径
+
+机读结果：[trim_ci_apk_results.json](misc/android_dotnet_validation/trim_ci_apk_results.json)；
+具体复现与验收：[Android 验证说明](misc/android_dotnet_validation/README.md)。
+`trim_local_results.json` 原样保留 CI 前本地受限检查点，不以新结果改写历史失败/等待状态。
+
+### 25.3 仍需验收与不变的默认值
+
+这对 APK **未签名、实验性、仅测试重打包**，尚未证明自动一键 trimmed APK 导出，也没有 Android 设备/模拟器运行验收。
+发布前仍需用户真实项目的自动导出、冷启动、Vulkan/ETC2、JNI/crypto、生命周期与 SAF grants 验证。
+默认仍为 untrimmed Mono JIT；Android CoreCLR / NativeAOT 继续拒绝。没有引入 size_extra、Android relocation packing 或新的 profile 优化。
+
+音频待办仍等待用户 PC 实机数据；已保存内部 60 Hz 2D 启动调度约 16.694 ms 的调查，不能称为扬声器物理延迟。
+上游适用性审计仍固定 `2490bf30ec229ef3eeda24befb9d80d2226c8d29` 的 1,362 项快照，原 high 为 38 完整、1 部分、4 延期；后续 13 项独立回移不改写该快照口径。

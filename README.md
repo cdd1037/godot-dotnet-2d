@@ -1,10 +1,14 @@
 # Godot Engine
 
-## 本 fork：2D / .NET 桌面定制
+## 本 fork：2D / .NET 定制
 
-定制范围、引擎与 .NET 改动、匹配构建/产物、验证边界和分级长期待办见
-**[CUSTOMIZATION.md](CUSTOMIZATION.md)**。本 fork 已裁剪 3D、GDScript、移动/Web 等能力；
-下方保留的上游介绍不代表本 fork 的可用功能。Android 恢复、SAF 合并与定制导出尚在规划中。
+当前状态、产物与待办从 **[PROJECT_RESULTS.md](PROJECT_RESULTS.md)** 开始；完整改动与历史检查点见
+**[CUSTOMIZATION.md](CUSTOMIZATION.md)**。本 fork 保留 2D/UI/C#，已迁移 .NET 10，并恢复
+Android arm64 / Mono、SAF 和预编译模板 APK 导出；3D、GDScript、iOS/Web 等未恢复。
+
+Android 默认仍为普通 JIT。实验性 Mono trimmed JIT 已完成匹配 CI payload 与测试重打包体积验证：
+**31.7218 → 22.4862 MiB（减少 29.1143%）**。这对 APK 未签名，不代表自动 trimmed 导出或 Android
+真机验收通过。下方原上游介绍不代表本 fork 的全部可用功能。
 
 <p align="center">
   <a href="https://godotengine.org">
