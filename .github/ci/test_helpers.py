@@ -126,6 +126,17 @@ class HelperTests(unittest.TestCase):
                 value = str(expected).lower()
                 self.assertEqual(output.read_text().strip(), f"build={value}\nfull={value}")
 
+    def test_actions_template_overrides_size_profile_with_speed_and_keeps_full_lto(self):
+        with patch.object(pipeline, "run", side_effect=RuntimeError("stop before native build")) as run:
+            with self.assertRaisesRegex(RuntimeError, "stop before native build"):
+                pipeline.template()
+        command = run.call_args.args[0]
+        self.assertIn("profile=misc/build_profiles/windows_release_minimal_extra.py", command)
+        self.assertIn("optimize=speed", command)
+        self.assertNotIn("optimize=size", command)
+        self.assertIn("lto=full", command)
+        self.assertIn("cache_path=.scons-cache/template", command)
+
     def test_ltcg_requires_real_code_generation(self):
         verify_ltcg("link /LTCG foo.obj\nGenerating code\nFinished generating code\n")
         for text in [

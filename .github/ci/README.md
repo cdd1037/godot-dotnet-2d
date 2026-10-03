@@ -56,7 +56,8 @@ replace .NET 10. These temporary changes are not committed or packaged as source
 
 The editor uses `optimize=speed lto=none`. The template uses
 `misc/build_profiles/windows_release_minimal_extra.py` with `lto=full` and
-`optimize=size`. `platform/windows/detect.py` selects MSVC `/GL` and `/LTCG`.
+an explicit `optimize=speed` override (MSVC `/O2`); the historical size profile
+remains unchanged. `platform/windows/detect.py` selects MSVC `/GL` and `/LTCG`.
 CI checks those effective flags plus real `Generating code` / `Finished generating
 code` linker output before accepting the artifact. It fails instead of calling a
 switch-only build true LTO. Warnings remain visible.
@@ -71,7 +72,8 @@ A fresh checkout does not contain generated GodotSharp bindings. The .NET
 source-generator tests therefore run **after** an editor build and glue generation;
 they are not falsely advertised as a standalone no-native-build check. SCons
 caches keep unchanged objects reusable, with separate editor/template and
-runner-image/compiler/profile keys, each capped at 2 GiB. Native compile jobs use at most
+runner-image/compiler/profile keys, each capped at 2 GiB. Editor caches are saved
+only on successful pushes to the default branch or `dotnet-trim`, never on pull requests. Native compile jobs use at most
 4 workers (or the runner CPU count if smaller). NuGet caches are per-run and never restored from other
 projects. The smoke project maps the four Godot package IDs exclusively to the
 new local fork feed, not official Godot packages with a colliding version.

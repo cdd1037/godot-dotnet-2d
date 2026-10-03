@@ -86,8 +86,8 @@ jobs:
         run: python .github/ci/pipeline.py editor
       - name: Run .NET source generator tests and headless editor smoke
         run: python .github/ci/pipeline.py test
-      - name: Save editor cache on default branch only
-        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+      - name: Save editor cache on default or dotnet-trim branch
+        if: github.event_name == 'push' && github.ref_type == 'branch' && (github.ref_name == github.event.repository.default_branch || github.ref_name == 'dotnet-trim')
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .scons-cache/editor
@@ -97,8 +97,8 @@ jobs:
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .scons-cache/template
-          key: windows-2022-${{ steps.prepare.outputs.image }}-x64-msvc143-extra-size-full-lto-v1-${{ hashFiles('SConstruct', 'platform/windows/detect.py', 'misc/build_profiles/windows_release_minimal_extra.py', '.github/ci/*.py', '.github/ci/smoke/*') }}-${{ github.sha }}
-          restore-keys: windows-2022-${{ steps.prepare.outputs.image }}-x64-msvc143-extra-size-full-lto-v1-${{ hashFiles('SConstruct', 'platform/windows/detect.py', 'misc/build_profiles/windows_release_minimal_extra.py', '.github/ci/*.py', '.github/ci/smoke/*') }}-
+          key: windows-2022-${{ steps.prepare.outputs.image }}-x64-msvc143-extra-speed-full-lto-v1-${{ hashFiles('SConstruct', 'platform/windows/detect.py', 'misc/build_profiles/windows_release_minimal_extra.py', '.github/ci/*.py', '.github/ci/smoke/*') }}-${{ github.sha }}
+          restore-keys: windows-2022-${{ steps.prepare.outputs.image }}-x64-msvc143-extra-speed-full-lto-v1-${{ hashFiles('SConstruct', 'platform/windows/detect.py', 'misc/build_profiles/windows_release_minimal_extra.py', '.github/ci/*.py', '.github/ci/smoke/*') }}-
       - name: Build only the final extra Release LTO template and verify LTCG
         if: env.PACKAGE_BUILD == 'true'
         run: python .github/ci/pipeline.py template
@@ -134,7 +134,7 @@ jobs:
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .scons-cache/template
-          key: windows-2022-${{ steps.prepare.outputs.image }}-x64-msvc143-extra-size-full-lto-v1-${{ hashFiles('SConstruct', 'platform/windows/detect.py', 'misc/build_profiles/windows_release_minimal_extra.py', '.github/ci/*.py', '.github/ci/smoke/*') }}-${{ github.sha }}
+          key: windows-2022-${{ steps.prepare.outputs.image }}-x64-msvc143-extra-speed-full-lto-v1-${{ hashFiles('SConstruct', 'platform/windows/detect.py', 'misc/build_profiles/windows_release_minimal_extra.py', '.github/ci/*.py', '.github/ci/smoke/*') }}-${{ github.sha }}
       - name: Stage editor, NuGet and LTO template archives with checksums
         if: env.PACKAGE_BUILD == 'true'
         run: python .github/ci/pipeline.py package

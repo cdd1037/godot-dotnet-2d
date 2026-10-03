@@ -176,6 +176,7 @@ def test() -> None:
 def template() -> None:
     args = scons("template_release") + [
         "profile=misc/build_profiles/windows_release_minimal_extra.py",
+        "optimize=speed",
         "lto=full",
         "cache_path=.scons-cache/template",
     ]
