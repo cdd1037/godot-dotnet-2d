@@ -9,6 +9,7 @@
 - [构建与导出](BUILDING.md)：工具链、配套 SDK/模板、桌面三模式、Android APK
 - [定制与兼容边界](CUSTOMIZATION.md)：保留/删除功能、托管接口、profile 限制、上游来源
 - [当前结果与后续计划](PROJECT_RESULTS.md)：精确源码、CI、交付物、验证缺口和暂缓事项
+- [作者工作流策略复核](PROJECT_RESULTS.md#41-作者工作流策略复核2026-10-03)：2026-10-03 的证据边界、Godot + 薄 C# 辅助层建议与自研保留条件
 - [历史实验与来源附录](PROJECT_HISTORY.md)：旧检查点、测量、失败尝试与详细研究
 
 Android 默认是普通 Mono JIT。实验性 trimmed JIT 的匹配未签名测试重打包
